@@ -26,7 +26,7 @@ extension DependencyValues {
 }
 
 private enum NotaFileManagerKey: DependencyKey {
-    static let liveValue: NotaFileManagerProtocol = NotaFileManager.live
+    static let liveValue: NotaFileManagerProtocol = NotaFileManager.mock  // TODO: Use live when file system is ready
     static let testValue: NotaFileManagerProtocol = NotaFileManager.mock
 }
 
@@ -75,31 +75,7 @@ protocol ImageManagerProtocol {
 
 // NoteRepository is now defined in NoteRepository.swift
 
-struct NotaFileManager: NotaFileManagerProtocol {
-    static let live = NotaFileManager()
-    static let mock = NotaFileManager()
-    
-    func createNoteFile(_ note: Note) async throws {
-        // TODO: Implement in Week 2
-        print("📄 Creating note file: \(note.fileName)")
-    }
-    
-    func readNoteFile(noteId: String) async throws -> String {
-        // TODO: Implement in Week 2
-        print("📖 Reading note file: \(noteId)")
-        return "# Mock Note\n\nContent..."
-    }
-    
-    func updateNoteFile(_ note: Note) async throws {
-        // TODO: Implement in Week 2
-        print("💾 Updating note file: \(note.fileName)")
-    }
-    
-    func deleteNoteFile(noteId: String) async throws {
-        // TODO: Implement in Week 2
-        print("🗑️ Deleting note file: \(noteId)")
-    }
-}
+// NotaFileManager is now defined in NotaFileManager.swift
 
 struct ImageManager: ImageManagerProtocol {
     static let live = ImageManager()
