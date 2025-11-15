@@ -47,16 +47,39 @@ struct NoteEditorView: View {
                         
                         Divider()
                         
-                        // 编辑器区域
-                        TextEditor(
-                            text: Binding(
-                                get: { store.content },
-                                set: { store.send(.binding(.set(\.content, $0))) }
-                            )
-                        )
-                        .font(.system(.body, design: .monospaced))
-                        .focused($isContentFocused)
-                        .padding(8)
+                        // 编辑器/预览区域
+                        Group {
+                            switch store.viewMode {
+                            case .editOnly:
+                                TextEditor(
+                                    text: Binding(
+                                        get: { store.content },
+                                        set: { store.send(.binding(.set(\.content, $0))) }
+                                    )
+                                )
+                                .font(.system(.body, design: .monospaced))
+                                .focused($isContentFocused)
+                                .padding(8)
+                                
+                            case .previewOnly:
+                                MarkdownPreview(content: store.content)
+                                
+                            case .split:
+                                HSplitView {
+                                    TextEditor(
+                                        text: Binding(
+                                            get: { store.content },
+                                            set: { store.send(.binding(.set(\.content, $0))) }
+                                        )
+                                    )
+                                    .font(.system(.body, design: .monospaced))
+                                    .focused($isContentFocused)
+                                    .padding(8)
+                                    
+                                    MarkdownPreview(content: store.content)
+                                }
+                            }
+                        }
                     }
                 } else {
                     ContentUnavailableView(
