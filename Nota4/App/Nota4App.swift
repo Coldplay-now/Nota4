@@ -27,20 +27,30 @@ struct AppView: View {
     
     var body: some View {
         WithPerceptionTracking {
-            VStack {
-                Image(systemName: "note.text")
-                    .imageScale(.large)
-                    .foregroundStyle(.tint)
-                Text("Nota4")
-                    .font(.largeTitle)
-                Text("v1.0.0-dev")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Text("TCA 架构已初始化")
-                    .font(.caption2)
-                    .foregroundColor(.green)
+            NavigationSplitView(
+                columnVisibility: Binding(
+                    get: { store.columnVisibility },
+                    set: { store.send(.columnVisibilityChanged($0)) }
+                )
+            ) {
+                // 侧边栏
+                SidebarView(
+                    store: store.scope(state: \.sidebar, action: \.sidebar)
+                )
+                .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 250)
+            } content: {
+                // 笔记列表
+                NoteListView(
+                    store: store.scope(state: \.noteList, action: \.noteList)
+                )
+                .navigationSplitViewColumnWidth(min: 280, ideal: 350, max: 500)
+            } detail: {
+                // 编辑器
+                NoteEditorView(
+                    store: store.scope(state: \.editor, action: \.editor)
+                )
             }
-            .padding()
+            .navigationSplitViewStyle(.balanced)
             .frame(minWidth: 800, minHeight: 600)
             .onAppear {
                 store.send(.onAppear)
