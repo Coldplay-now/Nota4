@@ -134,12 +134,16 @@ struct EditorFeature {
                 
             case .loadNote(let id):
                 state.selectedNoteId = id
-                return .run { send in
-                    let note = try await noteRepository.fetchNote(byId: id)
-                    await send(.noteLoaded(.success(note)))
-                } catch: { error, send in
-                    await send(.noteLoaded(.failure(error)))
-                }
+                return .merge(
+                    .cancel(id: CancelID.loadNote),
+                    .run { send in
+                        let note = try await noteRepository.fetchNote(byId: id)
+                        await send(.noteLoaded(.success(note)))
+                    } catch: { error, send in
+                        await send(.noteLoaded(.failure(error)))
+                    }
+                    .cancellable(id: CancelID.loadNote, cancelInFlight: true)
+                )
                 
             case .noteLoaded(.success(let note)):
                 state.note = note
@@ -299,6 +303,7 @@ struct EditorFeature {
     
     enum CancelID {
         case autoSave
+        case loadNote
     }
 }
 
