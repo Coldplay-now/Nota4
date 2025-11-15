@@ -309,4 +309,87 @@ final class EditorFeatureTests: XCTestCase {
         XCTAssertEqual(EditorFeature.State.ViewMode.previewOnly.icon, "eye")
         XCTAssertEqual(EditorFeature.State.ViewMode.split.icon, "rectangle.split.2x1")
     }
+    
+    // MARK: - Test 16: Enhanced Auto Save Debounce
+    
+    func testAutoSaveDebounceEnhanced() async {
+        let testNote = Note(noteId: "test", title: "Test", content: "Initial")
+        var initialState = EditorFeature.State()
+        initialState.note = testNote
+        initialState.content = "Initial"
+        initialState.lastSavedContent = "Initial"
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        } withDependencies: {
+            $0.date = .constant(Date())
+            $0.noteRepository = NoteRepository.mock
+            $0.notaFileManager = NotaFileManager.mock
+            $0.mainQueue = .immediate
+        }
+        
+        store.exhaustivity = .off
+        
+        // Test rapid content changes
+        await store.send(.binding(.set(\.content, "A")))
+        await store.send(.binding(.set(\.content, "AB")))
+        await store.send(.binding(.set(\.content, "ABC")))
+        
+        // Each change should cancel the previous auto-save
+        // Only the last one should trigger auto-save
+        await store.receive(\.autoSave)
+    }
+    
+    // MARK: - Test 17: Delete Note Clears Editor State
+    
+    func testDeleteNoteClearsEditorState() async {
+        var initialState = EditorFeature.State()
+        initialState.selectedNoteId = "test-id"
+        initialState.note = Note(noteId: "test-id", title: "Test", content: "Some content")
+        initialState.content = "Some content"
+        initialState.cursorPosition = 10
+        initialState.title = "Test"
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        } withDependencies: {
+            $0.noteRepository = NoteRepository.mock
+        }
+        
+        await store.send(.deleteNote)
+        
+        // After deletion, verify all editor state is cleared
+        // This test will FAIL because deleteNote doesn't clear state
+        XCTAssertNil(store.state.note, "Note should be nil after deletion")
+        XCTAssertEqual(store.state.content, "", "Content should be cleared after deletion")
+        XCTAssertEqual(store.state.cursorPosition, 0, "Cursor position should be reset after deletion")
+        XCTAssertNil(store.state.selectedNoteId, "Selected note ID should be nil after deletion")
+    }
+    
+    // MARK: - Test 18: Rapid Note Switch Race Condition
+    
+    func testRapidNoteSwitch() async {
+        let store = TestStore(initialState: EditorFeature.State()) {
+            EditorFeature()
+        } withDependencies: {
+            $0.noteRepository = NoteRepository.mock
+        }
+        
+        store.exhaustivity = .off
+        
+        // Rapidly switch between notes
+        await store.send(.loadNote("note-1"))
+        await store.send(.loadNote("note-2"))
+        await store.send(.loadNote("note-3"))
+        
+        // Without proper cancellation, all three loads could complete
+        // We want to verify that only note-3 is loaded
+        // This test will FAIL because loadNote doesn't cancel previous loads
+        
+        // Wait for the load to complete
+        await store.receive(\.noteLoaded.success)
+        
+        // Verify that the final note is note-3
+        XCTAssertEqual(store.state.selectedNoteId, "note-3", "Should load the last requested note")
+    }
 }
