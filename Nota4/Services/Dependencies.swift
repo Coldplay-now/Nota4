@@ -12,7 +12,7 @@ extension DependencyValues {
 }
 
 private enum NoteRepositoryKey: DependencyKey {
-    static let liveValue: NoteRepositoryProtocol = NoteRepository.live
+    static let liveValue: NoteRepositoryProtocol = NoteRepository.mock  // TODO: Use live when DatabaseManager is ready
     static let testValue: NoteRepositoryProtocol = NoteRepository.mock
 }
 
@@ -73,61 +73,7 @@ protocol ImageManagerProtocol {
 
 // MARK: - Mock Implementations
 
-struct NoteRepository: NoteRepositoryProtocol {
-    static let live = NoteRepository()
-    static let mock = NoteRepository()
-    
-    func createNote(_ note: Note) async throws {
-        // TODO: Implement in Week 2
-        print("📝 Creating note: \(note.title)")
-    }
-    
-    func fetchNote(byId noteId: String) async throws -> Note {
-        // TODO: Implement in Week 2
-        print("📖 Fetching note: \(noteId)")
-        return Note.mock
-    }
-    
-    func fetchNotes(filter: NoteListFeature.State.Filter) async throws -> [Note] {
-        // TODO: Implement in Week 2
-        print("📚 Fetching notes with filter")
-        return Note.mockData
-    }
-    
-    func updateNote(_ note: Note) async throws {
-        // TODO: Implement in Week 2
-        print("💾 Updating note: \(note.title)")
-    }
-    
-    func deleteNote(byId noteId: String) async throws {
-        // TODO: Implement in Week 2
-        print("🗑️ Deleting note: \(noteId)")
-    }
-    
-    func deleteNotes(_ noteIds: Set<String>) async throws {
-        // TODO: Implement in Week 2
-        print("🗑️ Deleting \(noteIds.count) notes")
-    }
-    
-    func restoreNotes(_ noteIds: Set<String>) async throws {
-        // TODO: Implement in Week 2
-        print("♻️ Restoring \(noteIds.count) notes")
-    }
-    
-    func permanentlyDeleteNotes(_ noteIds: Set<String>) async throws {
-        // TODO: Implement in Week 2
-        print("💣 Permanently deleting \(noteIds.count) notes")
-    }
-    
-    func fetchAllTags() async throws -> [SidebarFeature.State.Tag] {
-        // TODO: Implement in Week 2
-        return [
-            SidebarFeature.State.Tag(name: "工作", count: 3),
-            SidebarFeature.State.Tag(name: "学习", count: 2),
-            SidebarFeature.State.Tag(name: "生活", count: 1),
-        ]
-    }
-}
+// NoteRepository is now defined in NoteRepository.swift
 
 struct NotaFileManager: NotaFileManagerProtocol {
     static let live = NotaFileManager()
