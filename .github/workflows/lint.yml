@@ -1,0 +1,29 @@
+name: Code Quality
+
+# 只在PR时运行，避免过度消耗资源
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint:
+    name: 代码检查
+    runs-on: macos-14
+    
+    steps:
+      - name: Checkout代码
+        uses: actions/checkout@v4
+      
+      - name: 安装SwiftLint
+        run: brew install swiftlint
+      
+      - name: 运行SwiftLint
+        run: |
+          if [ -f .swiftlint.yml ]; then
+            swiftlint --strict
+          else
+            echo "⚠️ 未找到.swiftlint.yml配置文件，跳过检查"
+            echo "建议：创建.swiftlint.yml配置文件以启用代码质量检查"
+          fi
+        continue-on-error: true  # 不阻塞PR，只作提醒
+

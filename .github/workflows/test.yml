@@ -1,0 +1,39 @@
+name: Tests
+
+# 触发条件：PR和push到main分支
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: 运行测试
+    runs-on: macos-14  # 使用macOS 14 (支持Xcode 15+)
+    
+    steps:
+      - name: Checkout代码
+        uses: actions/checkout@v4
+      
+      - name: 选择Xcode版本
+        run: sudo xcode-select -s /Applications/Xcode_15.2.app
+      
+      - name: 显示Xcode版本
+        run: xcodebuild -version
+      
+      - name: 运行测试
+        run: |
+          xcodebuild test \
+            -scheme Nota4 \
+            -destination 'platform=macOS' \
+            -enableCodeCoverage YES \
+            | xcpretty --color --simple
+        continue-on-error: false
+      
+      - name: 测试总结
+        if: always()
+        run: |
+          echo "✅ 测试完成"
+          echo "查看上方日志了解详细结果"
+

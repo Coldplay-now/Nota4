@@ -1,0 +1,52 @@
+# SwiftLint配置 - 简化版（个体开发者友好）
+
+# 禁用的规则（避免过于严格）
+disabled_rules:
+  - line_length  # 行长度限制
+  - file_length  # 文件长度限制
+  - type_body_length  # 类型长度限制
+  - function_body_length  # 函数长度限制
+  - cyclomatic_complexity  # 圈复杂度
+  - nesting  # 嵌套深度
+  - todo  # 允许TODO注释
+
+# 启用的可选规则（温和版）
+opt_in_rules:
+  - empty_count  # 使用isEmpty而不是count == 0
+  - sorted_imports  # 导入排序
+  - vertical_whitespace_closing_braces  # 闭包前的空行
+
+# 排除的路径
+excluded:
+  - Carthage
+  - Pods
+  - .build
+  - DerivedData
+  - Scripts
+
+# 包含的路径
+included:
+  - Nota4
+  - Nota4Tests
+
+# 标识符命名规则
+identifier_name:
+  min_length: 1  # 允许单字符变量名（如i, x, y）
+  max_length: 50
+  excluded:
+    - id
+    - db
+    - vm
+
+# 类型命名规则
+type_name:
+  min_length: 3
+  max_length: 50
+
+# 强制转换规则
+force_cast: warning  # 警告但不失败
+force_try: warning  # 警告但不失败
+
+# 警告阈值
+warning_threshold: 50  # 50个警告以下不算失败
+
