@@ -40,7 +40,7 @@ extension DependencyValues {
 }
 
 private enum ImageManagerKey: DependencyKey {
-    static let liveValue: ImageManagerProtocol = ImageManager.live
+    static let liveValue: ImageManagerProtocol = ImageManager.mock  // TODO: Use live when ready
     static let testValue: ImageManagerProtocol = ImageManager.mock
 }
 
@@ -77,29 +77,5 @@ protocol ImageManagerProtocol {
 
 // NotaFileManager is now defined in NotaFileManager.swift
 
-struct ImageManager: ImageManagerProtocol {
-    static let live = ImageManager()
-    static let mock = ImageManager()
-    
-    func copyImage(from sourceURL: URL, to noteId: String) async throws -> String {
-        // TODO: Implement in Week 2
-        print("🖼️ Copying image to note: \(noteId)")
-        return "img_001.png"
-    }
-    
-    func deleteImages(forNote noteId: String) async throws {
-        // TODO: Implement in Week 2
-        print("🗑️ Deleting images for note: \(noteId)")
-    }
-    
-    func getImageURL(noteId: String, imageId: String) -> URL {
-        // TODO: Implement in Week 2
-        let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        return documentsURL
-            .appendingPathComponent("NotaLibrary")
-            .appendingPathComponent("attachments")
-            .appendingPathComponent(noteId)
-            .appendingPathComponent(imageId)
-    }
-}
+// ImageManager is now defined in ImageManager.swift
 
