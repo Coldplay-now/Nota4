@@ -246,6 +246,16 @@ struct EditorFeature {
                 
             case .deleteNote:
                 guard let noteId = state.selectedNoteId else { return .none }
+                
+                // 清空所有编辑器状态
+                state.note = nil
+                state.selectedNoteId = nil
+                state.content = ""
+                state.title = ""
+                state.lastSavedContent = ""
+                state.lastSavedTitle = ""
+                state.cursorPosition = 0
+                
                 return .run { send in
                     try await noteRepository.deleteNote(byId: noteId)
                 }
