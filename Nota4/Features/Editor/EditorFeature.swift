@@ -169,7 +169,7 @@ struct EditorFeature {
                 updatedNote.content = state.content
                 updatedNote.updated = date.now
                 
-                return .run { send in
+                return .run { [updatedNote] send in
                     try await noteRepository.updateNote(updatedNote)
                     try await notaFileManager.updateNoteFile(updatedNote)
                     await send(.saveCompleted, animation: .spring())
@@ -240,7 +240,7 @@ struct EditorFeature {
                 note.updated = date.now
                 state.note = note
                 
-                return .run { send in
+                return .run { [note] send in
                     try await noteRepository.updateNote(note)
                 }
                 

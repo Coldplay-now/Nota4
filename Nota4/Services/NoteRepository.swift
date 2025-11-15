@@ -17,7 +17,7 @@ actor NoteRepositoryImpl: NoteRepositoryProtocol {
     
     func createNote(_ note: Note) async throws {
         try await dbQueue.write { [note] db in
-            var mutableNote = note
+            let mutableNote = note
             try mutableNote.insert(db)
             
             // 插入标签
@@ -240,7 +240,7 @@ enum RepositoryError: Error {
 enum NoteRepository {
     static var live: NoteRepositoryProtocol {
         get async throws {
-            let dbManager = try await DatabaseManager.default()
+            let dbManager = try DatabaseManager.default()
             let queue = await dbManager.getQueue()
             return NoteRepositoryImpl(dbQueue: queue)
         }
