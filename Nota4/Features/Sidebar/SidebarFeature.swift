@@ -10,7 +10,11 @@ struct SidebarFeature {
         var selectedCategory: Category = .all
         var tags: [Tag] = []
         var selectedTags: Set<String> = []
-        var categoryCounts: [Category: Int] = [:]
+        var categoryCounts: [Category: Int] = [
+            .all: 0,
+            .starred: 0,
+            .trash: 0
+        ]
         
         // MARK: - Category
         
@@ -56,6 +60,7 @@ struct SidebarFeature {
         case tagToggled(String)
         case loadTags
         case tagsLoaded(Result<[State.Tag], Error>)
+        case loadCounts
         case updateCounts([State.Category: Int])
     }
     
@@ -105,6 +110,20 @@ struct SidebarFeature {
             case .tagsLoaded(.failure(let error)):
                 print("❌ 加载标签失败: \(error)")
                 return .none
+                
+            case .loadCounts:
+                return .run { send in
+                    // 通过加载笔记来计算数量
+                    let allNotes = try await noteRepository.fetchNotes(filter: .all)
+                    let counts: [State.Category: Int] = [
+                        .all: allNotes.filter { !$0.isDeleted }.count,
+                        .starred: allNotes.filter { $0.isStarred && !$0.isDeleted }.count,
+                        .trash: allNotes.filter { $0.isDeleted }.count
+                    ]
+                    await send(.updateCounts(counts))
+                } catch: { error, send in
+                    print("❌ 加载计数失败: \(error)")
+                }
                 
             case .updateCounts(let counts):
                 state.categoryCounts = counts

@@ -18,7 +18,7 @@ struct SidebarView: View {
                         } icon: {
                             Image(systemName: category.icon)
                         }
-                        .badge(store.categoryCounts[category] ?? 0)
+                        .badge(Text("\(store.categoryCounts[category] ?? 0)"))
                         .tag(category)
                     }
                 }
@@ -53,6 +53,7 @@ struct SidebarView: View {
             }
             .onAppear {
                 store.send(.loadTags)
+                store.send(.loadCounts)
             }
         }
     }
