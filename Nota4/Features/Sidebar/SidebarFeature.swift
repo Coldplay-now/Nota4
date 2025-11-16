@@ -114,10 +114,24 @@ struct SidebarFeature {
         case .loadCounts:
             return .run { send in
                 let allNotes = try await noteRepository.fetchNotes(filter: .none)
+                print("📊 [SIDEBAR] Total notes from DB: \(allNotes.count)")
+                
+                let notDeleted = allNotes.filter { !$0.isDeleted }
+                let starred = allNotes.filter { $0.isStarred && !$0.isDeleted }
+                let deleted = allNotes.filter { $0.isDeleted }
+                
+                print("📊 [SIDEBAR] Not deleted: \(notDeleted.count)")
+                print("📊 [SIDEBAR] Starred: \(starred.count)")
+                print("📊 [SIDEBAR] Deleted: \(deleted.count)")
+                
+                if deleted.count > 0 {
+                    print("📊 [SIDEBAR] Deleted notes: \(deleted.map { $0.title })")
+                }
+                
                 let counts: [State.Category: Int] = [
-                    .all: allNotes.filter { !$0.isDeleted }.count,
-                    .starred: allNotes.filter { $0.isStarred && !$0.isDeleted }.count,
-                    .trash: allNotes.filter { $0.isDeleted }.count
+                    .all: notDeleted.count,
+                    .starred: starred.count,
+                    .trash: deleted.count
                 ]
                 await send(.updateCounts(counts))
             } catch: { error, send in
