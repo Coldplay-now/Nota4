@@ -22,10 +22,9 @@ actor MarkdownRenderer {
     ) async throws -> String {
         // 1. 检测并处理 [TOC] 标记
         let hasTOCMarker = markdown.contains("[TOC]") || markdown.contains("[toc]")
-        var processedMarkdown = markdown
         
         // 2. 预处理（提取 Mermaid、数学公式、代码块）
-        let preprocessed = preprocess(processedMarkdown)
+        let preprocessed = preprocess(markdown)
         
         // 3. Markdown → HTML（使用 Ink）
         var html = parser.html(from: preprocessed.markdown)
@@ -96,7 +95,7 @@ actor MarkdownRenderer {
                 range: NSRange(result.startIndex..., in: result)
             )
             
-            for (index, match) in matches.enumerated().reversed() {
+            for (_, match) in matches.enumerated().reversed() {
                 if let range = Range(match.range(at: 1), in: result) {
                     let formula = String(result[range])
                     mathFormulas.insert(.block(formula), at: 0)
@@ -171,12 +170,31 @@ actor MarkdownRenderer {
             let highlighted = highlighter.highlight(code)
             
             let fullRange = Range(match.range, in: result)!
+            // 转义代码内容用于复制按钮
+            let escapedCode = code
+                .replacingOccurrences(of: "&", with: "&amp;")
+                .replacingOccurrences(of: "<", with: "&lt;")
+                .replacingOccurrences(of: ">", with: "&gt;")
+                .replacingOccurrences(of: "\"", with: "&quot;")
+                .replacingOccurrences(of: "'", with: "&#39;")
+            
             result.replaceSubrange(
                 fullRange,
                 with: """
-                <pre class="code-block" data-language="\(language)">
-                    <code class="language-\(language)">\(highlighted)</code>
-                </pre>
+                <div class="code-block-wrapper">
+                    <div class="code-block-header">
+                        <span class="code-language">\(language)</span>
+                        <button class="code-copy-btn" onclick="copyCode(this)" data-code="\(escapedCode)" title="复制代码">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M4 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.5"/>
+                                <path d="M6 6h4M6 9h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <pre class="code-block" data-language="\(language)">
+                        <code class="language-\(language)">\(highlighted)</code>
+                    </pre>
+                </div>
                 """
             )
         }
@@ -371,6 +389,30 @@ actor MarkdownRenderer {
                         el.textContent = formula;
                     }
                 });
+                
+                // 复制代码功能
+                function copyCode(button) {
+                    const code = button.getAttribute('data-code');
+                    // 解码 HTML 实体
+                    const textarea = document.createElement('textarea');
+                    textarea.innerHTML = code;
+                    const decodedCode = textarea.value;
+                    
+                    // 复制到剪贴板
+                    navigator.clipboard.writeText(decodedCode).then(() => {
+                        // 显示复制成功反馈
+                        const originalHTML = button.innerHTML;
+                        button.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l3 3 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+                        button.style.color = '#22c55e';
+                        
+                        setTimeout(() => {
+                            button.innerHTML = originalHTML;
+                            button.style.color = '';
+                        }, 2000);
+                    }).catch(err => {
+                        console.error('Failed to copy:', err);
+                    });
+                }
             </script>
         </body>
         </html>

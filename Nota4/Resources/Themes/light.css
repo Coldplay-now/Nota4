@@ -133,14 +133,67 @@ code {
     font-size: var(--code-font-size);
 }
 
-pre {
-    background: var(--code-background-color);
+/* 代码块容器 */
+.code-block-wrapper {
+    margin: var(--spacing-md) 0;
     border: 1px solid var(--code-border-color);
     border-radius: var(--border-radius-md);
+    overflow: hidden;
+}
+
+/* 代码块头部 */
+.code-block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-xs) var(--spacing-md);
+    background: rgba(0, 0, 0, 0.03);
+    border-bottom: 1px solid var(--code-border-color);
+}
+
+/* 语言标签（左上角）*/
+.code-language {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+    letter-spacing: 0.5px;
+}
+
+/* 复制按钮（右上角）*/
+.code-copy-btn {
+    background: transparent;
+    border: none;
+    color: var(--secondary-text-color);
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    border-radius: var(--border-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.code-copy-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--primary-color);
+}
+
+.code-copy-btn:active {
+    transform: scale(0.95);
+}
+
+.code-copy-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* 代码块 */
+pre {
+    background: var(--code-background-color);
     padding: var(--spacing-md);
-    margin: var(--spacing-md) 0;
+    margin: 0;
     overflow-x: auto;
-    position: relative;
 }
 
 pre code {
@@ -148,20 +201,7 @@ pre code {
     border: none;
     padding: 0;
     display: block;
-}
-
-/* 代码块语言标签 */
-.code-block::before {
-    content: attr(data-language);
-    position: absolute;
-    top: var(--spacing-sm);
-    right: var(--spacing-sm);
-    background: rgba(0, 0, 0, 0.1);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--border-radius-sm);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    color: var(--secondary-text-color);
+    line-height: 1.8;  /* 增加行间距 */
 }
 
 /* 表格 */
