@@ -64,9 +64,9 @@ actor MarkdownRenderer {
         var mermaidCharts: [String] = []
         var mathFormulas: [MathFormula] = []
         
-        // 提取 Mermaid 代码块
-        let mermaidPattern = "```mermaid\\n([\\s\\S]*?)```"
-        if let regex = try? NSRegularExpression(pattern: mermaidPattern) {
+        // 提取 Mermaid 代码块（支持多种换行符和可选空格）
+        let mermaidPattern = "```mermaid\\s*\\r?\\n([\\s\\S]*?)```"
+        if let regex = try? NSRegularExpression(pattern: mermaidPattern, options: []) {
             let matches = regex.matches(
                 in: result,
                 range: NSRange(result.startIndex..., in: result)
@@ -74,14 +74,15 @@ actor MarkdownRenderer {
             
             for (index, match) in matches.enumerated().reversed() {
                 if let range = Range(match.range(at: 1), in: result) {
-                    let chart = String(result[range])
+                    let chart = String(result[range]).trimmingCharacters(in: .whitespacesAndNewlines)
                     mermaidCharts.insert(chart, at: 0)
                     
-                    // 替换为占位符
+                    // 替换为占位符（使用唯一 ID）
                     let fullRange = Range(match.range, in: result)!
+                    let placeholderId = "mermaid-\(UUID().uuidString)"
                     result.replaceSubrange(
                         fullRange,
-                        with: "<div class=\"mermaid-placeholder\" data-index=\"\(index)\"></div>"
+                        with: "\n<div class=\"mermaid-placeholder\" id=\"\(placeholderId)\" data-index=\"\(index)\"></div>\n"
                     )
                 }
             }
@@ -188,13 +189,19 @@ actor MarkdownRenderer {
         var result = html
         
         for (index, chart) in charts.enumerated() {
-            let placeholder = "<div class=\"mermaid-placeholder\" data-index=\"\(index)\"></div>"
-            let mermaidDiv = """
-            <div class="mermaid">
-            \(chart)
-            </div>
-            """
-            result = result.replacingOccurrences(of: placeholder, with: mermaidDiv)
+            // 使用正则匹配占位符（包括可能的 ID）
+            let placeholderPattern = "<div class=\"mermaid-placeholder\"[^>]*data-index=\"\(index)\"[^>]*></div>"
+            
+            if let regex = try? NSRegularExpression(pattern: placeholderPattern, options: []) {
+                let range = NSRange(result.startIndex..., in: result)
+                if let match = regex.firstMatch(in: result, options: [], range: range),
+                   let matchRange = Range(match.range, in: result) {
+                    
+                    // 直接插入 Mermaid 代码，不转义
+                    let mermaidDiv = "<div class=\"mermaid\">\n\(chart)\n</div>"
+                    result.replaceSubrange(matchRange, with: mermaidDiv)
+                }
+            }
         }
         
         return result
@@ -296,7 +303,7 @@ actor MarkdownRenderer {
             <script>
                 // 初始化 Mermaid - 配置所有图表类型
                 mermaid.initialize({ 
-                    startOnLoad: true,
+                    startOnLoad: false,  // 改为 false，手动控制
                     theme: 'default',
                     securityLevel: 'loose',
                     flowchart: {
@@ -348,27 +355,57 @@ actor MarkdownRenderer {
                     pie: {
                         useMaxWidth: true
                     },
-                    logLevel: 'error'
+                    logLevel: 'debug'  // 改为 debug 以便调试
                 });
                 
-                // 手动触发 Mermaid 渲染（更可靠）
-                document.addEventListener('DOMContentLoaded', function() {
-                    mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+                // 等待 DOM 和 Mermaid 完全加载后再渲染
+                window.addEventListener('load', function() {
+                    console.log('🎨 [Mermaid] Starting rendering...');
+                    
+                    const mermaidElements = document.querySelectorAll('.mermaid');
+                    console.log('🎨 [Mermaid] Found', mermaidElements.length, 'diagrams');
+                    
+                    if (mermaidElements.length > 0) {
+                        try {
+                            // 逐个渲染 Mermaid 图表
+                            mermaidElements.forEach((element, index) => {
+                                console.log('🎨 [Mermaid] Rendering diagram', index + 1);
+                                console.log('📄 [Mermaid] Content:', element.textContent.substring(0, 100));
+                                
+                                try {
+                                    mermaid.init(undefined, element);
+                                    console.log('✅ [Mermaid] Diagram', index + 1, 'rendered successfully');
+                                } catch (e) {
+                                    console.error('❌ [Mermaid] Failed to render diagram', index + 1, ':', e);
+                                    element.innerHTML = '<pre style="color: red; border: 1px solid red; padding: 10px;">Mermaid 渲染错误: ' + e.message + '</pre>';
+                                }
+                            });
+                        } catch (e) {
+                            console.error('❌ [Mermaid] Initialization error:', e);
+                        }
+                    } else {
+                        console.log('⚠️ [Mermaid] No diagrams found');
+                    }
                 });
                 
                 // 初始化 KaTeX
-                document.querySelectorAll('.katex-formula').forEach(el => {
-                    const formula = el.dataset.formula;
-                    const isBlock = el.parentElement.classList.contains('math-block');
-                    try {
-                        katex.render(formula, el, {
-                            displayMode: isBlock,
-                            throwOnError: false
-                        });
-                    } catch (e) {
-                        console.error('KaTeX render error:', e);
-                        el.textContent = formula;
-                    }
+                window.addEventListener('DOMContentLoaded', function() {
+                    console.log('🔢 [KaTeX] Starting rendering...');
+                    
+                    document.querySelectorAll('.katex-formula').forEach((el, index) => {
+                        const formula = el.dataset.formula;
+                        const isBlock = el.parentElement.classList.contains('math-block');
+                        try {
+                            katex.render(formula, el, {
+                                displayMode: isBlock,
+                                throwOnError: false
+                            });
+                            console.log('✅ [KaTeX] Formula', index + 1, 'rendered');
+                        } catch (e) {
+                            console.error('❌ [KaTeX] Render error:', e);
+                            el.textContent = formula;
+                        }
+                    });
                 });
             </script>
         </body>
