@@ -11,6 +11,16 @@ struct Note: Codable, Equatable, Identifiable, Hashable {
     /// UUID，唯一标识（文件名）
     let noteId: String
     
+    // MARK: - Hashable
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(noteId)
+    }
+    
+    static func == (lhs: Note, rhs: Note) -> Bool {
+        lhs.noteId == rhs.noteId
+    }
+    
     /// 笔记标题
     var title: String
     

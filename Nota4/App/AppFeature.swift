@@ -10,6 +10,8 @@ struct AppFeature {
         var sidebar = SidebarFeature.State()
         var noteList = NoteListFeature.State()
         var editor = EditorFeature.State()
+        var importFeature: ImportFeature.State?
+        var exportFeature: ExportFeature.State?
         var columnVisibility: NavigationSplitViewVisibility = .all
         
         init() {}
@@ -21,8 +23,14 @@ struct AppFeature {
         case sidebar(SidebarFeature.Action)
         case noteList(NoteListFeature.Action)
         case editor(EditorFeature.Action)
+        case importFeature(ImportFeature.Action)
+        case exportFeature(ExportFeature.Action)
         case onAppear
         case columnVisibilityChanged(NavigationSplitViewVisibility)
+        case showImport
+        case dismissImport
+        case showExport([Note])
+        case dismissExport
     }
     
     // MARK: - App Environment (Dependencies)
@@ -57,6 +65,35 @@ struct AppFeature {
                 
             case .columnVisibilityChanged(let visibility):
                 state.columnVisibility = visibility
+                return .none
+                
+            case .showImport:
+                state.importFeature = ImportFeature.State()
+                return .none
+                
+            case .dismissImport:
+                state.importFeature = nil
+                return .send(.noteList(.loadNotes)) // 刷新笔记列表
+                
+            case .importFeature(.importCompleted):
+                // 导入完成后，延迟关闭并刷新
+                return .run { send in
+                    try await mainQueue.sleep(for: .seconds(1.5))
+                    await send(.dismissImport)
+                }
+                
+            case .importFeature:
+                return .none
+                
+            case .showExport(let notes):
+                state.exportFeature = ExportFeature.State(notesToExport: notes)
+                return .none
+                
+            case .dismissExport:
+                state.exportFeature = nil
+                return .none
+                
+            case .exportFeature:
                 return .none
                 
             // MARK: - Cross-Module Coordination
@@ -102,6 +139,12 @@ struct AppFeature {
             default:
                 return .none
             }
+        }
+        .ifLet(\.importFeature, action: \.importFeature) {
+            ImportFeature()
+        }
+        .ifLet(\.exportFeature, action: \.exportFeature) {
+            ExportFeature()
         }
     }
 }

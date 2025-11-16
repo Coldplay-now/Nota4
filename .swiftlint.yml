@@ -50,3 +50,5 @@ force_try: warning  # 警告但不失败
 # 警告阈值
 warning_threshold: 50  # 50个警告以下不算失败
 
+
+
