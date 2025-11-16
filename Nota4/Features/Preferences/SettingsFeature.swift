@@ -240,10 +240,20 @@ struct SettingsFeature {
                 state.theme.importExportState = .idle
                 return .none
             
+            case .theme(.exportThemeResponse(.success)):
+                state.theme.importExportState = .success
+                return .run { send in
+                    try await mainQueue.sleep(for: .seconds(2))
+                    await send(.theme(.dismissError))
+                }
+            
+            case .theme(.exportThemeResponse(.failure(let error))):
+                state.theme.errorMessage = "导出失败: \(error.localizedDescription)"
+                return .none
+            
             case .theme(.importThemeButtonTapped),
                  .theme(.exportTheme),
                  .theme(.deleteTheme),
-                 .theme(.exportThemeResponse),
                  .theme(.cancelDelete):
                 // These are handled by the view layer
                 return .none

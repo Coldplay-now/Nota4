@@ -1,5 +1,6 @@
 import SwiftUI
 import ComposableArchitecture
+import AppKit
 
 // MARK: - Appearance Settings Panel
 
@@ -53,7 +54,7 @@ struct AppearanceSettingsPanel: View {
                             Spacer()
                             
                             Button {
-                                store.send(.theme(.importThemeButtonTapped))
+                                importTheme()
                             } label: {
                                 Label("导入", systemImage: "square.and.arrow.down")
                             }
@@ -78,7 +79,7 @@ struct AppearanceSettingsPanel: View {
                                             store.send(.theme(.selectTheme(theme.id)))
                                         },
                                         onExport: {
-                                            store.send(.theme(.exportTheme(theme.id)))
+                                            exportTheme(themeId: theme.id, themeName: theme.displayName)
                                         },
                                         onDelete: {
                                             store.send(.theme(.confirmDelete(theme.id)))
@@ -136,6 +137,47 @@ struct AppearanceSettingsPanel: View {
             }
             .onAppear {
                 store.send(.theme(.onAppear))
+            }
+        }
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func importTheme() {
+        let panel = NSOpenPanel()
+        panel.title = "选择主题文件夹"
+        panel.message = "请选择包含 theme.json 的主题文件夹"
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            store.send(.theme(.importTheme(url)))
+        }
+    }
+    
+    private func exportTheme(themeId: String, themeName: String) {
+        let panel = NSSavePanel()
+        panel.title = "导出主题"
+        panel.message = "选择导出位置"
+        panel.nameFieldStringValue = themeName
+        panel.canCreateDirectories = true
+        
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            
+            Task {
+                do {
+                    try await ThemeManager.shared.exportTheme(themeId, to: url)
+                    await MainActor.run {
+                        store.send(.theme(.exportThemeResponse(.success(()))))
+                    }
+                } catch {
+                    await MainActor.run {
+                        store.send(.theme(.exportThemeResponse(.failure(error))))
+                    }
+                }
             }
         }
     }
