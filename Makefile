@@ -7,7 +7,7 @@
 
 ## 快速运行（开发时使用）
 run:
-	@./Scripts/quick_run.sh
+	@./Scripts/direct_run.sh
 
 ## 在 Xcode 中打开项目（编辑代码）
 xcode:
