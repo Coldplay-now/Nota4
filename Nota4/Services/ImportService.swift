@@ -86,25 +86,34 @@ actor ImportServiceImpl: ImportServiceProtocol {
     }
     
     func importMarkdownFile(from url: URL) async throws -> Note {
+        print("📥 [IMPORT] Starting import of Markdown file: \(url.lastPathComponent)")
+        
         // 检查文件扩展名
         guard url.pathExtension == "md" || url.pathExtension == "markdown" else {
+            print("❌ [IMPORT] Invalid file type: \(url.pathExtension)")
             throw ImportServiceError.invalidFileType
         }
         
         // 读取文件内容
         guard let content = try? String(contentsOf: url, encoding: .utf8) else {
+            print("❌ [IMPORT] Failed to read file content")
             throw ImportServiceError.fileReadFailed
         }
+        print("📄 [IMPORT] File content read successfully, length: \(content.count) characters")
         
         // 从文件名提取标题
         let title = url.deletingPathExtension().lastPathComponent
+        print("📝 [IMPORT] Extracted title from filename: '\(title)'")
         
         // 检查是否有 YAML Front Matter
         let note: Note
         if content.hasPrefix("---") {
+            print("🔍 [IMPORT] Found YAML Front Matter, parsing...")
             // 有 YAML Front Matter，尝试解析
             note = try parseNotaContent(content)
+            print("✅ [IMPORT] YAML parsed successfully, title: '\(note.title)'")
         } else {
+            print("📋 [IMPORT] No YAML Front Matter, creating new note")
             // 没有 YAML Front Matter，创建新笔记
             note = Note(
                 noteId: UUID().uuidString,
@@ -113,9 +122,14 @@ actor ImportServiceImpl: ImportServiceProtocol {
                 created: Date(),
                 updated: Date()
             )
+            print("✅ [IMPORT] New note created with ID: \(note.noteId), title: '\(note.title)'")
         }
         
-        return try await createAndSaveNote(note)
+        print("💾 [IMPORT] Saving note to database and filesystem...")
+        let savedNote = try await createAndSaveNote(note)
+        print("✅ [IMPORT] Note saved successfully! ID: \(savedNote.noteId), Title: '\(savedNote.title)'")
+        
+        return savedNote
     }
     
     func importMultipleFiles(from urls: [URL]) async throws -> [Note] {
@@ -247,35 +261,70 @@ extension ImportServiceImpl {
 
 // MARK: - Shared Instance
 
-private enum ImportServiceContainer {
-    static var shared: ImportServiceProtocol = {
-        // 使用 Task 同步初始化
-        let semaphore = DispatchSemaphore(value: 0)
-        var service: ImportServiceProtocol = ImportServiceMock()
-        
-        Task {
-            do {
-                service = try await ImportServiceImpl.live()
-                print("✅ [IMPORT] ImportService initialized successfully")
-            } catch {
-                print("❌ [IMPORT] Failed to initialize ImportService: \(error), using mock")
-                service = ImportServiceMock()
-            }
-            semaphore.signal()
+private actor ImportServiceContainer {
+    static let shared = ImportServiceContainer()
+    
+    private var _service: ImportServiceProtocol?
+    
+    private init() {}
+    
+    func getService() async -> ImportServiceProtocol {
+        if let service = _service {
+            return service
         }
         
-        semaphore.wait()
-        return service
-    }()
+        do {
+            let service = try await ImportServiceImpl.live()
+            _service = service
+            print("✅ [IMPORT] ImportService initialized successfully")
+            return service
+        } catch {
+            print("❌ [IMPORT] Failed to initialize ImportService: \(error), using mock")
+            let mock = ImportServiceMock()
+            _service = mock
+            return mock
+        }
+    }
 }
 
 extension ImportServiceProtocol where Self == ImportServiceImpl {
     static var shared: ImportServiceProtocol {
-        ImportServiceContainer.shared
+        // 返回一个桥接对象，它会异步获取真实的 service
+        ImportServiceBridge()
     }
     
     static var mock: ImportServiceProtocol {
         ImportServiceMock()
+    }
+}
+
+// MARK: - Bridge for Synchronous Access
+
+private actor ImportServiceBridge: ImportServiceProtocol {
+    private var service: ImportServiceProtocol?
+    
+    private func getService() async -> ImportServiceProtocol {
+        if let service = service {
+            return service
+        }
+        let newService = await ImportServiceContainer.shared.getService()
+        service = newService
+        return newService
+    }
+    
+    func importNotaFile(from url: URL) async throws -> Note {
+        let service = await getService()
+        return try await service.importNotaFile(from: url)
+    }
+    
+    func importMarkdownFile(from url: URL) async throws -> Note {
+        let service = await getService()
+        return try await service.importMarkdownFile(from: url)
+    }
+    
+    func importMultipleFiles(from urls: [URL]) async throws -> [Note] {
+        let service = await getService()
+        return try await service.importMultipleFiles(from: urls)
     }
 }
 

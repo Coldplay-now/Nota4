@@ -100,15 +100,18 @@ struct AppFeature {
                 return .none
                 
             case .dismissImport:
+                print("🔄 [APP] Dismissing import and refreshing note list...")
                 state.importFeature = nil
                 return .send(.noteList(.loadNotes)) // 刷新笔记列表
                 
-            case .importFeature(.importCompleted):
+            case .importFeature(.importCompleted(let notes)):
                 // 导入完成后，立即刷新列表，延迟关闭导入窗口
+                print("🔄 [APP] Import completed, refreshing note list... (\(notes.count) notes imported)")
                 return .concatenate(
                     .send(.noteList(.loadNotes)), // 立即刷新列表
                     .run { send in
                         try await mainQueue.sleep(for: .seconds(1.5))
+                        print("🔄 [APP] Dismissing import window...")
                         await send(.dismissImport)
                     }
                 )

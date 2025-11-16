@@ -143,15 +143,25 @@ struct NoteListFeature {
                 return .none
                 
             case .loadNotes:
+                print("📋 [NOTE LIST] Loading notes...")
                 state.isLoading = true
                 return .run { [filter = state.filter] send in
                     let notes = try await noteRepository.fetchNotes(filter: filter)
+                    print("✅ [NOTE LIST] Fetched \(notes.count) notes from repository")
                     await send(.notesLoaded(.success(notes)))
                 } catch: { error, send in
+                    print("❌ [NOTE LIST] Failed to load notes: \(error)")
                     await send(.notesLoaded(.failure(error)))
                 }
                 
             case .notesLoaded(.success(let notes)):
+                print("📋 [NOTE LIST] Notes loaded successfully, count: \(notes.count)")
+                for (index, note) in notes.prefix(5).enumerated() {
+                    print("  \(index + 1). \(note.title) (ID: \(note.noteId))")
+                }
+                if notes.count > 5 {
+                    print("  ... and \(notes.count - 5) more")
+                }
                 state.notes = notes
                 state.isLoading = false
                 return .none

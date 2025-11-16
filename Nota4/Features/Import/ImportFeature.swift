@@ -42,6 +42,11 @@ struct ImportFeature {
                 return .none
                 
             case .importFiles(let urls):
+                print("📂 [IMPORT FEATURE] Starting import of \(urls.count) file(s)")
+                for url in urls {
+                    print("  - \(url.lastPathComponent)")
+                }
+                
                 state.isImporting = true
                 state.errorMessage = nil
                 state.importProgress = 0.0
@@ -56,9 +61,15 @@ struct ImportFeature {
                             await send(.importProgress(Double(i) / 10.0))
                         }
                         
+                        print("🔄 [IMPORT FEATURE] Calling importService...")
                         let notes = try await importService.importMultipleFiles(from: urls)
+                        print("✅ [IMPORT FEATURE] Import completed successfully! Imported \(notes.count) note(s)")
+                        for note in notes {
+                            print("  ✓ \(note.title) (ID: \(note.noteId))")
+                        }
                         await send(.importCompleted(notes))
                     } catch {
+                        print("❌ [IMPORT FEATURE] Import failed with error: \(error)")
                         await send(.importFailed(error))
                     }
                 }
@@ -71,6 +82,7 @@ struct ImportFeature {
                 return .none
                 
             case .importCompleted(let notes):
+                print("🎉 [IMPORT FEATURE] Import completed state updated, \(notes.count) notes imported")
                 state.isImporting = false
                 state.importedNotes = notes
                 state.importProgress = 1.0
