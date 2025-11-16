@@ -1,5 +1,6 @@
 import SwiftUI
 import ComposableArchitecture
+import AppKit
 
 /// Settings Window - macOS 系统设置风格
 struct SettingsView: View {
@@ -315,13 +316,13 @@ private struct ConfigManagementView: View {
     var body: some View {
         HStack(spacing: 12) {
             Button {
-                store.send(.importConfig)
+                importConfig()
             } label: {
                 Label("导入配置", systemImage: "square.and.arrow.down")
             }
             
             Button {
-                store.send(.exportConfig)
+                exportConfig()
             } label: {
                 Label("导出配置", systemImage: "square.and.arrow.up")
             }
@@ -334,6 +335,91 @@ private struct ConfigManagementView: View {
                 Label("恢复默认", systemImage: "arrow.counterclockwise")
             }
             .foregroundColor(.red)
+        }
+    }
+    
+    private func importConfig() {
+        let panel = NSOpenPanel()
+        panel.title = "选择配置文件"
+        panel.message = "请选择 Nota4 配置文件 (.json)"
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [.json]
+        
+        DispatchQueue.main.async {
+            panel.begin { response in
+                guard response == .OK, let url = panel.url else { return }
+                
+                Task {
+                    do {
+                        try PreferencesStorage.shared.importFromFile(at: url)
+                        let newPrefs = await PreferencesStorage.shared.load()
+                        
+                        await MainActor.run {
+                            // 更新 store 中的配置
+                            var state = store.withState { $0 }
+                            state.editorPreferences = newPrefs
+                            state.originalEditorPreferences = newPrefs
+                            
+                            // 显示成功提示
+                            let alert = NSAlert()
+                            alert.messageText = "导入成功"
+                            alert.informativeText = "配置已导入，请点击【应用】按钮使其生效"
+                            alert.alertStyle = .informational
+                            alert.addButton(withTitle: "好的")
+                            alert.runModal()
+                        }
+                    } catch {
+                        await MainActor.run {
+                            let alert = NSAlert()
+                            alert.messageText = "导入失败"
+                            alert.informativeText = error.localizedDescription
+                            alert.alertStyle = .warning
+                            alert.addButton(withTitle: "好的")
+                            alert.runModal()
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private func exportConfig() {
+        let panel = NSSavePanel()
+        panel.title = "导出配置"
+        panel.message = "选择保存位置"
+        panel.nameFieldStringValue = "nota4-config.json"
+        panel.allowedContentTypes = [.json]
+        panel.canCreateDirectories = true
+        
+        DispatchQueue.main.async {
+            panel.begin { response in
+                guard response == .OK, let url = panel.url else { return }
+                
+                Task {
+                    do {
+                        try await PreferencesStorage.shared.exportToFile(at: url)
+                        await MainActor.run {
+                            let alert = NSAlert()
+                            alert.messageText = "导出成功"
+                            alert.informativeText = "配置已保存到：\n\(url.path)"
+                            alert.alertStyle = .informational
+                            alert.addButton(withTitle: "好的")
+                            alert.runModal()
+                        }
+                    } catch {
+                        await MainActor.run {
+                            let alert = NSAlert()
+                            alert.messageText = "导出失败"
+                            alert.informativeText = error.localizedDescription
+                            alert.alertStyle = .warning
+                            alert.addButton(withTitle: "好的")
+                            alert.runModal()
+                        }
+                    }
+                }
+            }
         }
     }
 }

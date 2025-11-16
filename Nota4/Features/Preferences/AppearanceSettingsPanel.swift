@@ -144,7 +144,6 @@ struct AppearanceSettingsPanel: View {
     // MARK: - Helper Methods
     
     private func importTheme() {
-        print("🎨 [IMPORT] Import button clicked")
         let panel = NSOpenPanel()
         panel.title = "选择主题文件夹"
         panel.message = "请选择包含 theme.json 的主题文件夹"
@@ -154,19 +153,13 @@ struct AppearanceSettingsPanel: View {
         
         DispatchQueue.main.async {
             panel.begin { response in
-                print("🎨 [IMPORT] Panel response: \(response)")
-                guard response == .OK, let url = panel.url else { 
-                    print("🎨 [IMPORT] User cancelled or no URL")
-                    return 
-                }
-                print("🎨 [IMPORT] Selected URL: \(url)")
+                guard response == .OK, let url = panel.url else { return }
                 self.store.send(.theme(.importTheme(url)))
             }
         }
     }
     
     private func exportTheme(themeId: String, themeName: String) {
-        print("🎨 [EXPORT] Export button clicked for theme: \(themeId)")
         let panel = NSSavePanel()
         panel.title = "导出主题"
         panel.message = "选择导出位置"
@@ -175,12 +168,7 @@ struct AppearanceSettingsPanel: View {
         
         DispatchQueue.main.async {
             panel.begin { response in
-                print("🎨 [EXPORT] Panel response: \(response)")
-                guard response == .OK, let url = panel.url else { 
-                    print("🎨 [EXPORT] User cancelled or no URL")
-                    return 
-                }
-                print("🎨 [EXPORT] Selected URL: \(url)")
+                guard response == .OK, let url = panel.url else { return }
                 
                 Task {
                     do {

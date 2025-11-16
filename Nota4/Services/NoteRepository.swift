@@ -59,7 +59,8 @@ actor NoteRepositoryImpl: NoteRepositoryProtocol {
             // 应用过滤器
             switch filter {
             case .none:
-                request = request.filter(Note.Columns.isDeleted == false)
+                // .none 表示获取所有笔记（包括已删除的），用于计算各分类数量
+                break  // 不应用任何过滤
                 
             case .category(let category):
                 switch category {

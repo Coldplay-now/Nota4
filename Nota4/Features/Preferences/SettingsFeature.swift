@@ -116,13 +116,11 @@ struct SettingsFeature {
                 return .none
                 
             case .exportConfig:
-                print("⚙️ [SETTINGS] Export config")
-                // TODO: 实现导出功能
+                // 导出配置通过 View 层的文件选择器处理
                 return .none
                 
             case .importConfig:
-                print("⚙️ [SETTINGS] Import config")
-                // TODO: 实现导入功能
+                // 导入配置通过 View 层的文件选择器处理
                 return .none
                 
             case .apply:
