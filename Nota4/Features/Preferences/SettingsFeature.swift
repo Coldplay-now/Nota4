@@ -67,6 +67,7 @@ struct SettingsFeature {
         case onAppear
         case loadThemes
         case themesLoaded(TaskResult<[ThemeConfig]>)
+        case syncCurrentTheme(String)
         
         // Theme selection
         case selectTheme(String)
@@ -152,17 +153,21 @@ struct SettingsFeature {
             case .theme(.themesLoaded(.success(let themes))):
                 state.theme.isLoadingThemes = false
                 state.theme.availableThemes = IdentifiedArray(uniqueElements: themes)
-                // 恢复当前主题
-                if let savedThemeId = UserDefaults.standard.string(forKey: "selectedThemeId") {
-                    state.theme.currentThemeId = savedThemeId
-                } else if let firstTheme = themes.first {
-                    state.theme.currentThemeId = firstTheme.id
+                
+                // 从 ThemeManager 获取当前实际主题（确保同步）
+                return .run { send in
+                    let currentTheme = await themeManager.currentTheme
+                    await send(.theme(.syncCurrentTheme(currentTheme.id)))
                 }
-                return .none
             
             case .theme(.themesLoaded(.failure(let error))):
                 state.theme.isLoadingThemes = false
                 state.theme.errorMessage = error.localizedDescription
+                return .none
+            
+            case .theme(.syncCurrentTheme(let themeId)):
+                state.theme.currentThemeId = themeId
+                print("🔄 [THEME] Synced current theme: \(themeId)")
                 return .none
             
             case .theme(.selectTheme(let themeId)):
