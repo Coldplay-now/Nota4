@@ -8,7 +8,7 @@ struct NoteListView: View {
     var body: some View {
         WithPerceptionTracking {
             List(store.filteredNotes, id: \.noteId, selection: $selectedNotes) { note in
-                NoteRowView(note: note)
+                NoteRowView(note: note, searchKeywords: store.searchKeywords)
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
                             store.send(.deleteNotes([note.noteId]))

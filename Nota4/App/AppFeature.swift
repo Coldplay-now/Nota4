@@ -136,6 +136,13 @@ struct AppFeature {
                 ]
                 return .send(.sidebar(.updateCounts(counts)))
                 
+            // 编辑器创建笔记完成 → 刷新笔记列表并加载新笔记
+            case .editor(.noteCreated(.success(let note))):
+                return .merge(
+                    .send(.noteList(.loadNotes)),
+                    .send(.noteList(.noteSelected(note.noteId)))
+                )
+                
             default:
                 return .none
             }

@@ -114,17 +114,17 @@ struct EditorFeature {
         Reduce { state, action in
             switch action {
             case .binding(\.content):
-                // 防抖自动保存（0.8 秒）
+                // 防抖自动保存（2 秒 - 避免干扰快速输入）
                 return .run { send in
-                    try await mainQueue.sleep(for: .milliseconds(800))
+                    try await mainQueue.sleep(for: .milliseconds(2000))
                     await send(.autoSave, animation: .spring())
                 }
                 .cancellable(id: CancelID.autoSave, cancelInFlight: true)
                 
             case .binding(\.title):
-                // 防抖自动保存
+                // 防抖自动保存（2 秒 - 避免干扰快速输入）
                 return .run { send in
-                    try await mainQueue.sleep(for: .milliseconds(800))
+                    try await mainQueue.sleep(for: .milliseconds(2000))
                     await send(.autoSave, animation: .spring())
                 }
                 .cancellable(id: CancelID.autoSave, cancelInFlight: true)

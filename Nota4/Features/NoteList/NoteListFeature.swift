@@ -35,6 +35,14 @@ struct NoteListFeature {
         
         // MARK: - Computed Properties
         
+        /// 当前搜索关键词（用于高亮）
+        var searchKeywords: [String] {
+            if case .search(let keyword) = filter {
+                return keyword.split(separator: " ").map(String.init)
+            }
+            return []
+        }
+        
         /// 过滤并排序后的笔记
         var filteredNotes: [Note] {
             notes
@@ -54,7 +62,18 @@ struct NoteListFeature {
                     case .tags(let tags):
                         return !note.tags.isDisjoint(with: tags) && !note.isDeleted
                     case .search(let keyword):
-                        return (note.title.contains(keyword) || note.content.contains(keyword)) && !note.isDeleted
+                        // 不区分大小写的搜索
+                        let lowercaseKeyword = keyword.lowercased()
+                        let lowercaseTitle = note.title.lowercased()
+                        let lowercaseContent = note.content.lowercased()
+                        
+                        // 支持空格分词：每个词都必须匹配
+                        let keywords = lowercaseKeyword.split(separator: " ").map(String.init)
+                        let matches = keywords.allSatisfy { word in
+                            lowercaseTitle.contains(word) || lowercaseContent.contains(word)
+                        }
+                        
+                        return matches && !note.isDeleted
                     }
                 }
                 .sorted { lhs, rhs in

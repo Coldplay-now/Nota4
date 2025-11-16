@@ -2,6 +2,7 @@ import SwiftUI
 
 struct NoteRowView: View {
     let note: Note
+    var searchKeywords: [String] = []
     
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -13,10 +14,16 @@ struct NoteRowView: View {
                         .foregroundColor(.orange)
                 }
                 
-                // 标题
-                Text(note.title.isEmpty ? "无标题" : note.title)
-                    .font(.headline)
-                    .lineLimit(2)
+                // 标题（带高亮）
+                if searchKeywords.isEmpty {
+                    Text(note.title.isEmpty ? "无标题" : note.title)
+                        .font(.headline)
+                        .lineLimit(2)
+                } else {
+                    Text(note.title.isEmpty ? "无标题" : note.title.highlightingOccurrences(of: searchKeywords))
+                        .font(.headline)
+                        .lineLimit(2)
+                }
                 
                 Spacer()
                 
@@ -28,11 +35,18 @@ struct NoteRowView: View {
                 }
             }
             
-            // 预览
-            Text(note.preview)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .lineLimit(3)
+            // 预览（带高亮）
+            if searchKeywords.isEmpty {
+                Text(note.preview)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(3)
+            } else {
+                Text(note.preview.highlightingOccurrences(of: searchKeywords))
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(3)
+            }
             
             // 底部信息
             HStack {
