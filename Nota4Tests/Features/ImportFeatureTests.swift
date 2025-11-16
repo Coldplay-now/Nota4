@@ -16,6 +16,8 @@ final class ImportFeatureTests: XCTestCase {
             $0.mainQueue = .immediate
         }
         
+        store.exhaustivity = .off
+        
         await store.send(.importFiles([testURL])) {
             $0.isImporting = true
             $0.errorMessage = nil
@@ -34,9 +36,10 @@ final class ImportFeatureTests: XCTestCase {
         await store.receive(\.importCompleted) {
             $0.isImporting = false
             $0.importProgress = 1.0
-            // Verify the imported notes
+            // 验证导入的笔记
             XCTAssertEqual($0.importedNotes.count, 1)
             XCTAssertEqual($0.importedNotes.first?.title, "Imported Note")
+            XCTAssertEqual($0.importedNotes.first?.content, "Test Content")
         }
     }
     

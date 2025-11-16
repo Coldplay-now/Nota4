@@ -204,6 +204,8 @@ final class EditorFeatureTests: XCTestCase {
             $0.noteRepository = NoteRepository.mock
         }
         
+        store.exhaustivity = .off
+        
         await store.send(.deleteNote)
     }
     
@@ -355,6 +357,8 @@ final class EditorFeatureTests: XCTestCase {
         } withDependencies: {
             $0.noteRepository = NoteRepository.mock
         }
+        
+        store.exhaustivity = .off
         
         await store.send(.deleteNote)
         

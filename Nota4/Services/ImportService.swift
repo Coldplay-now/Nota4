@@ -215,7 +215,7 @@ actor ImportServiceImpl: ImportServiceProtocol {
 
 extension ImportServiceImpl {
     static func live() async throws -> ImportServiceImpl {
-        let dbManager = try await DatabaseManager.default()
+        let dbManager = try DatabaseManager.default()
         let dbQueue = await dbManager.getQueue()
         let noteRepository = NoteRepositoryImpl(dbQueue: dbQueue)
         
@@ -284,10 +284,17 @@ actor ImportServiceMock: ImportServiceProtocol {
         }
         var notes: [Note] = []
         for url in urls {
-            let note = Note(noteId: UUID().uuidString, title: url.lastPathComponent, content: "Content")
+            // 模拟真实实现：根据文件扩展名调用相应方法
+            let note: Note
+            if url.pathExtension == "nota" {
+                note = try await importNotaFile(from: url)
+            } else if url.pathExtension == "md" || url.pathExtension == "markdown" {
+                note = try await importMarkdownFile(from: url)
+            } else {
+                throw ImportServiceError.invalidFileType
+            }
             notes.append(note)
         }
-        importedNotes.append(contentsOf: notes)
         return notes
     }
 }

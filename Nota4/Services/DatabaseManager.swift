@@ -57,7 +57,7 @@ actor DatabaseManager {
     
     // MARK: - Migrations
     
-    private func performMigrations() throws {
+    private nonisolated func performMigrations() throws {
         var migrator = DatabaseMigrator()
         
         // v1: 创建基础表
@@ -146,8 +146,7 @@ actor DatabaseManager {
     func seedTestData() throws {
         try dbQueue.write { db in
             for note in Note.mockData {
-                var mutableNote = note
-                try mutableNote.insert(db)
+                try note.insert(db)
                 
                 // 插入标签
                 for tag in note.tags {
