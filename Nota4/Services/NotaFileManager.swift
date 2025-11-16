@@ -290,6 +290,16 @@ enum FileManagerError: Error {
 // MARK: - Namespace
 
 enum NotaFileManager {
+    static let shared: NotaFileManagerProtocol = {
+        do {
+            return try NotaFileManagerImpl.default()
+        } catch {
+            print("❌ Failed to initialize NotaFileManager: \(error)")
+            print("⚠️  Falling back to mock implementation")
+            return NotaFileManagerMock()
+        }
+    }()
+    
     static var live: NotaFileManagerProtocol {
         get throws {
             try NotaFileManagerImpl.default()

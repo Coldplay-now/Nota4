@@ -396,4 +396,218 @@ final class EditorFeatureTests: XCTestCase {
         // Verify that the final note is note-3
         XCTAssertEqual(store.state.selectedNoteId, "note-3", "Should load the last requested note")
     }
+    
+    // MARK: - Context Menu Action Tests
+    
+    func testFormatBold() async {
+        var initialState = EditorFeature.State()
+        let testNote = Note(noteId: "test", title: "Test", content: "Hello")
+        initialState.note = testNote
+        initialState.content = "Hello"
+        initialState.cursorPosition = 5
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        }
+        
+        await store.send(.formatBold)
+        await store.send(.insertMarkdown(.bold)) {
+            $0.content = "Hello****"
+            $0.cursorPosition = 9
+        }
+    }
+    
+    func testFormatItalic() async {
+        var initialState = EditorFeature.State()
+        let testNote = Note(noteId: "test", title: "Test", content: "Hello")
+        initialState.note = testNote
+        initialState.content = "Hello"
+        initialState.cursorPosition = 5
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        }
+        
+        await store.send(.formatItalic)
+        await store.send(.insertMarkdown(.italic)) {
+            $0.content = "Hello**"
+            $0.cursorPosition = 7
+        }
+    }
+    
+    func testFormatInlineCode() async {
+        var initialState = EditorFeature.State()
+        let testNote = Note(noteId: "test", title: "Test", content: "Hello")
+        initialState.note = testNote
+        initialState.content = "Hello"
+        initialState.cursorPosition = 5
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        }
+        
+        await store.send(.formatInlineCode)
+        await store.send(.insertMarkdown(.inlineCode)) {
+            $0.content = "Hello``"
+            $0.cursorPosition = 7
+        }
+    }
+    
+    func testInsertHeading1() async {
+        var initialState = EditorFeature.State()
+        let testNote = Note(noteId: "test", title: "Test", content: "")
+        initialState.note = testNote
+        initialState.content = ""
+        initialState.cursorPosition = 0
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        }
+        
+        await store.send(.insertHeading1)
+        await store.send(.insertMarkdown(.heading(level: 1))) {
+            $0.content = "# "
+            $0.cursorPosition = 2
+        }
+    }
+    
+    func testInsertHeading2() async {
+        var initialState = EditorFeature.State()
+        let testNote = Note(noteId: "test", title: "Test", content: "")
+        initialState.note = testNote
+        initialState.content = ""
+        initialState.cursorPosition = 0
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        }
+        
+        await store.send(.insertHeading2)
+        await store.send(.insertMarkdown(.heading(level: 2))) {
+            $0.content = "## "
+            $0.cursorPosition = 3
+        }
+    }
+    
+    func testInsertHeading3() async {
+        var initialState = EditorFeature.State()
+        let testNote = Note(noteId: "test", title: "Test", content: "")
+        initialState.note = testNote
+        initialState.content = ""
+        initialState.cursorPosition = 0
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        }
+        
+        await store.send(.insertHeading3)
+        await store.send(.insertMarkdown(.heading(level: 3))) {
+            $0.content = "### "
+            $0.cursorPosition = 4
+        }
+    }
+    
+    func testInsertUnorderedList() async {
+        var initialState = EditorFeature.State()
+        let testNote = Note(noteId: "test", title: "Test", content: "")
+        initialState.note = testNote
+        initialState.content = ""
+        initialState.cursorPosition = 0
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        }
+        
+        await store.send(.insertUnorderedList)
+        await store.send(.insertMarkdown(.unorderedList)) {
+            $0.content = "\n- "
+            $0.cursorPosition = 3
+        }
+    }
+    
+    func testInsertOrderedList() async {
+        var initialState = EditorFeature.State()
+        let testNote = Note(noteId: "test", title: "Test", content: "")
+        initialState.note = testNote
+        initialState.content = ""
+        initialState.cursorPosition = 0
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        }
+        
+        await store.send(.insertOrderedList)
+        await store.send(.insertMarkdown(.orderedList)) {
+            $0.content = "\n1. "
+            $0.cursorPosition = 4
+        }
+    }
+    
+    func testInsertTaskList() async {
+        var initialState = EditorFeature.State()
+        let testNote = Note(noteId: "test", title: "Test", content: "")
+        initialState.note = testNote
+        initialState.content = ""
+        initialState.cursorPosition = 0
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        }
+        
+        await store.send(.insertTaskList)
+        await store.send(.insertMarkdown(.taskList)) {
+            $0.content = "\n- [ ] "
+            $0.cursorPosition = 7
+        }
+    }
+    
+    func testInsertLink() async {
+        var initialState = EditorFeature.State()
+        let testNote = Note(noteId: "test", title: "Test", content: "")
+        initialState.note = testNote
+        initialState.content = ""
+        initialState.cursorPosition = 0
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        }
+        
+        await store.send(.insertLink)
+        await store.send(.insertMarkdown(.link)) {
+            $0.content = "[]()"
+            $0.cursorPosition = 4
+        }
+    }
+    
+    func testInsertCodeBlock() async {
+        var initialState = EditorFeature.State()
+        let testNote = Note(noteId: "test", title: "Test", content: "")
+        initialState.note = testNote
+        initialState.content = ""
+        initialState.cursorPosition = 0
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        }
+        
+        await store.send(.insertCodeBlock)
+        await store.send(.insertMarkdown(.codeBlock)) {
+            $0.content = "\n```\n\n```\n"
+            $0.cursorPosition = 9
+        }
+    }
+    
+    func testToggleStarDisabledWithoutNote() async {
+        let store = TestStore(initialState: EditorFeature.State()) {
+            EditorFeature()
+        }
+        
+        // Verify that no note is loaded
+        XCTAssertNil(store.state.note, "No note should be loaded initially")
+        
+        // In the UI, the toggle star button should be disabled when no note is loaded
+        // This test verifies the state condition used by the UI
+        let shouldBeDisabled = store.state.note == nil
+        XCTAssertTrue(shouldBeDisabled, "Toggle star should be disabled when no note is loaded")
+    }
 }

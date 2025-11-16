@@ -113,6 +113,8 @@ struct NoteListFeature {
         case filterChanged(State.Filter)
         case sortOrderChanged(State.SortOrder)
         case searchDebounced(String)
+        case createNote
+        case updateNoteInList(Note) // 直接更新列表中的笔记
     }
     
     // MARK: - Dependencies
@@ -242,6 +244,25 @@ struct NoteListFeature {
                 }
                 state.filter = .search(keyword)
                 return .send(.loadNotes)
+                
+            case .createNote:
+                // 由 AppFeature 处理，转发给 editor
+                return .none
+                
+            case .updateNoteInList(let updatedNote):
+                print("📋 [LIST] Updating note in list: \(updatedNote.noteId)")
+                print("📋 [LIST] Title: '\(updatedNote.title)'")
+                print("📋 [LIST] Content preview: '\(updatedNote.preview.prefix(50))...'")
+                
+                // 直接更新列表中的笔记，实现实时预览
+                if let index = state.notes.firstIndex(where: { $0.noteId == updatedNote.noteId }) {
+                    print("📋 [LIST] Found note at index \(index), updating...")
+                    state.notes[index] = updatedNote
+                    print("✅ [LIST] Note updated successfully")
+                } else {
+                    print("⚠️ [LIST] Note not found in list")
+                }
+                return .none
             }
         }
     }

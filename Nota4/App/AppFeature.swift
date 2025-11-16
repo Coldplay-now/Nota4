@@ -12,7 +12,9 @@ struct AppFeature {
         var editor = EditorFeature.State()
         var importFeature: ImportFeature.State?
         var exportFeature: ExportFeature.State?
+        @Presents var settingsFeature: SettingsFeature.State?
         var columnVisibility: NavigationSplitViewVisibility = .all
+        var preferences = EditorPreferences()
         
         init() {}
     }
@@ -25,12 +27,17 @@ struct AppFeature {
         case editor(EditorFeature.Action)
         case importFeature(ImportFeature.Action)
         case exportFeature(ExportFeature.Action)
+        case settingsFeature(PresentationAction<SettingsFeature.Action>)
         case onAppear
         case columnVisibilityChanged(NavigationSplitViewVisibility)
         case showImport
         case dismissImport
         case showExport([Note])
         case dismissExport
+        case showSettings
+        case dismissSettings
+        case preferencesLoaded(EditorPreferences)
+        case preferencesUpdated(EditorPreferences)
     }
     
     // MARK: - App Environment (Dependencies)
@@ -60,8 +67,29 @@ struct AppFeature {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                // 应用启动时加载笔记
-                return .send(.noteList(.loadNotes))
+                // 应用启动时加载笔记和偏好设置
+                return .merge(
+                    .send(.noteList(.loadNotes)),
+                    .run { send in
+                        let prefs = await PreferencesStorage.shared.load()
+                        await send(.preferencesLoaded(prefs))
+                    }
+                )
+                
+            case .preferencesLoaded(let prefs):
+                print("📐 [APP] Preferences loaded")
+                state.preferences = prefs
+                return .send(.editor(.applyPreferences(prefs)))
+                
+            case .preferencesUpdated(let prefs):
+                print("📐 [APP] Preferences updated")
+                state.preferences = prefs
+                return .merge(
+                    .run { _ in
+                        try await PreferencesStorage.shared.save(prefs)
+                    },
+                    .send(.editor(.applyPreferences(prefs)))
+                )
                 
             case .columnVisibilityChanged(let visibility):
                 state.columnVisibility = visibility
@@ -96,6 +124,24 @@ struct AppFeature {
             case .exportFeature:
                 return .none
                 
+            case .showSettings:
+                state.settingsFeature = SettingsFeature.State(editorPreferences: state.preferences)
+                return .none
+                
+            case .dismissSettings:
+                state.settingsFeature = nil
+                return .none
+                
+            case .settingsFeature(.presented(.apply)):
+                // 应用设置后更新preferences
+                if let newPrefs = state.settingsFeature?.editorPreferences {
+                    return .send(.preferencesUpdated(newPrefs))
+                }
+                return .none
+                
+            case .settingsFeature:
+                return .none
+                
             // MARK: - Cross-Module Coordination
                 
             // 侧边栏分类切换 → 更新笔记列表过滤
@@ -123,8 +169,14 @@ struct AppFeature {
                 state.editor.title = ""
                 return .none
                 
-            // 编辑器保存完成 → 刷新笔记列表
+            // 编辑器保存完成 → 立即更新列表中的笔记（实时预览）
             case .editor(.saveCompleted):
+                if let updatedNote = state.editor.note {
+                    return .concatenate(
+                        .send(.noteList(.updateNoteInList(updatedNote))),
+                        .send(.noteList(.loadNotes))
+                    )
+                }
                 return .send(.noteList(.loadNotes))
                 
             // 笔记列表加载完成 → 更新侧边栏统计
@@ -136,12 +188,14 @@ struct AppFeature {
                 ]
                 return .send(.sidebar(.updateCounts(counts)))
                 
-            // 编辑器创建笔记完成 → 刷新笔记列表并加载新笔记
-            case .editor(.noteCreated(.success(let note))):
-                return .merge(
-                    .send(.noteList(.loadNotes)),
-                    .send(.noteList(.noteSelected(note.noteId)))
-                )
+            // 编辑器创建笔记完成 → 刷新笔记列表
+            // 注意：不需要 noteSelected，因为编辑器已经有正确的状态
+            case .editor(.noteCreated(.success)):
+                return .send(.noteList(.loadNotes))
+                
+            // 笔记列表请求创建 → 转发给编辑器
+            case .noteList(.createNote):
+                return .send(.editor(.createNote))
                 
             default:
                 return .none
@@ -152,6 +206,9 @@ struct AppFeature {
         }
         .ifLet(\.exportFeature, action: \.exportFeature) {
             ExportFeature()
+        }
+        .ifLet(\.$settingsFeature, action: \.settingsFeature) {
+            SettingsFeature()
         }
     }
 }

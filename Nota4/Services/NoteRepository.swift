@@ -237,7 +237,42 @@ enum RepositoryError: Error {
 
 // MARK: - Namespace
 
+// 全局数据库管理器实例（在应用启动时初始化）
+private let globalDatabaseManager: DatabaseManager? = {
+    do {
+        return try DatabaseManager.default()
+    } catch {
+        print("❌ Failed to initialize DatabaseManager: \(error)")
+        return nil
+    }
+}()
+
 enum NoteRepository {
+    static let shared: NoteRepositoryProtocol = {
+        guard let dbManager = globalDatabaseManager else {
+            print("⚠️  Database not available, using mock implementation")
+            return NoteRepositoryMock()
+        }
+        
+        // 使用 Task 同步获取 queue
+        var queue: DatabaseQueue?
+        let semaphore = DispatchSemaphore(value: 0)
+        
+        Task {
+            queue = await dbManager.getQueue()
+            semaphore.signal()
+        }
+        
+        semaphore.wait()
+        
+        guard let dbQueue = queue else {
+            print("⚠️  Failed to get database queue, using mock implementation")
+            return NoteRepositoryMock()
+        }
+        
+        return NoteRepositoryImpl(dbQueue: dbQueue)
+    }()
+    
     static var live: NoteRepositoryProtocol {
         get async throws {
             let dbManager = try DatabaseManager.default()

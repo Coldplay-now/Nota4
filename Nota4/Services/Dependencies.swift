@@ -12,7 +12,7 @@ extension DependencyValues {
 }
 
 private enum NoteRepositoryKey: DependencyKey {
-    static let liveValue: NoteRepositoryProtocol = NoteRepository.mock  // TODO: Use live when DatabaseManager is ready
+    static let liveValue: NoteRepositoryProtocol = NoteRepository.shared
     static let testValue: NoteRepositoryProtocol = NoteRepository.mock
 }
 
@@ -26,7 +26,7 @@ extension DependencyValues {
 }
 
 private enum NotaFileManagerKey: DependencyKey {
-    static let liveValue: NotaFileManagerProtocol = NotaFileManager.mock  // TODO: Use live when file system is ready
+    static let liveValue: NotaFileManagerProtocol = NotaFileManager.shared
     static let testValue: NotaFileManagerProtocol = NotaFileManager.mock
 }
 
@@ -40,7 +40,7 @@ extension DependencyValues {
 }
 
 private enum ImageManagerKey: DependencyKey {
-    static let liveValue: ImageManagerProtocol = ImageManager.mock  // TODO: Use live when ready
+    static let liveValue: ImageManagerProtocol = ImageManager.shared
     static let testValue: ImageManagerProtocol = ImageManager.mock
 }
 

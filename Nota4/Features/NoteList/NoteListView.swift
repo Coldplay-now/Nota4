@@ -63,7 +63,16 @@ struct NoteListView: View {
                 )
             )
             .toolbar {
-                ToolbarItem {
+                ToolbarItemGroup(placement: .automatic) {
+                    // 新建笔记按钮
+                    Button {
+                        store.send(.createNote)
+                    } label: {
+                        Label("新建笔记", systemImage: "square.and.pencil")
+                    }
+                    .help("创建新笔记 (⌘N)")
+                    
+                    // 排序菜单
                     Menu {
                         Picker("排序", selection: Binding(
                             get: { store.sortOrder },
@@ -78,12 +87,10 @@ struct NoteListView: View {
                         }
                     } label: {
                         Label("排序", systemImage: "arrow.up.arrow.down")
-                    }
                 }
                 
-                // 批量操作
+                    // 批量删除
                 if !selectedNotes.isEmpty {
-                    ToolbarItem {
                         Button(role: .destructive) {
                             store.send(.deleteNotes(selectedNotes))
                             selectedNotes.removeAll()

@@ -2,9 +2,8 @@ import SwiftUI
 import ComposableArchitecture
 
 struct NoteEditorView: View {
-    let store: StoreOf<EditorFeature>
+    @Bindable var store: StoreOf<EditorFeature>
     @FocusState private var isTitleFocused: Bool
-    @FocusState private var isContentFocused: Bool
     
     var body: some View {
         WithPerceptionTracking {
@@ -15,14 +14,17 @@ struct NoteEditorView: View {
                         HStack {
                             TextField(
                                 "标题",
-                                text: Binding(
-                                    get: { store.title },
-                                    set: { store.send(.binding(.set(\.title, $0))) }
-                                )
+                                text: $store.title
                             )
                             .font(.title)
                             .textFieldStyle(.plain)
                             .focused($isTitleFocused)
+                            .onChange(of: isTitleFocused) { oldValue, newValue in
+                                // 失去焦点时保存
+                                if !newValue {
+                                    store.send(.manualSave)
+                                }
+                            }
                             
                             Spacer()
                             
@@ -51,30 +53,72 @@ struct NoteEditorView: View {
                         Group {
                             switch store.viewMode {
                             case .editOnly:
-                                TextEditor(
-                                    text: Binding(
-                                        get: { store.content },
-                                        set: { store.send(.binding(.set(\.content, $0))) }
-                                    )
+                                MarkdownTextEditor(
+                                    text: $store.content,
+                                    selection: $store.selectionRange,
+                                    font: NSFont(
+                                        name: store.editorStyle.fontName ?? "System",
+                                        size: store.editorStyle.fontSize
+                                    ) ?? NSFont.systemFont(ofSize: store.editorStyle.fontSize),
+                                    textColor: .labelColor,
+                                    backgroundColor: .textBackgroundColor,
+                                    lineSpacing: store.editorStyle.lineSpacing,
+                                    paragraphSpacing: store.editorStyle.paragraphSpacing,
+                                    horizontalPadding: store.editorStyle.horizontalPadding,
+                                    verticalPadding: store.editorStyle.verticalPadding,
+                                    onSelectionChange: { range in
+                                        store.send(.selectionChanged(range))
+                                    },
+                                    onFocusChange: { isFocused in
+                                        store.send(.focusChanged(isFocused))
+                                    }
                                 )
-                                .font(.system(.body, design: .monospaced))
-                                .focused($isContentFocused)
-                                .padding(8)
+                                .frame(maxWidth: store.editorStyle.maxWidth)
+                                .frame(maxWidth: .infinity, alignment: store.editorStyle.alignment)
+                                .toolbar {
+                                    ToolbarItemGroup(placement: .automatic) {
+                                        MarkdownToolbar(store: store)
+                                    }
+                                }
+                                .contextMenu {
+                                    EditorContextMenu(store: store)
+                                }
                                 
                             case .previewOnly:
                                 MarkdownPreview(content: store.content)
                                 
                             case .split:
                                 HSplitView {
-                                    TextEditor(
-                                        text: Binding(
-                                            get: { store.content },
-                                            set: { store.send(.binding(.set(\.content, $0))) }
-                                        )
+                                    MarkdownTextEditor(
+                                        text: $store.content,
+                                        selection: $store.selectionRange,
+                                        font: NSFont(
+                                            name: store.editorStyle.fontName ?? "System",
+                                            size: store.editorStyle.fontSize
+                                        ) ?? NSFont.systemFont(ofSize: store.editorStyle.fontSize),
+                                        textColor: .labelColor,
+                                        backgroundColor: .textBackgroundColor,
+                                        lineSpacing: store.editorStyle.lineSpacing,
+                                        paragraphSpacing: store.editorStyle.paragraphSpacing,
+                                        horizontalPadding: store.editorStyle.horizontalPadding,
+                                        verticalPadding: store.editorStyle.verticalPadding,
+                                        onSelectionChange: { range in
+                                            store.send(.selectionChanged(range))
+                                        },
+                                        onFocusChange: { isFocused in
+                                            store.send(.focusChanged(isFocused))
+                                        }
                                     )
-                                    .font(.system(.body, design: .monospaced))
-                                    .focused($isContentFocused)
-                                    .padding(8)
+                                    .frame(maxWidth: store.editorStyle.maxWidth)
+                                    .frame(maxWidth: .infinity, alignment: store.editorStyle.alignment)
+                                    .toolbar {
+                                        ToolbarItemGroup(placement: .automatic) {
+                                            MarkdownToolbar(store: store)
+                                        }
+                                    }
+                                    .contextMenu {
+                                        EditorContextMenu(store: store)
+                                    }
                                     
                                     MarkdownPreview(content: store.content)
                                 }

@@ -18,7 +18,13 @@ struct Note: Codable, Equatable, Identifiable, Hashable {
     }
     
     static func == (lhs: Note, rhs: Note) -> Bool {
-        lhs.noteId == rhs.noteId
+        lhs.noteId == rhs.noteId &&
+        lhs.title == rhs.title &&
+        lhs.content == rhs.content &&
+        lhs.isStarred == rhs.isStarred &&
+        lhs.isPinned == rhs.isPinned &&
+        lhs.isDeleted == rhs.isDeleted &&
+        lhs.tags == rhs.tags
     }
     
     /// 笔记标题

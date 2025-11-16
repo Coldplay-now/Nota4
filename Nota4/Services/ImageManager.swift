@@ -127,6 +127,16 @@ enum ImageManagerError: Error {
 // MARK: - Namespace
 
 enum ImageManager {
+    static let shared: ImageManagerProtocol = {
+        do {
+            return try ImageManagerImpl.default()
+        } catch {
+            print("❌ Failed to initialize ImageManager: \(error)")
+            print("⚠️  Falling back to mock implementation")
+            return ImageManagerMock()
+        }
+    }()
+    
     static var live: ImageManagerProtocol {
         get throws {
             try ImageManagerImpl.default()

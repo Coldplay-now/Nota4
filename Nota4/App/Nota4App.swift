@@ -3,13 +3,15 @@ import ComposableArchitecture
 
 @main
 struct Nota4App: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    
     let store = Store(initialState: AppFeature.State()) {
         AppFeature()
     }
     
     var body: some Scene {
         WindowGroup {
-            AppView(store: store)
+            AppView(store: store, appDelegate: appDelegate)
         }
         .commands {
             CommandGroup(replacing: .newItem) {
@@ -38,12 +40,20 @@ struct Nota4App: App {
                 }
                 .keyboardShortcut("e", modifiers: [.command, .shift])
             }
+            
+            CommandGroup(after: .appSettings) {
+                Button("首选项...") {
+                    store.send(.showSettings)
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
         }
     }
 }
 
 struct AppView: View {
     let store: StoreOf<AppFeature>
+    let appDelegate: AppDelegate
     
     var body: some View {
         WithPerceptionTracking {
@@ -73,6 +83,8 @@ struct AppView: View {
             .navigationSplitViewStyle(.balanced)
             .frame(minWidth: 800, minHeight: 600)
             .onAppear {
+                // 设置 AppDelegate 的 store 引用
+                appDelegate.store = store
                 store.send(.onAppear)
             }
             .sheet(isPresented: Binding(
@@ -91,6 +103,14 @@ struct AppView: View {
                     ExportView(store: exportStore)
                 }
             }
+            .sheet(isPresented: Binding(
+                get: { store.settingsFeature != nil },
+                set: { if !$0 { store.send(.dismissSettings) } }
+            )) {
+                if let settingsStore = store.scope(state: \.settingsFeature, action: \.settingsFeature.presented) {
+                    SettingsView(store: settingsStore)
+                }
+            }
         }
     }
 }
@@ -99,7 +119,8 @@ struct AppView: View {
     AppView(
         store: Store(initialState: AppFeature.State()) {
             AppFeature()
-        }
+        },
+        appDelegate: AppDelegate()
     )
 }
 

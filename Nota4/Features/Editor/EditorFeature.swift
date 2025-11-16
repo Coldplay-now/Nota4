@@ -16,6 +16,8 @@ struct EditorFeature {
         var lastSavedContent: String = ""
         var lastSavedTitle: String = ""
         var cursorPosition: Int = 0
+        var selectionRange: NSRange = NSRange(location: 0, length: 0)
+        var editorStyle: EditorStyle = .comfortable
         
         // MARK: - Computed Properties
         
@@ -60,7 +62,24 @@ struct EditorFeature {
         case toggleStar
         case deleteNote
         case createNote
+        case applyPreferences(EditorPreferences)
         case noteCreated(Result<Note, Error>)
+        case selectionChanged(NSRange)
+        case focusChanged(Bool)
+        
+        // MARK: - Context Menu Actions
+        
+        case formatBold
+        case formatItalic
+        case formatInlineCode
+        case insertHeading1
+        case insertHeading2
+        case insertHeading3
+        case insertUnorderedList
+        case insertOrderedList
+        case insertTaskList
+        case insertLink
+        case insertCodeBlock
         
         // MARK: - Markdown Format
         
@@ -68,9 +87,11 @@ struct EditorFeature {
             case heading(level: Int)
             case bold
             case italic
+            case inlineCode
             case codeBlock
             case unorderedList
             case orderedList
+            case taskList
             case link
             case image
             
@@ -82,12 +103,16 @@ struct EditorFeature {
                     return "****"
                 case .italic:
                     return "**"
+                case .inlineCode:
+                    return "``"
                 case .codeBlock:
                     return "\n```\n\n```\n"
                 case .unorderedList:
                     return "\n- "
                 case .orderedList:
                     return "\n1. "
+                case .taskList:
+                    return "\n- [ ] "
                 case .link:
                     return "[]()"
                 case .image:
@@ -114,25 +139,36 @@ struct EditorFeature {
         Reduce { state, action in
             switch action {
             case .binding(\.content):
-                // 防抖自动保存（2 秒 - 避免干扰快速输入）
-                return .run { send in
-                    try await mainQueue.sleep(for: .milliseconds(2000))
-                    await send(.autoSave, animation: .spring())
-                }
-                .cancellable(id: CancelID.autoSave, cancelInFlight: true)
+                print("⚪ [BINDING] Content changed: length=\(state.content.count)")
+                // 不再自动保存，避免干扰输入
+                return .none
                 
             case .binding(\.title):
-                // 防抖自动保存（2 秒 - 避免干扰快速输入）
-                return .run { send in
-                    try await mainQueue.sleep(for: .milliseconds(2000))
-                    await send(.autoSave, animation: .spring())
-                }
-                .cancellable(id: CancelID.autoSave, cancelInFlight: true)
+                print("⚪ [BINDING] Title changed: '\(state.title)'")
+                // 不再自动保存，避免干扰输入
+                return .none
                 
             case .binding:
                 return .none
                 
             case .loadNote(let id):
+                print("🟢 [LOAD] Loading note: \(id)")
+                print("🟢 [LOAD] Current note: \(state.note?.noteId ?? "none")")
+                print("🟢 [LOAD] Has unsaved changes: \(state.hasUnsavedChanges)")
+                
+                // 切换笔记前先保存当前笔记（仅当已有笔记时）
+                if state.note != nil && state.hasUnsavedChanges {
+                    print("🟡 [LOAD] Saving current note before switching...")
+                    return .concatenate(
+                        .send(.manualSave),
+                        .run { send in
+                            // 等待保存完成
+                            try await mainQueue.sleep(for: .milliseconds(100))
+                            await send(.loadNote(id))
+                        }
+                    )
+                }
+                
                 state.selectedNoteId = id
                 return .merge(
                     .cancel(id: CancelID.loadNote),
@@ -162,16 +198,34 @@ struct EditorFeature {
                 return .none
                 
             case .autoSave:
+                print("🔵 [SAVE] autoSave triggered")
+                print("🔵 [SAVE] hasUnsavedChanges: \(state.hasUnsavedChanges)")
+                print("🔵 [SAVE] note exists: \(state.note != nil)")
+                if let note = state.note {
+                    print("🔵 [SAVE] note id: \(note.noteId)")
+                    print("🔵 [SAVE] Current title: '\(state.title)'")
+                    print("🔵 [SAVE] Last saved title: '\(state.lastSavedTitle)'")
+                    print("🔵 [SAVE] Current content length: \(state.content.count)")
+                    print("🔵 [SAVE] Last saved content length: \(state.lastSavedContent.count)")
+                    print("🔵 [SAVE] Title changed: \(state.title != state.lastSavedTitle)")
+                    print("🔵 [SAVE] Content changed: \(state.content != state.lastSavedContent)")
+                }
+                
                 guard state.hasUnsavedChanges, let note = state.note else {
+                    print("🔴 [SAVE] Skip save - no changes or no note")
                     return .none
                 }
                 
+                print("🟢 [SAVE] Saving note...")
                 state.isSaving = true
                 
                 var updatedNote = note
                 updatedNote.title = state.title
                 updatedNote.content = state.content
                 updatedNote.updated = date.now
+                
+                // 立即更新本地 state.note，避免状态不一致
+                state.note = updatedNote
                 
                 return .run { [updatedNote] send in
                     try await noteRepository.updateNote(updatedNote)
@@ -182,6 +236,7 @@ struct EditorFeature {
                 }
                 
             case .manualSave:
+                print("🟡 [SAVE] manualSave triggered")
                 // 手动保存立即触发，不防抖
                 return .concatenate(
                     .cancel(id: CancelID.autoSave),
@@ -189,9 +244,19 @@ struct EditorFeature {
                 )
                 
             case .saveCompleted:
+                print("✅ [SAVE] Save completed successfully")
                 state.isSaving = false
                 state.lastSavedContent = state.content
                 state.lastSavedTitle = state.title
+                
+                // 更新 state.note 以反映最新的内容和标题
+                if var note = state.note {
+                    note.title = state.title
+                    note.content = state.content
+                    note.updated = date.now
+                    state.note = note
+                }
+                
                 return .none
                 
             case .saveFailed(let error):
@@ -265,6 +330,7 @@ struct EditorFeature {
                 }
                 
             case .createNote:
+                print("🆕 [CREATE] Creating new note...")
                 let noteId = uuid().uuidString
                 let now = date.now
                 let newNote = Note(
@@ -274,6 +340,7 @@ struct EditorFeature {
                     created: now,
                     updated: now
                 )
+                print("🆕 [CREATE] New note id: \(noteId)")
                 
                 return .run { send in
                     try await noteRepository.createNote(newNote)
@@ -284,16 +351,168 @@ struct EditorFeature {
                 }
                 
             case .noteCreated(.success(let note)):
+                print("✅ [CREATE] Note created successfully: \(note.noteId)")
                 state.note = note
                 state.selectedNoteId = note.noteId
-                state.content = ""
-                state.title = "无标题"
-                state.lastSavedContent = ""
-                state.lastSavedTitle = "无标题"
+                state.content = note.content
+                state.title = note.title
+                state.lastSavedContent = note.content
+                state.lastSavedTitle = note.title
                 return .none
                 
             case .noteCreated(.failure(let error)):
                 print("❌ 创建笔记失败: \(error)")
+                return .none
+                
+            case .applyPreferences(let prefs):
+                print("📐 [EDITOR] Applying preferences")
+                state.editorStyle = EditorStyle(from: prefs)
+                return .none
+                
+            // MARK: - Context Menu Action Handlers
+                
+            case .formatBold:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.formatWrap(
+                    text: state.content,
+                    selection: state.selectionRange,
+                    prefix: "**",
+                    placeholder: "粗体文本"
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                // 格式化后触发保存
+                return .send(.manualSave)
+                
+            case .formatItalic:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.formatWrap(
+                    text: state.content,
+                    selection: state.selectionRange,
+                    prefix: "*",
+                    placeholder: "斜体文本"
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .formatInlineCode:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.formatWrap(
+                    text: state.content,
+                    selection: state.selectionRange,
+                    prefix: "`",
+                    placeholder: "代码"
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .insertHeading1:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.formatLineStart(
+                    text: state.content,
+                    selection: state.selectionRange,
+                    prefix: "#",
+                    replaceExistingPrefixes: ["#", "##", "###", "####", "#####", "######"]
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .insertHeading2:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.formatLineStart(
+                    text: state.content,
+                    selection: state.selectionRange,
+                    prefix: "##",
+                    replaceExistingPrefixes: ["#", "##", "###", "####", "#####", "######"]
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .insertHeading3:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.formatLineStart(
+                    text: state.content,
+                    selection: state.selectionRange,
+                    prefix: "###",
+                    replaceExistingPrefixes: ["#", "##", "###", "####", "#####", "######"]
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .insertUnorderedList:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.formatLineStart(
+                    text: state.content,
+                    selection: state.selectionRange,
+                    prefix: "-",
+                    replaceExistingPrefixes: ["-", "*", "+"]
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .insertOrderedList:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.formatLineStart(
+                    text: state.content,
+                    selection: state.selectionRange,
+                    prefix: "1.",
+                    replaceExistingPrefixes: []
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .insertTaskList:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.formatLineStart(
+                    text: state.content,
+                    selection: state.selectionRange,
+                    prefix: "- [ ]",
+                    replaceExistingPrefixes: ["- [ ]", "- [x]"]
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .insertLink:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.formatWrap(
+                    text: state.content,
+                    selection: state.selectionRange,
+                    prefix: "[",
+                    suffix: "](url)",
+                    placeholder: "链接文本"
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .insertCodeBlock:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.insertCodeBlock(
+                    text: state.content,
+                    selection: state.selectionRange
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .selectionChanged(let range):
+                state.selectionRange = range
+                return .none
+                
+            case .focusChanged(let isFocused):
+                // 失去焦点时保存
+                if !isFocused {
+                    print("🟡 [FOCUS] Editor lost focus, triggering save")
+                    return .send(.manualSave)
+                }
                 return .none
             }
         }
