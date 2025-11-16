@@ -86,34 +86,25 @@ actor ImportServiceImpl: ImportServiceProtocol {
     }
     
     func importMarkdownFile(from url: URL) async throws -> Note {
-        print("📥 [IMPORT] Starting import of Markdown file: \(url.lastPathComponent)")
-        
         // 检查文件扩展名
         guard url.pathExtension == "md" || url.pathExtension == "markdown" else {
-            print("❌ [IMPORT] Invalid file type: \(url.pathExtension)")
             throw ImportServiceError.invalidFileType
         }
         
         // 读取文件内容
         guard let content = try? String(contentsOf: url, encoding: .utf8) else {
-            print("❌ [IMPORT] Failed to read file content")
             throw ImportServiceError.fileReadFailed
         }
-        print("📄 [IMPORT] File content read successfully, length: \(content.count) characters")
         
         // 从文件名提取标题
         let title = url.deletingPathExtension().lastPathComponent
-        print("📝 [IMPORT] Extracted title from filename: '\(title)'")
         
         // 检查是否有 YAML Front Matter
         let note: Note
         if content.hasPrefix("---") {
-            print("🔍 [IMPORT] Found YAML Front Matter, parsing...")
             // 有 YAML Front Matter，尝试解析
             note = try parseNotaContent(content)
-            print("✅ [IMPORT] YAML parsed successfully, title: '\(note.title)'")
         } else {
-            print("📋 [IMPORT] No YAML Front Matter, creating new note")
             // 没有 YAML Front Matter，创建新笔记
             note = Note(
                 noteId: UUID().uuidString,
@@ -122,14 +113,9 @@ actor ImportServiceImpl: ImportServiceProtocol {
                 created: Date(),
                 updated: Date()
             )
-            print("✅ [IMPORT] New note created with ID: \(note.noteId), title: '\(note.title)'")
         }
         
-        print("💾 [IMPORT] Saving note to database and filesystem...")
-        let savedNote = try await createAndSaveNote(note)
-        print("✅ [IMPORT] Note saved successfully! ID: \(savedNote.noteId), Title: '\(savedNote.title)'")
-        
-        return savedNote
+        return try await createAndSaveNote(note)
     }
     
     func importMultipleFiles(from urls: [URL]) async throws -> [Note] {

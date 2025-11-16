@@ -39,7 +39,7 @@ struct NoteEditorView: View {
                             
                             // 删除按钮
                             Button(role: .destructive) {
-                                store.send(.deleteNote)
+                                store.send(.requestDeleteNote)
                             } label: {
                                 Image(systemName: "trash")
                             }
@@ -168,6 +168,20 @@ struct NoteEditorView: View {
                     .animation(.spring(), value: store.isSaving)
                     .animation(.spring(), value: store.hasUnsavedChanges)
                 }
+            }
+            .confirmationDialog(
+                "确认删除",
+                isPresented: $store.showDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("删除", role: .destructive) {
+                    store.send(.confirmDeleteNote)
+                }
+                Button("取消", role: .cancel) {
+                    store.send(.cancelDeleteNote)
+                }
+            } message: {
+                Text("确定要删除这篇笔记吗？此操作可以在回收站中恢复。")
             }
         }
     }

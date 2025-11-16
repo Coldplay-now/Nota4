@@ -19,6 +19,7 @@ struct EditorFeature {
         var selectionRange: NSRange = NSRange(location: 0, length: 0)
         var editorStyle: EditorStyle = .comfortable
         var preview: PreviewState = PreviewState()
+        var showDeleteConfirmation: Bool = false
         
         // MARK: - Preview State
         
@@ -72,7 +73,9 @@ struct EditorFeature {
         case imageInserted(imageId: String, relativePath: String)
         case imageInsertFailed(Error)
         case toggleStar
-        case deleteNote
+        case requestDeleteNote
+        case confirmDeleteNote
+        case cancelDeleteNote
         case createNote
         case applyPreferences(EditorPreferences)
         case noteCreated(Result<Note, Error>)
@@ -365,7 +368,14 @@ struct EditorFeature {
                     try await noteRepository.updateNote(note)
                 }
                 
-            case .deleteNote:
+            case .requestDeleteNote:
+                // 显示删除确认对话框
+                state.showDeleteConfirmation = true
+                return .none
+                
+            case .confirmDeleteNote:
+                // 确认删除
+                state.showDeleteConfirmation = false
                 guard let noteId = state.selectedNoteId else { return .none }
                 
                 // 清空所有编辑器状态
@@ -380,6 +390,11 @@ struct EditorFeature {
                 return .run { send in
                     try await noteRepository.deleteNote(byId: noteId)
                 }
+                
+            case .cancelDeleteNote:
+                // 取消删除
+                state.showDeleteConfirmation = false
+                return .none
                 
             case .createNote:
                 print("🆕 [CREATE] Creating new note...")
