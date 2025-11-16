@@ -11,6 +11,7 @@ actor MarkdownRenderer {
     
     private let parser = MarkdownParser()
     private let highlighter = SyntaxHighlighter(format: HTMLOutputFormat())
+    private let themeManager = ThemeManager.shared
     
     // MARK: - Public Methods
     
@@ -49,7 +50,7 @@ actor MarkdownRenderer {
         }
         
         // 9. 构建完整 HTML（如果有 [TOC] 标记，则不在顶部添加 TOC）
-        return buildFullHTML(
+        return await buildFullHTML(
             content: html,
             toc: hasTOCMarker ? nil : toc,
             options: options
@@ -272,8 +273,8 @@ actor MarkdownRenderer {
         content: String,
         toc: String?,
         options: RenderOptions
-    ) -> String {
-        let css = getCSS()
+    ) async -> String {
+        let css = await getCSS(for: options.themeId)
         
         return """
         <!DOCTYPE html>
@@ -387,9 +388,31 @@ actor MarkdownRenderer {
             .replacingOccurrences(of: "'", with: "&#39;")
     }
     
-    private func getCSS() -> String {
-        // 使用内置的基础样式
-        return "<style>\(CSSStyles.base)</style>"
+    private func getCSS(for themeId: String?) async -> String {
+        // 1. 确定要使用的主题
+        let theme: ThemeConfig
+        if let themeId = themeId {
+            // 使用指定主题
+            let availableThemes = await themeManager.availableThemes
+            if let selectedTheme = availableThemes.first(where: { $0.id == themeId }) {
+                theme = selectedTheme
+            } else {
+                theme = await themeManager.currentTheme
+            }
+        } else {
+            // 使用当前主题
+            theme = await themeManager.currentTheme
+        }
+        
+        // 2. 尝试加载主题 CSS
+        do {
+            let css = try await themeManager.getCSS(for: theme)
+            print("✅ [RENDER] Using theme: \(theme.displayName)")
+            return "<style>\(css)</style>"
+        } catch {
+            print("⚠️ [RENDER] Failed to load theme CSS, using fallback: \(error)")
+            return "<style>\(CSSStyles.fallback)</style>"
+        }
     }
     
     private func getMermaidScript() -> String {

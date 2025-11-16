@@ -618,6 +618,7 @@ struct EditorFeature {
             case .preview(.themeChanged(let themeId)):
                 // 主题变更时重新渲染
                 state.preview.currentThemeId = themeId
+                state.preview.renderOptions.themeId = themeId
                 if state.viewMode != .editOnly {
                     return .send(.preview(.render))
                 }
