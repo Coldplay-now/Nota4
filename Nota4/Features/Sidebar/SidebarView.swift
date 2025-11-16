@@ -14,7 +14,6 @@ struct SidebarView: View {
                 Section("分类") {
                     ForEach(SidebarFeature.State.Category.allCases) { category in
                         let count = store.categoryCounts[category] ?? 0
-                        let _ = print("🎨 [VIEW] Rendering \(category.rawValue): count=\(count), selected=\(store.selectedCategory == category)")
                         
                         HStack {
                             Label {
