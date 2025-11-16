@@ -143,7 +143,7 @@ extension Note: FetchableRecord, PersistableRecord {
 
 // MARK: - Mock Data (for testing)
 
-#if DEBUG
+// Mock data for Preview and testing
 extension Note {
     static let mock = Note(
         noteId: "mock-note-1",
@@ -180,5 +180,4 @@ extension Note {
         ),
     ]
 }
-#endif
 

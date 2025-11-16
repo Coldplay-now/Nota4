@@ -45,7 +45,10 @@ let package = Package(
                 .product(name: "MarkdownUI", package: "swift-markdown-ui"),
                 .product(name: "Yams", package: "Yams"),
             ],
-            path: "Nota4"
+            path: "Nota4",
+            resources: [
+                .copy("Resources")
+            ]
         ),
         .testTarget(
             name: "Nota4Tests",
