@@ -6,7 +6,11 @@
 
 ---
 
-## 📚 目录
+[TOC]
+
+---
+
+## 📚 测试内容概览
 
 本文档将按以下顺序测试各项功能：
 
@@ -804,7 +808,8 @@ erDiagram
 ### 3.8 Git 流程图
 
 ```mermaid
-gitgraph
+%%{init: { 'logLevel': 'debug', 'theme': 'base' } }%%
+gitGraph
     commit id: "初始化项目"
     commit id: "添加基础结构"
     
@@ -819,7 +824,7 @@ gitgraph
     commit id: "集成 Mermaid"
     
     checkout develop
-    merge feature/markdown-renderer tag: "v0.1.0"
+    merge feature/markdown-renderer
     
     branch feature/theme-system
     checkout feature/theme-system
@@ -828,10 +833,10 @@ gitgraph
     commit id: "添加 CSS 样式"
     
     checkout develop
-    merge feature/theme-system tag: "v0.2.0"
+    merge feature/theme-system
     
     checkout main
-    merge develop tag: "v1.0.0"
+    merge develop
     
     checkout develop
     commit id: "开始新功能开发"

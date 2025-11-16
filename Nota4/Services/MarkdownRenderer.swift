@@ -19,28 +19,39 @@ actor MarkdownRenderer {
         markdown: String,
         options: RenderOptions = .default
     ) async throws -> String {
-        // 1. 预处理（提取 Mermaid、数学公式、代码块）
-        let preprocessed = preprocess(markdown)
+        // 1. 检测并处理 [TOC] 标记
+        let hasTOCMarker = markdown.contains("[TOC]") || markdown.contains("[toc]")
+        var processedMarkdown = markdown
         
-        // 2. Markdown → HTML（使用 Ink）
+        // 2. 预处理（提取 Mermaid、数学公式、代码块）
+        let preprocessed = preprocess(processedMarkdown)
+        
+        // 3. Markdown → HTML（使用 Ink）
         var html = parser.html(from: preprocessed.markdown)
         
-        // 3. 注入代码高亮
+        // 4. 注入代码高亮
         html = highlightCodeBlocks(html)
         
-        // 4. 注入 Mermaid 图表
+        // 5. 注入 Mermaid 图表
         html = injectMermaidCharts(html, charts: preprocessed.mermaidCharts)
         
-        // 5. 注入数学公式
+        // 6. 注入数学公式
         html = injectMathFormulas(html, formulas: preprocessed.mathFormulas)
         
-        // 6. 生成 TOC（如果需要）
-        let toc = options.includeTOC ? generateTOC(from: markdown) : nil
+        // 7. 生成 TOC（如果有 [TOC] 标记或者选项启用）
+        let shouldGenerateTOC = hasTOCMarker || options.includeTOC
+        let toc = shouldGenerateTOC ? generateTOC(from: markdown) : nil
         
-        // 7. 构建完整 HTML
+        // 8. 替换 [TOC] 标记
+        if hasTOCMarker && toc != nil {
+            html = html.replacingOccurrences(of: "<p>[TOC]</p>", with: toc!)
+            html = html.replacingOccurrences(of: "<p>[toc]</p>", with: toc!)
+        }
+        
+        // 9. 构建完整 HTML（如果有 [TOC] 标记，则不在顶部添加 TOC）
         return buildFullHTML(
             content: html,
-            toc: toc,
+            toc: hasTOCMarker ? nil : toc,
             options: options
         )
     }
@@ -283,10 +294,66 @@ actor MarkdownRenderer {
                 </article>
             </div>
             <script>
-                // 初始化 Mermaid
+                // 初始化 Mermaid - 配置所有图表类型
                 mermaid.initialize({ 
-                    startOnLoad: true, 
-                    theme: 'default' 
+                    startOnLoad: true,
+                    theme: 'default',
+                    securityLevel: 'loose',
+                    flowchart: {
+                        useMaxWidth: true,
+                        htmlLabels: true,
+                        curve: 'basis'
+                    },
+                    sequence: {
+                        diagramMarginX: 50,
+                        diagramMarginY: 10,
+                        actorMargin: 50,
+                        width: 150,
+                        height: 65,
+                        boxMargin: 10,
+                        boxTextMargin: 5,
+                        noteMargin: 10,
+                        messageMargin: 35,
+                        mirrorActors: true,
+                        useMaxWidth: true
+                    },
+                    gantt: {
+                        titleTopMargin: 25,
+                        barHeight: 20,
+                        barGap: 4,
+                        topPadding: 50,
+                        leftPadding: 75,
+                        gridLineStartPadding: 35,
+                        fontSize: 11,
+                        useMaxWidth: true
+                    },
+                    class: {
+                        useMaxWidth: true
+                    },
+                    state: {
+                        useMaxWidth: true
+                    },
+                    er: {
+                        useMaxWidth: true
+                    },
+                    journey: {
+                        useMaxWidth: true
+                    },
+                    gitGraph: {
+                        useMaxWidth: true,
+                        showBranches: true,
+                        showCommitLabel: true,
+                        mainBranchName: 'main'
+                    },
+                    pie: {
+                        useMaxWidth: true
+                    },
+                    logLevel: 'error'
+                });
+                
+                // 手动触发 Mermaid 渲染（更可靠）
+                document.addEventListener('DOMContentLoaded', function() {
+                    mermaid.init(undefined, document.querySelectorAll('.mermaid'));
                 });
                 
                 // 初始化 KaTeX
@@ -327,7 +394,7 @@ actor MarkdownRenderer {
     
     private func getMermaidScript() -> String {
         return """
-        <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
         """
     }
     
