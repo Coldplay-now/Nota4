@@ -115,10 +115,18 @@ struct SidebarFeature {
                 return .run { send in
                     // 通过加载笔记来计算数量
                     let allNotes = try await noteRepository.fetchNotes(filter: .all)
+                    print("📊 [SIDEBAR] Total notes fetched: \(allNotes.count)")
+                    
+                    let notDeletedCount = allNotes.filter { !$0.isDeleted }.count
+                    let starredCount = allNotes.filter { $0.isStarred && !$0.isDeleted }.count
+                    let deletedCount = allNotes.filter { $0.isDeleted }.count
+                    
+                    print("📊 [SIDEBAR] Counts - All: \(notDeletedCount), Starred: \(starredCount), Deleted: \(deletedCount)")
+                    
                     let counts: [State.Category: Int] = [
-                        .all: allNotes.filter { !$0.isDeleted }.count,
-                        .starred: allNotes.filter { $0.isStarred && !$0.isDeleted }.count,
-                        .trash: allNotes.filter { $0.isDeleted }.count
+                        .all: notDeletedCount,
+                        .starred: starredCount,
+                        .trash: deletedCount
                     ]
                     await send(.updateCounts(counts))
                 } catch: { error, send in
@@ -126,7 +134,9 @@ struct SidebarFeature {
                 }
                 
             case .updateCounts(let counts):
+                print("📊 [SIDEBAR] Updating counts: \(counts)")
                 state.categoryCounts = counts
+                print("📊 [SIDEBAR] Current categoryCounts: \(state.categoryCounts)")
                 return .none
             }
         }

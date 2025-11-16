@@ -67,9 +67,10 @@ struct AppFeature {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                // 应用启动时加载笔记和偏好设置
+                // 应用启动时加载笔记、侧边栏计数和偏好设置
                 return .merge(
                     .send(.noteList(.loadNotes)),
+                    .send(.sidebar(.loadCounts)),  // 加载侧边栏计数
                     .run { send in
                         let prefs = await PreferencesStorage.shared.load()
                         await send(.preferencesLoaded(prefs))
@@ -101,12 +102,16 @@ struct AppFeature {
                 
             case .dismissImport:
                 state.importFeature = nil
-                return .send(.noteList(.loadNotes)) // 刷新笔记列表
+                return .concatenate(
+                    .send(.noteList(.loadNotes)),
+                    .send(.sidebar(.loadCounts))
+                )
                 
             case .importFeature(.importCompleted):
-                // 导入完成后，立即刷新列表，延迟关闭导入窗口
+                // 导入完成后，立即刷新列表和侧边栏计数，延迟关闭导入窗口
                 return .concatenate(
-                    .send(.noteList(.loadNotes)), // 立即刷新列表
+                    .send(.noteList(.loadNotes)),
+                    .send(.sidebar(.loadCounts)),
                     .run { send in
                         try await mainQueue.sleep(for: .seconds(1.5))
                         await send(.dismissImport)
@@ -150,7 +155,10 @@ struct AppFeature {
             // 侧边栏分类切换 → 更新笔记列表过滤
             case .sidebar(.categorySelected(let category)):
                 state.noteList.filter = .category(category)
-                return .send(.noteList(.loadNotes))
+                return .concatenate(
+                    .send(.noteList(.loadNotes)),
+                    .send(.sidebar(.loadCounts))  // 同时更新侧边栏计数
+                )
                 
             // 侧边栏标签切换 → 更新笔记列表过滤
             case .sidebar(.tagToggled):
@@ -177,24 +185,27 @@ struct AppFeature {
                 if let updatedNote = state.editor.note {
                     return .concatenate(
                         .send(.noteList(.updateNoteInList(updatedNote))),
-                        .send(.noteList(.loadNotes))
+                        .send(.noteList(.loadNotes)),
+                        .send(.sidebar(.loadCounts))
                     )
                 }
-                return .send(.noteList(.loadNotes))
+                return .concatenate(
+                    .send(.noteList(.loadNotes)),
+                    .send(.sidebar(.loadCounts))
+                )
                 
-            // 笔记列表加载完成 → 更新侧边栏统计
+            // 笔记列表加载完成 → 不再更新侧边栏统计
+            // （因为 notes 是过滤后的，不能用来计算全局计数）
             case .noteList(.notesLoaded(.success(let notes))):
-                let counts: [SidebarFeature.State.Category: Int] = [
-                    .all: notes.filter { !$0.isDeleted }.count,
-                    .starred: notes.filter { $0.isStarred && !$0.isDeleted }.count,
-                    .trash: notes.filter { $0.isDeleted }.count
-                ]
-                return .send(.sidebar(.updateCounts(counts)))
+                print("📊 [APP] Notes loaded (filtered), total: \(notes.count)")
+                return .none
                 
-            // 编辑器创建笔记完成 → 刷新笔记列表
-            // 注意：不需要 noteSelected，因为编辑器已经有正确的状态
+            // 编辑器创建笔记完成 → 刷新笔记列表和侧边栏计数
             case .editor(.noteCreated(.success)):
-                return .send(.noteList(.loadNotes))
+                return .concatenate(
+                    .send(.noteList(.loadNotes)),
+                    .send(.sidebar(.loadCounts))
+                )
                 
             // 笔记列表请求创建 → 转发给编辑器
             case .noteList(.createNote):

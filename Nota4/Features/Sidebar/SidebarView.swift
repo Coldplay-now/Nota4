@@ -13,12 +13,20 @@ struct SidebarView: View {
                 // 分类
                 Section("分类") {
                     ForEach(SidebarFeature.State.Category.allCases) { category in
-                        Label {
-                            Text(category.rawValue)
-                        } icon: {
-                            Image(systemName: category.icon)
+                        let count = store.categoryCounts[category] ?? 0
+                        let _ = print("🎨 [VIEW] Rendering \(category.rawValue): count=\(count), selected=\(store.selectedCategory == category)")
+                        
+                        HStack {
+                            Label {
+                                Text(category.rawValue)
+                            } icon: {
+                                Image(systemName: category.icon)
+                            }
+                            Spacer()
+                            Text("\(count)")
+                                .foregroundColor(.secondary)
+                                .font(.subheadline)
                         }
-                        .badge(Text("\(store.categoryCounts[category] ?? 0)"))
                         .tag(category)
                     }
                 }
