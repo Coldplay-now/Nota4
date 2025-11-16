@@ -19,10 +19,24 @@ actor ThemeManager {
     
     private init() {
         // 内置主题目录
-        themesDirectory = Bundle.main.url(
-            forResource: "Themes",
-            withExtension: nil
-        )
+        // 对于我们的 .app bundle，主题资源在 Contents/Resources/Themes
+        if let resourcePath = Bundle.main.resourcePath {
+            themesDirectory = URL(fileURLWithPath: resourcePath)
+                .appendingPathComponent("Themes")
+            
+            print("📁 [THEME] Themes directory: \(themesDirectory?.path ?? "nil")")
+            if let themesDir = themesDirectory {
+                let exists = FileManager.default.fileExists(atPath: themesDir.path)
+                print("📁 [THEME] Directory exists: \(exists)")
+                if exists {
+                    let files = (try? FileManager.default.contentsOfDirectory(atPath: themesDir.path)) ?? []
+                    print("📁 [THEME] Files: \(files)")
+                }
+            }
+        } else {
+            themesDirectory = nil
+            print("⚠️ [THEME] Bundle.main.resourcePath is nil!")
+        }
         
         // 用户自定义主题目录
         let appSupport = FileManager.default.urls(

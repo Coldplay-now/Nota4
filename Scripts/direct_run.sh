@@ -68,6 +68,14 @@ EOF
     if [ -f "Nota4/Resources/AppIcon.icns" ] && [ ! -f "$APP_DIR/Contents/Resources/AppIcon.icns" ]; then
         cp "Nota4/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/"
     fi
+    
+    # 复制 Themes 目录
+    if [ -d "Nota4/Resources/Themes" ]; then
+        echo -e "${BLUE}📁 复制主题资源...${NC}"
+        mkdir -p "$APP_DIR/Contents/Resources"
+        cp -r "Nota4/Resources/Themes" "$APP_DIR/Contents/Resources/"
+        echo -e "${GREEN}✅ 主题资源已复制${NC}"
+    fi
 else
     echo -e "${GREEN}✅ 应用包已是最新${NC}"
 fi
