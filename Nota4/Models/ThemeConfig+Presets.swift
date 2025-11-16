@@ -84,14 +84,14 @@ extension ThemeConfig {
         updatedAt: Date()
     )
     
-    /// Notion 风格主题
+    /// Nota 风格主题
     static let notion = ThemeConfig(
         id: "builtin-notion",
         name: "notion",
-        displayName: "Notion",
+        displayName: "Nota风格主题",
         author: "Nota4",
         version: "1.0.0",
-        description: "Notion 风格主题",
+        description: "Nota 专属风格主题",
         cssFileName: "notion.css",
         codeHighlightTheme: .github,
         mermaidTheme: "default",
