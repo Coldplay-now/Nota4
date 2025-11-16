@@ -79,6 +79,8 @@ private struct SettingsDetailView: View {
                 switch store.selectedCategory {
                 case .editor:
                     EditorSettingsPanel(store: store)
+                case .appearance:
+                    AppearanceSettingsPanel(store: store)
                 }
             }
         }

@@ -18,6 +18,18 @@ struct EditorFeature {
         var cursorPosition: Int = 0
         var selectionRange: NSRange = NSRange(location: 0, length: 0)
         var editorStyle: EditorStyle = .comfortable
+        var preview: PreviewState = PreviewState()
+        
+        // MARK: - Preview State
+        
+        struct PreviewState: Equatable {
+            var renderedHTML: String = ""
+            var isRendering: Bool = false
+            var renderError: String? = nil
+            var currentThemeId: String? = nil
+            var includeTOC: Bool = false
+            var renderOptions: RenderOptions = .default
+        }
         
         // MARK: - Computed Properties
         
@@ -66,6 +78,29 @@ struct EditorFeature {
         case noteCreated(Result<Note, Error>)
         case selectionChanged(NSRange)
         case focusChanged(Bool)
+        
+        // MARK: - Preview Actions
+        
+        case preview(PreviewAction)
+        
+        enum PreviewAction: Equatable {
+            // 生命周期
+            case onAppear
+            case contentChanged(String)
+            
+            // 渲染控制
+            case render
+            case renderDebounced
+            case renderCompleted(TaskResult<String>)
+            case cancelRender
+            
+            // 主题响应
+            case themeChanged(String)
+            case renderOptionsChanged(RenderOptions)
+            
+            // 错误处理
+            case dismissError
+        }
         
         // MARK: - Context Menu Actions
         
@@ -130,6 +165,7 @@ struct EditorFeature {
     @Dependency(\.uuid) var uuid
     @Dependency(\.date) var date
     @Dependency(\.mainQueue) var mainQueue
+    @Dependency(\.markdownRenderer) var markdownRenderer
     
     // MARK: - Reducer
     
@@ -140,7 +176,10 @@ struct EditorFeature {
             switch action {
             case .binding(\.content):
                 print("⚪ [BINDING] Content changed: length=\(state.content.count)")
-                // 不再自动保存，避免干扰输入
+                // 仅在预览模式下触发渲染
+                if state.viewMode != .editOnly {
+                    return .send(.preview(.contentChanged(state.content)))
+                }
                 return .none
                 
             case .binding(\.title):
@@ -194,7 +233,20 @@ struct EditorFeature {
                 return .none
                 
             case .viewModeChanged(let mode):
+                let oldMode = state.viewMode
                 state.viewMode = mode
+                
+                // 切换到预览模式时触发渲染
+                if mode != .editOnly && oldMode == .editOnly {
+                    return .send(.preview(.render))
+                }
+                
+                // 从预览模式切换到仅编辑
+                if mode == .editOnly && oldMode != .editOnly {
+                    // 取消渲染任务，释放资源
+                    return .cancel(id: CancelID.previewRender)
+                }
+                
                 return .none
                 
             case .autoSave:
@@ -514,6 +566,76 @@ struct EditorFeature {
                     return .send(.manualSave)
                 }
                 return .none
+            
+            // MARK: - Preview Action Handlers
+            
+            case .preview(.onAppear):
+                // 预览组件加载时，如果已有内容则渲染
+                if !state.content.isEmpty && state.preview.renderedHTML.isEmpty {
+                    return .send(.preview(.render))
+                }
+                return .none
+            
+            case .preview(.contentChanged(let content)):
+                // 防抖 300ms 后再渲染
+                return .send(.preview(.renderDebounced))
+                    .debounce(id: CancelID.previewRender, for: .milliseconds(300), scheduler: mainQueue)
+            
+            case .preview(.render), .preview(.renderDebounced):
+                // 取消之前的渲染任务
+                guard !state.content.isEmpty else {
+                    state.preview.renderedHTML = ""
+                    return .none
+                }
+                
+                state.preview.isRendering = true
+                state.preview.renderError = nil
+                
+                let content = state.content
+                let options = state.preview.renderOptions
+                
+                return .run { send in
+                    let html = try await markdownRenderer.renderToHTML(
+                        markdown: content,
+                        options: options
+                    )
+                    await send(.preview(.renderCompleted(.success(html))))
+                } catch: { error, send in
+                    await send(.preview(.renderCompleted(.failure(error))))
+                }
+                .cancellable(id: CancelID.previewRender, cancelInFlight: true)
+            
+            case .preview(.renderCompleted(.success(let html))):
+                state.preview.isRendering = false
+                state.preview.renderedHTML = html
+                return .none
+            
+            case .preview(.renderCompleted(.failure(let error))):
+                state.preview.isRendering = false
+                state.preview.renderError = error.localizedDescription
+                return .none
+            
+            case .preview(.themeChanged(let themeId)):
+                // 主题变更时重新渲染
+                state.preview.currentThemeId = themeId
+                if state.viewMode != .editOnly {
+                    return .send(.preview(.render))
+                }
+                return .none
+            
+            case .preview(.renderOptionsChanged(let options)):
+                state.preview.renderOptions = options
+                if state.viewMode != .editOnly {
+                    return .send(.preview(.render))
+                }
+                return .none
+            
+            case .preview(.cancelRender):
+                return .cancel(id: CancelID.previewRender)
+            
+            case .preview(.dismissError):
+                state.preview.renderError = nil
+                return .none
             }
         }
     }
@@ -523,6 +645,7 @@ struct EditorFeature {
     enum CancelID {
         case autoSave
         case loadNote
+        case previewRender
     }
 }
 

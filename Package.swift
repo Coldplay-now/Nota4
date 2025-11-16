@@ -35,6 +35,16 @@ let package = Package(
             url: "https://github.com/jpsim/Yams",
             from: "5.0.0"
         ),
+        // Ink 0.6+
+        .package(
+            url: "https://github.com/JohnSundell/Ink.git",
+            from: "0.6.0"
+        ),
+        // Splash 0.16+
+        .package(
+            url: "https://github.com/JohnSundell/Splash.git",
+            from: "0.16.0"
+        ),
     ],
     targets: [
         .executableTarget(
@@ -44,6 +54,8 @@ let package = Package(
                 .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "MarkdownUI", package: "swift-markdown-ui"),
                 .product(name: "Yams", package: "Yams"),
+                .product(name: "Ink", package: "Ink"),
+                .product(name: "Splash", package: "Splash"),
             ],
             path: "Nota4",
             resources: [

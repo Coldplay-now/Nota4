@@ -1,0 +1,205 @@
+/* GitHub 风格主题 - GitHub Theme */
+
+/* 使用 GitHub 的视觉风格 */
+:root {
+    --primary-color: #0969da;
+    --background-color: #ffffff;
+    --text-color: #24292f;
+    --secondary-text-color: #57606a;
+    --link-color: #0969da;
+    --link-hover-color: #0550ae;
+    --code-background-color: #f6f8fa;
+    --code-border-color: #d0d7de;
+    --border-color: #d0d7de;
+    --accent-color: #0969da;
+    --blockquote-border-color: #d0d7de;
+    --table-header-bg: #f6f8fa;
+    
+    --body-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica', 'Arial', sans-serif;
+    --heading-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica', 'Arial', sans-serif;
+    --code-font: ui-monospace, 'SFMono-Regular', 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+    
+    --font-size: 16px;
+    --line-height: 1.5;
+    --heading-line-height: 1.25;
+    --code-font-size: 85%;
+    
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    
+    --border-radius-sm: 3px;
+    --border-radius-md: 6px;
+    --border-radius-lg: 6px;
+}
+
+/* 其余样式继承自 light.css 的结构 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--body-font);
+    font-size: var(--font-size);
+    line-height: var(--line-height);
+    color: var(--text-color);
+    background: var(--background-color);
+    padding: var(--spacing-xl);
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    margin: var(--spacing-lg) 0 var(--spacing-md) 0;
+    font-family: var(--heading-font);
+    font-weight: 600;
+    line-height: var(--heading-line-height);
+}
+
+h1 {
+    font-size: 2em;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.3em;
+}
+
+h2 {
+    font-size: 1.5em;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.3em;
+}
+
+h3 { font-size: 1.25em; }
+h4 { font-size: 1em; }
+h5 { font-size: 0.875em; }
+h6 { font-size: 0.85em; color: var(--secondary-text-color); }
+
+p {
+    margin: var(--spacing-md) 0;
+}
+
+a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--link-hover-color);
+    text-decoration: underline;
+}
+
+ul, ol {
+    margin: var(--spacing-md) 0;
+    padding-left: var(--spacing-xl);
+}
+
+li {
+    margin: var(--spacing-xs) 0;
+}
+
+blockquote {
+    border-left: 0.25em solid var(--blockquote-border-color);
+    padding-left: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+    color: var(--secondary-text-color);
+}
+
+code {
+    background: var(--code-background-color);
+    border-radius: var(--border-radius-sm);
+    padding: 0.2em 0.4em;
+    font-family: var(--code-font);
+    font-size: var(--code-font-size);
+}
+
+pre {
+    background: var(--code-background-color);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+    overflow-x: auto;
+}
+
+pre code {
+    background: none;
+    padding: 0;
+    display: block;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: var(--spacing-md) 0;
+}
+
+th, td {
+    border: 1px solid var(--border-color);
+    padding: 6px 13px;
+    text-align: left;
+}
+
+th {
+    background: var(--table-header-bg);
+    font-weight: 600;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    margin: var(--spacing-md) 0;
+    display: block;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: var(--spacing-lg) 0;
+}
+
+.toc {
+    background: var(--code-background-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.toc h2 {
+    font-size: 1.2rem;
+    margin-bottom: var(--spacing-md);
+    border: none;
+}
+
+.toc ul {
+    list-style: none;
+    padding-left: var(--spacing-md);
+}
+
+.toc li {
+    margin: var(--spacing-sm) 0;
+}
+
+.mermaid {
+    background: var(--background-color);
+    padding: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+    text-align: center;
+}
+
+.math-block {
+    margin: var(--spacing-md) 0;
+    overflow-x: auto;
+    text-align: center;
+}
+
+.math-inline {
+    display: inline-block;
+    vertical-align: middle;
+}
+

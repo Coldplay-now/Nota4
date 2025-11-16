@@ -1,0 +1,210 @@
+/* Notion 风格主题 - Notion Theme */
+
+/* 使用 Notion 的视觉风格 */
+:root {
+    --primary-color: #37352f;
+    --background-color: #ffffff;
+    --text-color: #37352f;
+    --secondary-text-color: rgba(55, 53, 47, 0.65);
+    --link-color: #006bbd;
+    --link-hover-color: #005299;
+    --code-background-color: rgba(135, 131, 120, 0.15);
+    --code-border-color: transparent;
+    --border-color: rgba(55, 53, 47, 0.09);
+    --accent-color: #2eaadc;
+    --blockquote-border-color: #37352f;
+    --table-header-bg: rgba(242, 241, 238, 0.6);
+    
+    --body-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, 'Apple Color Emoji', Arial, sans-serif;
+    --heading-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, 'Apple Color Emoji', Arial, sans-serif;
+    --code-font: 'SF Mono', Monaco, 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace;
+    
+    --font-size: 16px;
+    --line-height: 1.5;
+    --heading-line-height: 1.2;
+    --code-font-size: 85%;
+    
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    
+    --border-radius-sm: 3px;
+    --border-radius-md: 3px;
+    --border-radius-lg: 3px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--body-font);
+    font-size: var(--font-size);
+    line-height: var(--line-height);
+    color: var(--text-color);
+    background: var(--background-color);
+    padding: var(--spacing-xl) 96px;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    margin: var(--spacing-lg) 0 var(--spacing-sm) 0;
+    font-family: var(--heading-font);
+    font-weight: 600;
+    line-height: var(--heading-line-height);
+}
+
+h1 {
+    font-size: 2.5em;
+    font-weight: 700;
+    margin-top: 0;
+}
+
+h2 {
+    font-size: 1.875em;
+}
+
+h3 {
+    font-size: 1.5em;
+}
+
+h4 { font-size: 1.25em; }
+h5 { font-size: 1em; }
+h6 { font-size: 0.875em; color: var(--secondary-text-color); }
+
+p {
+    margin: var(--spacing-sm) 0;
+    line-height: 1.7;
+}
+
+a {
+    color: var(--link-color);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+}
+
+a:hover {
+    color: var(--link-hover-color);
+}
+
+ul, ol {
+    margin: var(--spacing-sm) 0;
+    padding-left: 1.7em;
+}
+
+li {
+    margin: var(--spacing-xs) 0;
+    line-height: 1.7;
+}
+
+blockquote {
+    border-left: 3px solid var(--blockquote-border-color);
+    padding-left: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+    color: var(--text-color);
+    font-size: 1em;
+}
+
+code {
+    background: var(--code-background-color);
+    border: var(--code-border-color);
+    border-radius: var(--border-radius-sm);
+    padding: 0.2em 0.4em;
+    font-family: var(--code-font);
+    font-size: var(--code-font-size);
+    color: #eb5757;
+}
+
+pre {
+    background: var(--code-background-color);
+    border-radius: var(--border-radius-sm);
+    padding: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+    overflow-x: auto;
+}
+
+pre code {
+    background: none;
+    padding: 0;
+    display: block;
+    color: var(--text-color);
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: var(--spacing-md) 0;
+}
+
+th, td {
+    border: 1px solid var(--border-color);
+    padding: 8px 9px;
+    text-align: left;
+}
+
+th {
+    background: var(--table-header-bg);
+    font-weight: 500;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    margin: var(--spacing-md) 0;
+    display: block;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: var(--spacing-lg) 0;
+}
+
+.toc {
+    background: rgba(242, 241, 238, 0.6);
+    border-radius: var(--border-radius-sm);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.toc h2 {
+    font-size: 1.2rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.toc ul {
+    list-style: none;
+    padding-left: var(--spacing-md);
+}
+
+.toc li {
+    margin: var(--spacing-sm) 0;
+}
+
+.mermaid {
+    background: var(--background-color);
+    padding: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+    text-align: center;
+}
+
+.math-block {
+    margin: var(--spacing-md) 0;
+    overflow-x: auto;
+    text-align: center;
+}
+
+.math-inline {
+    display: inline-block;
+    vertical-align: middle;
+}
+

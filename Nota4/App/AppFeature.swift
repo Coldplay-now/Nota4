@@ -104,11 +104,14 @@ struct AppFeature {
                 return .send(.noteList(.loadNotes)) // 刷新笔记列表
                 
             case .importFeature(.importCompleted):
-                // 导入完成后，延迟关闭并刷新
-                return .run { send in
-                    try await mainQueue.sleep(for: .seconds(1.5))
-                    await send(.dismissImport)
-                }
+                // 导入完成后，立即刷新列表，延迟关闭导入窗口
+                return .concatenate(
+                    .send(.noteList(.loadNotes)), // 立即刷新列表
+                    .run { send in
+                        try await mainQueue.sleep(for: .seconds(1.5))
+                        await send(.dismissImport)
+                    }
+                )
                 
             case .importFeature:
                 return .none

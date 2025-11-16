@@ -129,8 +129,8 @@ struct ExportFeature {
 // MARK: - Dependency Key
 
 private enum ExportServiceKey: DependencyKey {
-    static let liveValue: ExportServiceProtocol = ExportServiceImpl()
-    static let testValue: ExportServiceProtocol = ExportServiceMock()
+    static let liveValue: ExportServiceProtocol = ExportServiceImpl.shared
+    static let testValue: ExportServiceProtocol = ExportServiceImpl.mock
 }
 
 extension DependencyValues {

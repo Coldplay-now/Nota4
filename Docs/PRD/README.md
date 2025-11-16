@@ -12,6 +12,8 @@
 | [EDITOR_PREFERENCES_PRD.md](./EDITOR_PREFERENCES_PRD.md) | 编辑器偏好设置 PRD | 2025-11-16 |
 | [EDITOR_CONTEXT_MENU_PRD.md](./EDITOR_CONTEXT_MENU_PRD.md) | 编辑器右键菜单 PRD | 2025-11-16 |
 | [EDITOR_TOOLBAR_PRD.md](./EDITOR_TOOLBAR_PRD.md) | 编辑器格式工具栏 PRD | 2025-11-16 |
+| [PREVIEW_RENDERING_ENHANCEMENT_PRD.md](./PREVIEW_RENDERING_ENHANCEMENT_PRD.md) | Markdown 预览渲染增强 PRD | 2025-11-16 |
+| [IMPORT_EXPORT_ENHANCEMENT_PRD.md](./IMPORT_EXPORT_ENHANCEMENT_PRD.md) | 导入导出功能完善 PRD | 2025-11-16 |
 
 ---
 
@@ -79,6 +81,28 @@
 **适用人员**:
 - 前端开发（SwiftUI + TCA）
 - UI/UX 设计师
+- 产品经理
+- QA 测试
+
+### IMPORT_EXPORT_ENHANCEMENT_PRD.md - 导入导出功能完善 PRD
+
+**内容包含**:
+- 📊 现状评估（已实现功能清单）
+- 🎯 功能规划（TXT/HTML/PDF 导入导出）
+- 🔧 技术方案（Markdown 渲染、PDF 生成、编码处理）
+- 📅 实施计划（三阶段开发计划）
+- 🧪 测试计划（功能测试、性能测试、兼容性测试）
+- ⚠️ 风险评估（技术风险、性能风险）
+- 📈 成功标准
+
+**功能优先级**:
+- **P0（必须）**: TXT 导入、TXT 导出、HTML 导出
+- **P1（重要）**: PDF 导出、改进 MD 导入
+- **P2（可选）**: HTML 样式定制、批量压缩导出
+
+**适用人员**:
+- 后端开发（Service 层）
+- 前端开发（Feature/UI 层）
 - 产品经理
 - QA 测试
 

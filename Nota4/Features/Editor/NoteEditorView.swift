@@ -85,7 +85,7 @@ struct NoteEditorView: View {
                                 }
                                 
                             case .previewOnly:
-                                MarkdownPreview(content: store.content)
+                                MarkdownPreview(store: store)
                                 
                             case .split:
                                 HSplitView {
@@ -120,7 +120,7 @@ struct NoteEditorView: View {
                                         EditorContextMenu(store: store)
                                     }
                                     
-                                    MarkdownPreview(content: store.content)
+                                    MarkdownPreview(store: store)
                                 }
                             }
                         }

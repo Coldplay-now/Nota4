@@ -44,6 +44,20 @@ private enum ImageManagerKey: DependencyKey {
     static let testValue: ImageManagerProtocol = ImageManager.mock
 }
 
+// MARK: - MarkdownRenderer Dependency
+
+extension DependencyValues {
+    var markdownRenderer: MarkdownRenderer {
+        get { self[MarkdownRendererKey.self] }
+        set { self[MarkdownRendererKey.self] = newValue }
+    }
+}
+
+private enum MarkdownRendererKey: DependencyKey {
+    static let liveValue: MarkdownRenderer = MarkdownRenderer()
+    static let testValue: MarkdownRenderer = MarkdownRenderer()
+}
+
 // MARK: - Protocol Definitions
 
 protocol NoteRepositoryProtocol {

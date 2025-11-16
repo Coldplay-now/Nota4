@@ -93,16 +93,8 @@ struct ImportFeature {
 // MARK: - Dependency Key
 
 private enum ImportServiceKey: DependencyKey {
-    static let liveValue: ImportServiceProtocol = {
-        // 这里使用一个临时的包装器来处理 async throws 初始化
-        // 在实际运行时，应该在 App 启动时初始化
-        class ImportServiceContainer {
-            static var shared: ImportServiceProtocol = ImportServiceMock()
-        }
-        return ImportServiceContainer.shared
-    }()
-    
-    static let testValue: ImportServiceProtocol = ImportServiceMock()
+    static let liveValue: ImportServiceProtocol = ImportServiceImpl.shared
+    static let testValue: ImportServiceProtocol = ImportServiceImpl.mock
 }
 
 extension DependencyValues {

@@ -245,6 +245,40 @@ extension ImportServiceImpl {
     }
 }
 
+// MARK: - Shared Instance
+
+private enum ImportServiceContainer {
+    static var shared: ImportServiceProtocol = {
+        // 使用 Task 同步初始化
+        let semaphore = DispatchSemaphore(value: 0)
+        var service: ImportServiceProtocol = ImportServiceMock()
+        
+        Task {
+            do {
+                service = try await ImportServiceImpl.live()
+                print("✅ [IMPORT] ImportService initialized successfully")
+            } catch {
+                print("❌ [IMPORT] Failed to initialize ImportService: \(error), using mock")
+                service = ImportServiceMock()
+            }
+            semaphore.signal()
+        }
+        
+        semaphore.wait()
+        return service
+    }()
+}
+
+extension ImportServiceProtocol where Self == ImportServiceImpl {
+    static var shared: ImportServiceProtocol {
+        ImportServiceContainer.shared
+    }
+    
+    static var mock: ImportServiceProtocol {
+        ImportServiceMock()
+    }
+}
+
 // MARK: - Mock for Testing
 
 actor ImportServiceMock: ImportServiceProtocol {

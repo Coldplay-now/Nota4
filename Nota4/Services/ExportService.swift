@@ -150,6 +150,18 @@ actor ExportServiceImpl: ExportServiceProtocol {
     }
 }
 
+// MARK: - Shared Instance
+
+extension ExportServiceProtocol where Self == ExportServiceImpl {
+    static var shared: ExportServiceProtocol {
+        ExportServiceImpl()
+    }
+    
+    static var mock: ExportServiceProtocol {
+        ExportServiceMock()
+    }
+}
+
 // MARK: - Mock for Testing
 
 actor ExportServiceMock: ExportServiceProtocol {
