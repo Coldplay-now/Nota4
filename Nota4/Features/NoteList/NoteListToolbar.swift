@@ -11,7 +11,7 @@ struct NoteListToolbar: View {
     
     var body: some View {
         WithPerceptionTracking {
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 // 搜索按钮
                 NoteListToolbarButton(
                     title: store.isSearchPanelVisible ? "关闭搜索" : "搜索",
@@ -23,7 +23,7 @@ struct NoteListToolbar: View {
                 }
                 
                 Divider()
-                    .frame(height: 20)
+                    .frame(height: 16)
                 
                 // 新建笔记按钮
                 NoteListToolbarButton(
@@ -36,7 +36,7 @@ struct NoteListToolbar: View {
                 }
                 
                 Divider()
-                    .frame(height: 20)
+                    .frame(height: 16)
                 
                 // 排序菜单
                 SortMenuButton(store: store)
@@ -44,8 +44,8 @@ struct NoteListToolbar: View {
                 Spacer()
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .frame(height: 48)
+            .padding(.vertical, 8)
+            .frame(height: 40)
             .background(Color(nsColor: .controlBackgroundColor))
             .overlay(
                 Rectangle()

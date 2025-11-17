@@ -6,6 +6,7 @@ import ComposableArchitecture
 struct ExpandableSearchField: View {
     let store: StoreOf<NoteListFeature>
     @FocusState private var isFocused: Bool
+    @State private var isClearButtonHovered = false
     
     var body: some View {
         WithPerceptionTracking {
@@ -28,12 +29,23 @@ struct ExpandableSearchField: View {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundColor(.secondary)
                             .font(.system(size: 14))
+                            .frame(width: 16, height: 16)
                     }
                     .buttonStyle(.plain)
+                    .background(
+                        Circle()
+                            .fill(isClearButtonHovered ? Color(nsColor: .controlAccentColor).opacity(0.15) : Color.clear)
+                            .frame(width: 20, height: 20)
+                    )
+                    .contentShape(Circle())
+                    .onHover { hovering in
+                        isClearButtonHovered = hovering
+                    }
+                    .animation(.easeInOut(duration: 0.15), value: isClearButtonHovered)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
             .background(Color(nsColor: .controlBackgroundColor))
             .overlay(
                 Rectangle()

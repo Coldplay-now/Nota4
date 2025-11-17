@@ -35,10 +35,22 @@ struct NoteListView: View {
                 }
                 
                 // 笔记列表
-                List(store.filteredNotes, id: \.noteId, selection: $selectedNotes) { note in
-                    noteRow(note: note, store: store)
+                List(selection: $selectedNotes) {
+                    ForEach(store.filteredNotes, id: \.noteId) { note in
+                        noteRow(note: note, store: store, isSelected: selectedNotes.contains(note.noteId))
+                            .id(note.noteId)
+                            .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
+                            .listRowBackground(EmptyView()) // 完全禁用系统默认背景和选中样式
+                            .listRowSeparator(.hidden)
+                            .tag(note.noteId)
+                    }
                 }
                 .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .background(Color(nsColor: .textBackgroundColor)) // 使用文本背景色，更接近白色
+                .environment(\.defaultMinListRowHeight, 0) // 移除默认行高样式
+                .animation(.easeInOut(duration: 0.2), value: selectedNotes)
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: store.filteredNotes.map { $0.noteId })
             }
             .onChange(of: selectedNotes) { _, newValue in
                 if newValue.count == 1 {
@@ -79,7 +91,7 @@ struct NoteListView: View {
     }
     
     @ViewBuilder
-    private func noteRow(note: Note, store: StoreOf<NoteListFeature>) -> some View {
+    private func noteRow(note: Note, store: StoreOf<NoteListFeature>, isSelected: Bool) -> some View {
         let isTrash: Bool = {
             if case .category(let category) = store.filter {
                 return category == .trash
@@ -90,7 +102,7 @@ struct NoteListView: View {
         // 检查是否批量选择（当前笔记在选中列表中，且选中数量 > 1）
         let isBatchSelection = selectedNotes.count > 1 && selectedNotes.contains(note.noteId)
         
-        NoteRowView(note: note, searchKeywords: store.searchKeywords)
+        NoteRowView(note: note, searchKeywords: store.searchKeywords, isSelected: isSelected)
             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                 if isTrash {
                     Button(role: .destructive) {
