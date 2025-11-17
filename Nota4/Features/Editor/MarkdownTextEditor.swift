@@ -77,7 +77,8 @@ struct MarkdownTextEditor: NSViewRepresentable {
                            textView.defaultParagraphStyle?.paragraphSpacing != paragraphSpacing
         
         // 更新文本（只在从外部改变时，不在用户输入时）
-        if textView.string != text {
+        // 注意：如果正在执行替换操作，不要更新 textView.string，否则会清除 undo stack
+        if textView.string != text && !context.coordinator.isReplacing {
             let wasEditing = textView.window?.firstResponder == textView
             
             // 取消输入法的 marked text（关键：避免输入法冲突）
@@ -162,9 +163,94 @@ struct MarkdownTextEditor: NSViewRepresentable {
         weak var textView: NSTextView?
         var searchHighlights: [NSRange] = []
         var currentHighlightIndex: Int = -1
+        var isReplacing: Bool = false  // 标记是否正在执行替换操作
         
         init(_ parent: MarkdownTextEditor) {
             self.parent = parent
+            super.init()
+            // 监听替换操作通知
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(handleReplaceNotification(_:)),
+                name: NSNotification.Name("PerformReplaceInTextView"),
+                object: nil
+            )
+        }
+        
+        deinit {
+            NotificationCenter.default.removeObserver(self)
+        }
+        
+        @objc func handleReplaceNotification(_ notification: Notification) {
+            guard let textView = textView,
+                  let userInfo = notification.userInfo,
+                  let range = userInfo["range"] as? NSRange,
+                  let replacement = userInfo["replacement"] as? String,
+                  let textStorage = textView.textStorage,
+                  let undoManager = textView.undoManager else {
+                return
+            }
+            
+            // 获取可选的分组信息（用于"全部替换"）
+            let isGrouped = userInfo["isGrouped"] as? Bool ?? false
+            let isFirst = userInfo["isFirst"] as? Bool ?? false
+            let isLast = userInfo["isLast"] as? Bool ?? false
+            
+            // 确保 range 有效
+            guard range.location != NSNotFound,
+                  range.location >= 0,
+                  range.location + range.length <= textView.string.count else {
+                return
+            }
+            
+            // 标记正在执行替换操作，防止 updateNSView 清除 undo stack
+            isReplacing = true
+            
+            // 如果是分组操作（全部替换），在第一次替换时开始 undo group
+            if isGrouped && isFirst {
+                undoManager.beginUndoGrouping()
+            }
+            
+            // 选中要替换的范围
+            textView.setSelectedRange(range)
+            
+            // 使用 shouldChangeText 检查是否可以更改（这会自动准备 undo 操作）
+            // shouldChangeText 会通知 textStorage 准备 undo，并返回是否可以更改
+            let shouldChange = textView.shouldChangeText(in: range, replacementString: replacement)
+            if shouldChange {
+                // 执行替换（textStorage 已经通过 shouldChangeText 准备好了 undo）
+                textStorage.replaceCharacters(in: range, with: replacement)
+                
+                // 调用 didChangeText 通知系统（这会完成 undo 记录的注册）
+                // didChangeText 会自动注册 undo，使用 shouldChangeText 时保存的原始内容
+                textView.didChangeText()
+                
+                // 设置 undo 操作的名称
+                undoManager.setActionName("替换文本")
+                
+                // 更新选中范围到替换后的位置
+                let newRange = NSRange(location: range.location, length: replacement.count)
+                textView.setSelectedRange(newRange)
+            }
+            
+            // 如果是分组操作，在最后一次替换时结束 undo group
+            if isGrouped && isLast {
+                undoManager.endUndoGrouping()
+                // 对于全部替换，在所有替换完成后才重置标记
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    self.isReplacing = false
+                }
+            } else if !isGrouped {
+                // 单个替换，在替换完成后重置标记
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    self.isReplacing = false
+                }
+            }
+            
+            // 通知父组件内容已改变（通过 textDidChange 会自动触发，但这里也手动更新以确保同步）
+            DispatchQueue.main.async {
+                self.parent.text = textView.string
+            }
         }
         
         // MARK: - Context Menu Filtering

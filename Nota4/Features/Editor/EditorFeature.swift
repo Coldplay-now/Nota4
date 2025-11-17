@@ -198,6 +198,7 @@ struct EditorFeature {
         enum SearchAction: Equatable {
             case showSearchPanel
             case hideSearchPanel
+            case toggleSearchPanel  // 切换搜索面板显示/隐藏
             case toggleReplaceMode
             case searchTextChanged(String)
             case replaceTextChanged(String)
@@ -355,6 +356,15 @@ struct EditorFeature {
                 state.lastSavedContent = note.content
                 state.lastSavedTitle = note.title
                 
+                // 切换笔记时关闭搜索面板并清除搜索状态
+                if state.search.isSearchPanelVisible {
+                    state.search.isSearchPanelVisible = false
+                    state.search.searchText = ""
+                    state.search.replaceText = ""
+                    state.search.matches = []
+                    state.search.currentMatchIndex = -1
+                }
+
                 // 确保切换笔记后始终回到编辑模式
                 // 这样可以避免预览内容残留的问题
                 if state.viewMode != .editOnly {
@@ -1074,6 +1084,22 @@ struct EditorFeature {
                     await send(.clearSearchHighlights)
                 }
                 
+            case .search(.toggleSearchPanel):
+                // 切换搜索面板显示/隐藏状态
+                state.search.isSearchPanelVisible.toggle()
+                // 如果关闭面板，清除搜索文本和匹配结果
+                if !state.search.isSearchPanelVisible {
+                    state.search.searchText = ""
+                    state.search.replaceText = ""
+                    state.search.matches = []
+                    state.search.currentMatchIndex = -1
+                    return .run { send in
+                        // 清除编辑器中的高亮
+                        await send(.clearSearchHighlights)
+                    }
+                }
+                return .none
+                
             case .search(.toggleReplaceMode):
                 state.search.isReplaceMode.toggle()
                 print("🔄 [SEARCH] 替换模式切换: \(state.search.isReplaceMode)")
@@ -1186,19 +1212,35 @@ struct EditorFeature {
                       !state.search.replaceText.isEmpty else {
                     return .none
                 }
-                // 替换当前匹配项
+                // 通过 NotificationCenter 通知 NSTextView 执行替换（支持 undo/redo）
+                // isGrouped = false 表示这是单个替换操作，不需要 undo grouping
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("PerformReplaceInTextView"),
+                    object: nil,
+                    userInfo: [
+                        "range": currentMatch,
+                        "replacement": state.search.replaceText,
+                        "isGrouped": false
+                    ]
+                )
+                
+                // 不立即更新 state.content，等待 textDidChange 通知来更新
+                // 这样可以避免 updateNSView 中的 textView.string = text 清除 undo stack
+                // 先计算预期的新内容用于重新搜索
                 let mutableText = NSMutableString(string: state.content)
                 mutableText.replaceCharacters(in: currentMatch, with: state.search.replaceText)
-                state.content = mutableText as String
+                let expectedContent = mutableText as String
                 
                 // 重新搜索（因为内容已改变）
                 let searchText = state.search.searchText
                 let searchOptions = state.search
-                let newContent = state.content
                 return .run { send in
+                    // 等待 NSTextView 完成替换并触发 textDidChange 更新 state.content
+                    try? await Task.sleep(for: .milliseconds(100))
+                    // 使用预期内容进行搜索（实际内容应该已经通过 textDidChange 同步）
                     let matches = await performSearch(
                         text: searchText,
-                        in: newContent,
+                        in: expectedContent,
                         options: searchOptions
                     )
                     await send(.search(.updateMatches(matches)))
@@ -1209,17 +1251,33 @@ struct EditorFeature {
                       !state.search.replaceText.isEmpty else {
                     return .none
                 }
-                // 从后往前替换，避免索引偏移
-                let mutableText = NSMutableString(string: state.content)
-                for range in state.search.matches.reversed() {
-                    mutableText.replaceCharacters(in: range, with: state.search.replaceText)
+                // 从后往前替换，避免索引偏移（通过 NotificationCenter 通知 NSTextView）
+                // 使用 isGrouped = true 将所有替换操作放在一个 undo group 中
+                let ranges = state.search.matches.reversed()
+                let totalCount = ranges.count
+                for (index, range) in ranges.enumerated() {
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("PerformReplaceInTextView"),
+                        object: nil,
+                        userInfo: [
+                            "range": range,
+                            "replacement": state.search.replaceText,
+                            "isGrouped": true,
+                            "isFirst": index == 0,
+                            "isLast": index == totalCount - 1
+                        ]
+                    )
                 }
-                state.content = mutableText as String
+                
+                // 不立即更新 state.content，等待 textDidChange 通知来更新
+                // 这样可以避免 updateNSView 中的 textView.string = text 清除 undo stack
                 
                 // 清除搜索结果
                 state.search.matches = []
                 state.search.currentMatchIndex = -1
                 return .run { send in
+                    // 等待一小段时间，让所有替换完成并触发 textDidChange
+                    try? await Task.sleep(for: .milliseconds(150))
                     await send(.clearSearchHighlights)
                 }
                 
