@@ -82,6 +82,7 @@ struct AppView: View {
                     NoteEditorView(
                         store: store.scope(state: \.editor, action: \.editor)
                     )
+                    // 不设置最小宽度，让编辑器区域灵活适应窗口大小
                 }
                 .navigationSplitViewStyle(.balanced)
                 

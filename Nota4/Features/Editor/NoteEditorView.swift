@@ -56,8 +56,7 @@ struct NoteEditorView: View {
                         
                         // 编辑器/预览区域
                         Group {
-                            switch store.viewMode {
-                            case .editOnly:
+                            if store.viewMode == .editOnly {
                                 MarkdownTextEditor(
                                     text: $store.content,
                                     selection: $store.selectionRange,
@@ -78,45 +77,15 @@ struct NoteEditorView: View {
                                         store.send(.focusChanged(isFocused))
                                     }
                                 )
-                                .frame(maxWidth: store.editorStyle.maxWidth)
-                                .frame(maxWidth: .infinity, alignment: store.editorStyle.alignment)
+                                // 编辑模式：占满整个可用空间，不限制宽度
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .contextMenu {
                                     EditorContextMenu(store: store)
                                 }
-                                
-                            case .previewOnly:
+                            } else {
+                                // 预览模式：占满整个可用空间
                                 MarkdownPreview(store: store)
-                                
-                            case .split:
-                                HSplitView {
-                                    MarkdownTextEditor(
-                                        text: $store.content,
-                                        selection: $store.selectionRange,
-                                        font: NSFont(
-                                            name: store.editorStyle.fontName ?? "System",
-                                            size: store.editorStyle.fontSize
-                                        ) ?? NSFont.systemFont(ofSize: store.editorStyle.fontSize),
-                                        textColor: .labelColor,
-                                        backgroundColor: .textBackgroundColor,
-                                        lineSpacing: store.editorStyle.lineSpacing,
-                                        paragraphSpacing: store.editorStyle.paragraphSpacing,
-                                        horizontalPadding: store.editorStyle.horizontalPadding,
-                                        verticalPadding: store.editorStyle.verticalPadding,
-                                        onSelectionChange: { range in
-                                            store.send(.selectionChanged(range))
-                                        },
-                                        onFocusChange: { isFocused in
-                                            store.send(.focusChanged(isFocused))
-                                        }
-                                    )
-                                    .frame(maxWidth: store.editorStyle.maxWidth)
-                                    .frame(maxWidth: .infinity, alignment: store.editorStyle.alignment)
-                                    .contextMenu {
-                                        EditorContextMenu(store: store)
-                                    }
-                                    
-                                    MarkdownPreview(store: store)
-                                }
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                             }
                         }
                     }
