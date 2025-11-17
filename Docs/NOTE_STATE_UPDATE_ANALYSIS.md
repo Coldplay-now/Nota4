@@ -415,3 +415,102 @@ case .noteList(.togglePin):
 
 **分析完成时间**: 2025-11-17
 
+---
+
+## ✅ 修复实施（方案1）
+
+### 修复内容
+
+**实施日期**: 2025-11-17
+
+#### 1. EditorFeature 添加完成通知
+
+**修改文件**: `Nota4/Nota4/Features/Editor/EditorFeature.swift`
+
+- ✅ 添加 `starToggled` Action（星标切换完成通知）
+- ✅ 添加 `noteDeleted(String)` Action（笔记删除完成通知）
+- ✅ `toggleStar` 操作完成后发送 `.starToggled`
+- ✅ `confirmDeleteNote` 操作完成后发送 `.noteDeleted(noteId)`
+
+#### 2. AppFeature 统一监听
+
+**修改文件**: `Nota4/Nota4/App/AppFeature.swift`
+
+- ✅ 监听 `.editor(.starToggled)` → 更新笔记列表和侧边栏计数
+- ✅ 监听 `.editor(.noteDeleted)` → 更新笔记列表和侧边栏计数
+- ✅ 监听 `.noteList(.toggleStar)` → 更新侧边栏计数
+- ✅ 监听 `.noteList(.deleteNotes)` → 更新侧边栏计数
+- ✅ 监听 `.noteList(.togglePin)` → 更新侧边栏计数
+
+### 修复后的数据流
+
+#### ✅ 切换星标（编辑器）
+
+```
+用户操作: 切换星标
+    ↓
+EditorFeature.toggleStar
+    ↓
+noteRepository.updateNote()
+    ↓
+EditorFeature.send(.starToggled)  ← ✅ 发送完成通知
+    ↓
+AppFeature.editor(.starToggled)
+    ↓
+┌─────────────────────────────────┐
+│ 1. noteList.updateNoteInList()  │ ← ✅ 更新列表中的笔记
+│ 2. noteList.loadNotes()         │ ← ✅ 重新加载列表
+│ 3. sidebar.loadCounts()          │ ← ✅ 更新侧边栏计数
+└─────────────────────────────────┘
+    ↓
+UI 自动更新 ✅
+```
+
+#### ✅ 删除笔记（编辑器）
+
+```
+用户操作: 删除笔记
+    ↓
+EditorFeature.confirmDeleteNote
+    ↓
+noteRepository.deleteNote()
+    ↓
+EditorFeature.send(.noteDeleted(noteId))  ← ✅ 发送完成通知
+    ↓
+AppFeature.editor(.noteDeleted)
+    ↓
+┌─────────────────────────────────┐
+│ 1. noteList.loadNotes()         │ ← ✅ 重新加载列表
+│ 2. sidebar.loadCounts()          │ ← ✅ 更新侧边栏计数
+└─────────────────────────────────┘
+    ↓
+UI 自动更新 ✅
+```
+
+#### ✅ 切换星标（列表）
+
+```
+用户操作: 切换星标（列表）
+    ↓
+NoteListFeature.toggleStar
+    ↓
+[乐观更新列表]  ← ✅ 列表立即更新
+    ↓
+noteRepository.updateNote()
+    ↓
+AppFeature.noteList(.toggleStar)  ← ✅ 监听操作
+    ↓
+sidebar.loadCounts()  ← ✅ 更新侧边栏计数
+    ↓
+UI 自动更新 ✅
+```
+
+### 修复验证
+
+- ✅ 编译成功
+- ✅ 符合 TCA 架构原则
+- ✅ 与现有 `saveCompleted` 模式一致
+- ✅ 统一在 AppFeature 中处理跨模块协调
+
+**修复完成时间**: 2025-11-17
+

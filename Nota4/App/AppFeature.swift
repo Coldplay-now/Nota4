@@ -207,6 +207,39 @@ struct AppFeature {
                     .send(.sidebar(.loadCounts))
                 )
                 
+            // 编辑器星标切换完成 → 更新笔记列表和侧边栏计数
+            case .editor(.starToggled):
+                if let updatedNote = state.editor.note {
+                    return .concatenate(
+                        .send(.noteList(.updateNoteInList(updatedNote))),
+                        .send(.noteList(.loadNotes)),
+                        .send(.sidebar(.loadCounts))
+                    )
+                }
+                return .concatenate(
+                    .send(.noteList(.loadNotes)),
+                    .send(.sidebar(.loadCounts))
+                )
+                
+            // 编辑器删除笔记完成 → 更新笔记列表和侧边栏计数
+            case .editor(.noteDeleted):
+                return .concatenate(
+                    .send(.noteList(.loadNotes)),
+                    .send(.sidebar(.loadCounts))
+                )
+                
+            // 笔记列表切换星标 → 更新侧边栏计数（列表已有乐观更新）
+            case .noteList(.toggleStar):
+                return .send(.sidebar(.loadCounts))
+                
+            // 笔记列表删除笔记 → 更新侧边栏计数（列表会重新加载）
+            case .noteList(.deleteNotes):
+                return .send(.sidebar(.loadCounts))
+                
+            // 笔记列表切换置顶 → 更新侧边栏计数（列表会重新加载）
+            case .noteList(.togglePin):
+                return .send(.sidebar(.loadCounts))
+                
             // 笔记列表请求创建 → 转发给编辑器
             case .noteList(.createNote):
                 return .send(.editor(.createNote))

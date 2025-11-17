@@ -73,8 +73,10 @@ struct EditorFeature {
         case imageInserted(imageId: String, relativePath: String)
         case imageInsertFailed(Error)
         case toggleStar
+        case starToggled  // 星标切换完成通知
         case requestDeleteNote
         case confirmDeleteNote
+        case noteDeleted(String)  // 笔记删除完成通知（noteId）
         case cancelDeleteNote
         case createNote
         case applyPreferences(EditorPreferences)
@@ -369,7 +371,12 @@ struct EditorFeature {
                 
                 return .run { [note] send in
                     try await noteRepository.updateNote(note)
+                    await send(.starToggled)  // 发送完成通知
                 }
+                
+            case .starToggled:
+                // 完成通知，由 AppFeature 处理
+                return .none
                 
             case .requestDeleteNote:
                 // 显示删除确认对话框
@@ -392,7 +399,12 @@ struct EditorFeature {
                 
                 return .run { send in
                     try await noteRepository.deleteNote(byId: noteId)
+                    await send(.noteDeleted(noteId))  // 发送完成通知
                 }
+                
+            case .noteDeleted:
+                // 完成通知，由 AppFeature 处理
+                return .none
                 
             case .cancelDeleteNote:
                 // 取消删除
