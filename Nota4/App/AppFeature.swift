@@ -240,6 +240,14 @@ struct AppFeature {
             case .noteList(.togglePin):
                 return .send(.sidebar(.loadCounts))
                 
+            // 笔记列表恢复笔记 → 更新侧边栏计数（列表会重新加载）
+            case .noteList(.restoreNotes):
+                return .send(.sidebar(.loadCounts))
+                
+            // 笔记列表永久删除笔记 → 更新侧边栏计数（列表会重新加载）
+            case .noteList(.permanentlyDeleteNotes):
+                return .send(.sidebar(.loadCounts))
+                
             // 笔记列表请求创建 → 转发给编辑器
             case .noteList(.createNote):
                 return .send(.editor(.createNote))

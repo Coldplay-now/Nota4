@@ -5,51 +5,26 @@ struct NoteListView: View {
     let store: StoreOf<NoteListFeature>
     @State private var selectedNotes = Set<String>()
     
+    private var permanentDeleteMessage: String {
+        let count = store.pendingPermanentDeleteIds.count
+        if count == 1 {
+            return "确定要永久删除这篇笔记吗？此操作无法恢复。"
+        } else {
+            return "确定要永久删除这 \(count) 篇笔记吗？此操作无法恢复。"
+        }
+    }
+    
+    private var isTrashFilter: Bool {
+        if case .category(let category) = store.filter {
+            return category == .trash
+        }
+        return false
+    }
+    
     var body: some View {
         WithPerceptionTracking {
             List(store.filteredNotes, id: \.noteId, selection: $selectedNotes) { note in
-                NoteRowView(note: note, searchKeywords: store.searchKeywords)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) {
-                            store.send(.deleteNotes([note.noteId]))
-                        } label: {
-                            Label("删除", systemImage: "trash")
-                        }
-                        .tint(.red)
-                        
-                        Button {
-                            store.send(.toggleStar(note.noteId))
-                        } label: {
-                            Label(
-                                note.isStarred ? "取消星标" : "星标",
-                                systemImage: note.isStarred ? "star.slash" : "star"
-                            )
-                        }
-                        .tint(.yellow)
-                    }
-                    .swipeActions(edge: .leading) {
-                        Button {
-                            store.send(.togglePin(note.noteId))
-                        } label: {
-                            Label(
-                                note.isPinned ? "取消置顶" : "置顶",
-                                systemImage: note.isPinned ? "pin.slash" : "pin"
-                            )
-                        }
-                        .tint(.orange)
-                    }
-                    .contextMenu {
-                        Button("打开") {
-                            store.send(.noteSelected(note.noteId))
-                        }
-                        Divider()
-                        Button("星标") {
-                            store.send(.toggleStar(note.noteId))
-                        }
-                        Button("删除", role: .destructive) {
-                            store.send(.deleteNotes([note.noteId]))
-                        }
-                    }
+                noteRow(note: note, store: store)
             }
             .listStyle(.plain)
             .searchable(
@@ -118,7 +93,108 @@ struct NoteListView: View {
                     )
                 }
             }
+            .confirmationDialog(
+                "确认永久删除",
+                isPresented: Binding(
+                    get: { store.showPermanentDeleteConfirmation },
+                    set: { _ in store.send(.cancelPermanentDelete) }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button("永久删除", role: .destructive) {
+                    store.send(.confirmPermanentDelete)
+                }
+                Button("取消", role: .cancel) {
+                    store.send(.cancelPermanentDelete)
+                }
+            } message: {
+                Text(permanentDeleteMessage)
+            }
         }
+    }
+    
+    @ViewBuilder
+    private func noteRow(note: Note, store: StoreOf<NoteListFeature>) -> some View {
+        let isTrash: Bool = {
+            if case .category(let category) = store.filter {
+                return category == .trash
+            }
+            return false
+        }()
+        NoteRowView(note: note, searchKeywords: store.searchKeywords)
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                if isTrash {
+                    Button(role: .destructive) {
+                        store.send(.permanentlyDeleteNotes([note.noteId]))
+                    } label: {
+                        Label("永久删除", systemImage: "trash.fill")
+                    }
+                    .tint(.red)
+                } else {
+                    Button(role: .destructive) {
+                        store.send(.deleteNotes([note.noteId]))
+                    } label: {
+                        Label("删除", systemImage: "trash")
+                    }
+                    .tint(.red)
+                    
+                    Button {
+                        store.send(.toggleStar(note.noteId))
+                    } label: {
+                        Label(
+                            note.isStarred ? "取消星标" : "星标",
+                            systemImage: note.isStarred ? "star.slash" : "star"
+                        )
+                    }
+                    .tint(.yellow)
+                }
+            }
+            .swipeActions(edge: .leading) {
+                if isTrash {
+                    Button {
+                        store.send(.restoreNotes([note.noteId]))
+                    } label: {
+                        Label("恢复", systemImage: "arrow.uturn.backward")
+                    }
+                    .tint(.green)
+                } else {
+                    Button {
+                        store.send(.togglePin(note.noteId))
+                    } label: {
+                        Label(
+                            note.isPinned ? "取消置顶" : "置顶",
+                            systemImage: note.isPinned ? "pin.slash" : "pin"
+                        )
+                    }
+                    .tint(.orange)
+                }
+            }
+            .contextMenu {
+                Button("打开") {
+                    store.send(.noteSelected(note.noteId))
+                }
+                Divider()
+                
+                if isTrash {
+                    Button("恢复笔记") {
+                        store.send(.restoreNotes([note.noteId]))
+                    }
+                    
+                    Divider()
+                    
+                    Button("永久删除", role: .destructive) {
+                        store.send(.requestPermanentDelete([note.noteId]))
+                    }
+                } else {
+                    Button("星标") {
+                        store.send(.toggleStar(note.noteId))
+                    }
+                    
+                    Button("删除", role: .destructive) {
+                        store.send(.deleteNotes([note.noteId]))
+                    }
+                }
+            }
     }
 }
 

@@ -15,6 +15,8 @@ struct NoteListFeature {
         var sortOrder: SortOrder = .updated
         var isLoading: Bool = false
         var filter: Filter = .none
+        var showPermanentDeleteConfirmation: Bool = false
+        var pendingPermanentDeleteIds: Set<String> = []
         
         // MARK: - Sort Order
         
@@ -115,6 +117,9 @@ struct NoteListFeature {
         case searchDebounced(String)
         case createNote
         case updateNoteInList(Note) // 直接更新列表中的笔记
+        case requestPermanentDelete(Set<String>)
+        case confirmPermanentDelete
+        case cancelPermanentDelete
     }
     
     // MARK: - Dependencies
@@ -183,7 +188,33 @@ struct NoteListFeature {
                     await send(.loadNotes)
                 }
                 
+            case .requestPermanentDelete(let ids):
+                // 显示确认对话框
+                state.showPermanentDeleteConfirmation = true
+                state.pendingPermanentDeleteIds = ids
+                return .none
+                
+            case .confirmPermanentDelete:
+                // 确认永久删除
+                let ids = state.pendingPermanentDeleteIds
+                state.showPermanentDeleteConfirmation = false
+                state.pendingPermanentDeleteIds = []
+                return .run { send in
+                    try await noteRepository.permanentlyDeleteNotes(ids)
+                    for id in ids {
+                        try await notaFileManager.deleteNoteFile(noteId: id)
+                    }
+                    await send(.loadNotes)
+                }
+                
+            case .cancelPermanentDelete:
+                // 取消永久删除
+                state.showPermanentDeleteConfirmation = false
+                state.pendingPermanentDeleteIds = []
+                return .none
+                
             case .permanentlyDeleteNotes(let ids):
+                // 直接永久删除（用于滑动操作等不需要确认的场景）
                 return .run { send in
                     try await noteRepository.permanentlyDeleteNotes(ids)
                     for id in ids {

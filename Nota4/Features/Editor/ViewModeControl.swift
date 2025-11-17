@@ -16,7 +16,9 @@ struct ViewModeControl: View {
                 let newMode: EditorFeature.State.ViewMode = store.viewMode == .editOnly ? .previewOnly : .editOnly
                 store.send(.viewModeChanged(newMode))
             } label: {
-                Image(systemName: store.viewMode == .editOnly ? "pencil" : "eye")
+                // 图标表示"点击后会切换到什么模式"
+                // 编辑模式下显示眼睛（切换到预览），预览模式下显示笔（切换到编辑）
+                Image(systemName: store.viewMode == .editOnly ? "eye" : "pencil")
                     .font(.system(size: 14))
                     .frame(width: 32, height: 28)
             }

@@ -98,27 +98,6 @@ struct NoteEditorView: View {
                     )
                 }
             }
-            .toolbar {
-                // 保存状态
-                ToolbarItem {
-                    Group {
-                        if store.isSaving {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        } else if store.hasUnsavedChanges {
-                            Image(systemName: "circle.fill")
-                                .foregroundColor(.orange)
-                                .help("有未保存的更改")
-                        } else {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                                .help("已保存")
-                        }
-                    }
-                    .animation(.spring(), value: store.isSaving)
-                    .animation(.spring(), value: store.hasUnsavedChanges)
-                }
-            }
             .confirmationDialog(
                 "确认删除",
                 isPresented: $store.showDeleteConfirmation,

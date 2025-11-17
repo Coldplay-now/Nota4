@@ -63,11 +63,11 @@ struct StatusBarView: View {
                         // 总字数
                         if wordCount > 0 {
                             HStack(spacing: 4) {
-                                Image(systemName: "textformat.abc")
-                                    .font(.system(size: 10))
+                                Text("总字数")
+                                    .font(.system(size: 11))
                                     .foregroundColor(.secondary)
                                 
-                                Text("\(wordCount) 字")
+                                Text("\(wordCount)")
                                     .font(.system(size: 11))
                                     .foregroundColor(.secondary)
                             }
