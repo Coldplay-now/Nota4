@@ -27,6 +27,13 @@ struct NoteListView: View {
                 // 工具栏
                 NoteListToolbar(store: store)
                 
+                // 可展开的搜索框（条件显示）
+                if store.isSearchPanelVisible {
+                    ExpandableSearchField(store: store)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .animation(.easeInOut(duration: 0.2), value: store.isSearchPanelVisible)
+                }
+                
                 // 笔记列表
                 List(store.filteredNotes, id: \.noteId, selection: $selectedNotes) { note in
                     noteRow(note: note, store: store)

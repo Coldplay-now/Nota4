@@ -12,17 +12,15 @@ struct NoteListToolbar: View {
     var body: some View {
         WithPerceptionTracking {
             HStack(spacing: 12) {
-                // 搜索框
-                CustomSearchField(
-                    text: Binding(
-                        get: { store.searchText },
-                        set: { store.send(.binding(.set(\.searchText, $0))) }
-                    ),
-                    isPresented: Binding(
-                        get: { store.isSearching },
-                        set: { store.send(.binding(.set(\.isSearching, $0))) }
-                    )
-                )
+                // 搜索按钮
+                NoteListToolbarButton(
+                    title: store.isSearchPanelVisible ? "关闭搜索" : "搜索",
+                    icon: store.isSearchPanelVisible ? "xmark.circle.fill" : "magnifyingglass",
+                    shortcut: "⌘F",
+                    isEnabled: true
+                ) {
+                    store.send(.toggleSearchPanel)
+                }
                 
                 Divider()
                     .frame(height: 20)

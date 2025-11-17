@@ -12,6 +12,7 @@ struct NoteListFeature {
         var selectedNoteIds: Set<String> = []
         var searchText: String = ""
         var isSearching: Bool = false
+        var isSearchPanelVisible: Bool = false  // 搜索面板是否可见
         var sortOrder: SortOrder = .updated
         var isLoading: Bool = false
         var filter: Filter = .none
@@ -129,6 +130,8 @@ struct NoteListFeature {
         case filterChanged(State.Filter)
         case sortOrderChanged(State.SortOrder)
         case searchDebounced(String)
+        case toggleSearchPanel  // 切换搜索面板显示/隐藏
+        case closeSearchPanel   // 关闭搜索面板并清除搜索
         case createNote
         case updateNoteInList(Note) // 直接更新列表中的笔记
         case requestPermanentDelete(Set<String>)
@@ -288,6 +291,22 @@ struct NoteListFeature {
                     return .send(.loadNotes)
                 }
                 state.filter = .search(keyword)
+                return .send(.loadNotes)
+                
+            case .toggleSearchPanel:
+                state.isSearchPanelVisible.toggle()
+                // 如果关闭搜索面板，清除搜索并返回完整列表
+                if !state.isSearchPanelVisible {
+                    state.searchText = ""
+                    state.filter = .category(.all)
+                    return .send(.loadNotes)
+                }
+                return .none
+                
+            case .closeSearchPanel:
+                state.isSearchPanelVisible = false
+                state.searchText = ""
+                state.filter = .category(.all)
                 return .send(.loadNotes)
                 
             case .createNote:
