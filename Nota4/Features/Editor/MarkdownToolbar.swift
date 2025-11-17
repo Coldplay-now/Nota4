@@ -118,33 +118,38 @@ struct FormatButtonGroup: View {
     let store: StoreOf<EditorFeature>
     
     var body: some View {
-        ControlGroup {
-            ToolbarButton(
-                title: "加粗",
-                icon: "bold",
-                shortcut: "⌘B"
-            ) {
-                store.send(.formatBold)
+        WithPerceptionTracking {
+            ControlGroup {
+                ToolbarButton(
+                    title: "加粗",
+                    icon: "bold",
+                    shortcut: "⌘B",
+                    isActive: store.isBoldActive,
+                    isEnabled: store.isToolbarEnabled
+                ) {
+                    store.send(.formatBold)
+                }
+                
+                ToolbarButton(
+                    title: "斜体",
+                    icon: "italic",
+                    shortcut: "⌘I",
+                    isActive: store.isItalicActive,
+                    isEnabled: store.isToolbarEnabled
+                ) {
+                    store.send(.formatItalic)
+                }
+                
+                ToolbarButton(
+                    title: "行内代码",
+                    icon: "chevron.left.forwardslash.chevron.right",
+                    shortcut: "⌘E",
+                    isActive: store.isInlineCodeActive,
+                    isEnabled: store.isToolbarEnabled
+                ) {
+                    store.send(.formatInlineCode)
+                }
             }
-            .disabled(store.note == nil)
-            
-            ToolbarButton(
-                title: "斜体",
-                icon: "italic",
-                shortcut: "⌘I"
-            ) {
-                store.send(.formatItalic)
-            }
-            .disabled(store.note == nil)
-            
-            ToolbarButton(
-                title: "行内代码",
-                icon: "chevron.left.forwardslash.chevron.right",
-                shortcut: "⌘E"
-            ) {
-                store.send(.formatInlineCode)
-            }
-            .disabled(store.note == nil)
         }
     }
 }
@@ -155,27 +160,45 @@ struct HeadingMenu: View {
     let store: StoreOf<EditorFeature>
     
     var body: some View {
-        Menu {
-            Button("标题 1", systemImage: "h1.square") {
-                store.send(.insertHeading1)
+        WithPerceptionTracking {
+            Menu {
+                Button("标题 1", systemImage: "h1.square") {
+                    store.send(.insertHeading1)
+                }
+                .keyboardShortcut("1", modifiers: .command)
+                
+                Button("标题 2", systemImage: "h2.square") {
+                    store.send(.insertHeading2)
+                }
+                .keyboardShortcut("2", modifiers: .command)
+                
+                Button("标题 3", systemImage: "h3.square") {
+                    store.send(.insertHeading3)
+                }
+                .keyboardShortcut("3", modifiers: .command)
+                
+                Button("标题 4", systemImage: "h4.square") {
+                    store.send(.insertHeading4)
+                }
+                .keyboardShortcut("4", modifiers: .command)
+                
+                Button("标题 5", systemImage: "h5.square") {
+                    store.send(.insertHeading5)
+                }
+                .keyboardShortcut("5", modifiers: .command)
+                
+                Button("标题 6", systemImage: "h6.square") {
+                    store.send(.insertHeading6)
+                }
+                .keyboardShortcut("6", modifiers: .command)
+            } label: {
+                Label("标题", systemImage: "textformat")
+                    .labelStyle(.iconOnly)
+                    .frame(width: 32, height: 32)
             }
-            .keyboardShortcut("1", modifiers: .command)
-            
-            Button("标题 2", systemImage: "h2.square") {
-                store.send(.insertHeading2)
-            }
-            .keyboardShortcut("2", modifiers: .command)
-            
-            Button("标题 3", systemImage: "h3.square") {
-                store.send(.insertHeading3)
-            }
-            .keyboardShortcut("3", modifiers: .command)
-        } label: {
-            Label("标题", systemImage: "h.square")
-                .labelStyle(.iconOnly)
+            .help("插入标题（H1-H6）")
+            .disabled(!store.isToolbarEnabled)
         }
-        .help("插入标题（H1/H2/H3）")
-        .disabled(store.note == nil)
     }
 }
 
@@ -185,33 +208,38 @@ struct ListButtonGroup: View {
     let store: StoreOf<EditorFeature>
     
     var body: some View {
-        ControlGroup {
-            ToolbarButton(
-                title: "无序列表",
-                icon: "list.bullet",
-                shortcut: "⌘L"
-            ) {
-                store.send(.insertUnorderedList)
+        WithPerceptionTracking {
+            ControlGroup {
+                ToolbarButton(
+                    title: "无序列表",
+                    icon: "list.bullet",
+                    shortcut: "⌘L",
+                    isActive: false,
+                    isEnabled: store.isToolbarEnabled
+                ) {
+                    store.send(.insertUnorderedList)
+                }
+                
+                ToolbarButton(
+                    title: "有序列表",
+                    icon: "list.number",
+                    shortcut: "⇧⌘L",
+                    isActive: false,
+                    isEnabled: store.isToolbarEnabled
+                ) {
+                    store.send(.insertOrderedList)
+                }
+                
+                ToolbarButton(
+                    title: "任务列表",
+                    icon: "checklist",
+                    shortcut: "⌥⌘L",
+                    isActive: false,
+                    isEnabled: store.isToolbarEnabled
+                ) {
+                    store.send(.insertTaskList)
+                }
             }
-            .disabled(store.note == nil)
-            
-            ToolbarButton(
-                title: "有序列表",
-                icon: "list.number",
-                shortcut: "⇧⌘L"
-            ) {
-                store.send(.insertOrderedList)
-            }
-            .disabled(store.note == nil)
-            
-            ToolbarButton(
-                title: "任务列表",
-                icon: "checklist",
-                shortcut: "⌥⌘L"
-            ) {
-                store.send(.insertTaskList)
-            }
-            .disabled(store.note == nil)
         }
     }
 }
@@ -222,24 +250,28 @@ struct InsertButtonGroup: View {
     let store: StoreOf<EditorFeature>
     
     var body: some View {
-        ControlGroup {
-            ToolbarButton(
-                title: "链接",
-                icon: "link",
-                shortcut: "⌘K"
-            ) {
-                store.send(.insertLink)
+        WithPerceptionTracking {
+            ControlGroup {
+                ToolbarButton(
+                    title: "链接",
+                    icon: "link",
+                    shortcut: "⌘K",
+                    isActive: false,
+                    isEnabled: store.isToolbarEnabled
+                ) {
+                    store.send(.insertLink)
+                }
+                
+                ToolbarButton(
+                    title: "代码块",
+                    icon: "curlybraces",
+                    shortcut: "⇧⌘K",
+                    isActive: false,
+                    isEnabled: store.isToolbarEnabled
+                ) {
+                    store.send(.insertCodeBlock)
+                }
             }
-            .disabled(store.note == nil)
-            
-            ToolbarButton(
-                title: "代码块",
-                icon: "curlybraces",
-                shortcut: "⇧⌘K"
-            ) {
-                store.send(.insertCodeBlock)
-            }
-            .disabled(store.note == nil)
         }
     }
 }
@@ -250,14 +282,17 @@ struct StarButton: View {
     let store: StoreOf<EditorFeature>
     
     var body: some View {
-        ToolbarButton(
-            title: "切换星标",
-            icon: store.note?.isStarred ?? false ? "star.fill" : "star",
-            shortcut: "⌘D"
-        ) {
-            store.send(.toggleStar)
+        WithPerceptionTracking {
+            ToolbarButton(
+                title: "切换星标",
+                icon: store.note?.isStarred ?? false ? "star.fill" : "star",
+                shortcut: "⌘D",
+                isActive: store.note?.isStarred ?? false,
+                isEnabled: store.isToolbarEnabled
+            ) {
+                store.send(.toggleStar)
+            }
         }
-        .disabled(store.note == nil)
     }
 }
 
@@ -267,14 +302,55 @@ struct ToolbarButton: View {
     let title: String
     let icon: String
     let shortcut: String
+    let isActive: Bool
+    let isEnabled: Bool
     let action: () -> Void
+    
+    @State private var isHovered = false
     
     var body: some View {
         Button(action: action) {
-            Label(title, systemImage: icon)
-                .labelStyle(.iconOnly)
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .regular))
+                .frame(width: 32, height: 32)
         }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(backgroundColor)
+        )
+        .foregroundColor(foregroundColor)
+        .contentShape(Rectangle())
         .help("\(title) \(shortcut)")
+        .onHover { hovering in
+            isHovered = hovering
+        }
+        .animation(.easeInOut(duration: 0.15), value: isActive)
+        .animation(.easeInOut(duration: 0.15), value: isHovered)
+    }
+    
+    private var backgroundColor: Color {
+        if !isEnabled {
+            return Color.clear
+        }
+        if isActive {
+            return Color.accentColor.opacity(0.15)
+        }
+        if isHovered {
+            return Color(nsColor: .controlAccentColor).opacity(0.1)
+        }
+        return Color.clear
+    }
+    
+    private var foregroundColor: Color {
+        if !isEnabled {
+            return Color.secondary.opacity(0.4)
+        }
+        if isActive {
+            return Color.accentColor
+        }
+        return Color.primary
     }
 }
 

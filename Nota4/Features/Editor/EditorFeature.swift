@@ -113,6 +113,9 @@ struct EditorFeature {
         case insertHeading1
         case insertHeading2
         case insertHeading3
+        case insertHeading4
+        case insertHeading5
+        case insertHeading6
         case insertUnorderedList
         case insertOrderedList
         case insertTaskList
@@ -511,6 +514,42 @@ struct EditorFeature {
                 state.selectionRange = result.newSelection
                 return .send(.manualSave)
                 
+            case .insertHeading4:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.formatLineStart(
+                    text: state.content,
+                    selection: state.selectionRange,
+                    prefix: "####",
+                    replaceExistingPrefixes: ["#", "##", "###", "####", "#####", "######"]
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .insertHeading5:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.formatLineStart(
+                    text: state.content,
+                    selection: state.selectionRange,
+                    prefix: "#####",
+                    replaceExistingPrefixes: ["#", "##", "###", "####", "#####", "######"]
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .insertHeading6:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.formatLineStart(
+                    text: state.content,
+                    selection: state.selectionRange,
+                    prefix: "######",
+                    replaceExistingPrefixes: ["#", "##", "###", "####", "#####", "######"]
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
             case .insertUnorderedList:
                 guard state.note != nil else { return .none }
                 let result = MarkdownFormatter.formatLineStart(
@@ -662,6 +701,77 @@ struct EditorFeature {
         case autoSave
         case loadNote
         case previewRender
+    }
+}
+
+// MARK: - EditorFeature.State Extension - Toolbar Derived State
+
+extension EditorFeature.State {
+    // MARK: - Toolbar State (Derived)
+    
+    /// 检测当前选中文本是否为加粗格式
+    var isBoldActive: Bool {
+        guard selectionRange.length > 0 else { return false }
+        guard selectionRange.location < content.utf16.count else { return false }
+        guard selectionRange.location + selectionRange.length <= content.utf16.count else { return false }
+        
+        let selectedText = (content as NSString).substring(with: selectionRange)
+        return selectedText.hasPrefix("**") && selectedText.hasSuffix("**")
+    }
+    
+    /// 检测当前选中文本是否为斜体格式
+    var isItalicActive: Bool {
+        guard selectionRange.length > 0 else { return false }
+        guard selectionRange.location < content.utf16.count else { return false }
+        guard selectionRange.location + selectionRange.length <= content.utf16.count else { return false }
+        
+        let selectedText = (content as NSString).substring(with: selectionRange)
+        // 排除加粗（**text**），只检测斜体（*text*）
+        if selectedText.hasPrefix("**") && selectedText.hasSuffix("**") {
+            return false
+        }
+        return selectedText.hasPrefix("*") && selectedText.hasSuffix("*")
+    }
+    
+    /// 检测当前选中文本是否为行内代码
+    var isInlineCodeActive: Bool {
+        guard selectionRange.length > 0 else { return false }
+        guard selectionRange.location < content.utf16.count else { return false }
+        guard selectionRange.location + selectionRange.length <= content.utf16.count else { return false }
+        
+        let selectedText = (content as NSString).substring(with: selectionRange)
+        return selectedText.hasPrefix("`") && selectedText.hasSuffix("`")
+    }
+    
+    /// 检测当前行是否为标题，返回标题级别（1-6）或 nil
+    var currentHeadingLevel: Int? {
+        guard selectionRange.location < content.utf16.count else { return nil }
+        
+        // 计算当前行号
+        let textBeforeSelection = (content as NSString).substring(to: selectionRange.location)
+        let lines = textBeforeSelection.components(separatedBy: .newlines)
+        let lineNumber = lines.count - 1
+        
+        // 获取所有行
+        let allLines = content.components(separatedBy: .newlines)
+        guard lineNumber >= 0 && lineNumber < allLines.count else { return nil }
+        
+        let currentLine = allLines[lineNumber]
+        
+        // 检测标题级别
+        if currentLine.hasPrefix("# ") { return 1 }
+        if currentLine.hasPrefix("## ") { return 2 }
+        if currentLine.hasPrefix("### ") { return 3 }
+        if currentLine.hasPrefix("#### ") { return 4 }
+        if currentLine.hasPrefix("##### ") { return 5 }
+        if currentLine.hasPrefix("###### ") { return 6 }
+        
+        return nil
+    }
+    
+    /// 工具栏是否可用（有打开的笔记）
+    var isToolbarEnabled: Bool {
+        note != nil
     }
 }
 

@@ -49,6 +49,11 @@ struct NoteEditorView: View {
                         
                         Divider()
                         
+                        // 独立工具栏
+                        IndependentToolbar(store: store)
+                        
+                        Divider()
+                        
                         // 编辑器/预览区域
                         Group {
                             switch store.viewMode {
@@ -75,11 +80,6 @@ struct NoteEditorView: View {
                                 )
                                 .frame(maxWidth: store.editorStyle.maxWidth)
                                 .frame(maxWidth: .infinity, alignment: store.editorStyle.alignment)
-                                .toolbar {
-                                    ToolbarItemGroup(placement: .automatic) {
-                                        MarkdownToolbar(store: store)
-                                    }
-                                }
                                 .contextMenu {
                                     EditorContextMenu(store: store)
                                 }
@@ -111,11 +111,6 @@ struct NoteEditorView: View {
                                     )
                                     .frame(maxWidth: store.editorStyle.maxWidth)
                                     .frame(maxWidth: .infinity, alignment: store.editorStyle.alignment)
-                                    .toolbar {
-                                        ToolbarItemGroup(placement: .automatic) {
-                                            MarkdownToolbar(store: store)
-                                        }
-                                    }
                                     .contextMenu {
                                         EditorContextMenu(store: store)
                                     }
@@ -134,21 +129,6 @@ struct NoteEditorView: View {
                 }
             }
             .toolbar {
-                // 视图模式切换
-                ToolbarItem {
-                    Picker("视图模式", selection: Binding(
-                        get: { store.viewMode },
-                        set: { store.send(.viewModeChanged($0)) }
-                    )) {
-                        ForEach(EditorFeature.State.ViewMode.allCases, id: \.self) { mode in
-                            Label(mode.rawValue, systemImage: mode.icon)
-                                .tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 200)
-                }
-                
                 // 保存状态
                 ToolbarItem {
                     Group {
