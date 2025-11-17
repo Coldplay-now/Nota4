@@ -102,6 +102,12 @@ struct MarkdownToolbar: View {
                     }
                     .keyboardShortcut("d", modifiers: .command)
                     .disabled(store.note == nil)
+                    
+                    Button("切换置顶", systemImage: store.note?.isPinned ?? false ? "pin.fill" : "pin") {
+                        store.send(.togglePin)
+                    }
+                    .keyboardShortcut("p", modifiers: [.command, .shift])
+                    .disabled(store.note == nil)
                 }
             } label: {
                 Label("更多", systemImage: "ellipsis.circle")

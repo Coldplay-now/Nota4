@@ -120,7 +120,9 @@ struct EditorFeature {
         case imageInserted(imageId: String, relativePath: String)
         case imageInsertFailed(Error)
         case toggleStar
+        case togglePin
         case starToggled  // 星标切换完成通知
+        case pinToggled   // 置顶切换完成通知
         case requestDeleteNote
         case confirmDeleteNote
         case noteDeleted(String)  // 笔记删除完成通知（noteId）
@@ -491,7 +493,22 @@ struct EditorFeature {
                     await send(.starToggled)  // 发送完成通知
                 }
                 
+            case .togglePin:
+                guard var note = state.note else { return .none }
+                note.isPinned.toggle()
+                note.updated = date.now
+                state.note = note
+                
+                return .run { [note] send in
+                    try await noteRepository.updateNote(note)
+                    await send(.pinToggled)  // 发送完成通知
+                }
+                
             case .starToggled:
+                // 完成通知，由 AppFeature 处理
+                return .none
+                
+            case .pinToggled:
                 // 完成通知，由 AppFeature 处理
                 return .none
                 

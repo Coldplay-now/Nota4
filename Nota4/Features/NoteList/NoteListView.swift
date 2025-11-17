@@ -45,7 +45,7 @@ struct NoteListView: View {
                             .tag(note.noteId)
                     }
                 }
-                .listStyle(.plain)
+                .listStyle(.inset(alternatesRowBackgrounds: false)) // 使用 inset 样式以支持 swipeActions
                 .scrollContentBackground(.hidden)
                 .background(Color(nsColor: .textBackgroundColor)) // 使用文本背景色，更接近白色
                 .environment(\.defaultMinListRowHeight, 0) // 移除默认行高样式
@@ -167,7 +167,7 @@ struct NoteListView: View {
                         store.send(.requestPermanentDelete([note.noteId]))
                     }
                 } else {
-                    // 批量选择时，显示两个菜单项
+                    // 批量选择时，显示批量操作菜单
                     if isBatchSelection {
                         Button("星标") {
                             // 为所有选中的笔记添加星标（只对没有星标的笔记操作）
@@ -186,8 +186,28 @@ struct NoteListView: View {
                                 }
                             }
                         }
+                        
+                        Divider()
+                        
+                        Button("置顶") {
+                            // 为所有选中的笔记添加置顶（只对没有置顶的笔记操作）
+                            for noteId in selectedNotes {
+                                if let note = store.notes.first(where: { $0.noteId == noteId }), !note.isPinned {
+                                    store.send(.togglePin(noteId))
+                                }
+                            }
+                        }
+                        
+                        Button("取消置顶") {
+                            // 为所有选中的笔记取消置顶（只对有置顶的笔记操作）
+                            for noteId in selectedNotes {
+                                if let note = store.notes.first(where: { $0.noteId == noteId }), note.isPinned {
+                                    store.send(.togglePin(noteId))
+                                }
+                            }
+                        }
                     } else {
-                        // 单个笔记，根据星标状态显示对应菜单
+                        // 单个笔记，根据状态显示对应菜单
                         if note.isStarred {
                             Button("去除星标") {
                                 store.send(.toggleStar(note.noteId))
@@ -197,7 +217,21 @@ struct NoteListView: View {
                                 store.send(.toggleStar(note.noteId))
                             }
                         }
+                        
+                        Divider()
+                        
+                        if note.isPinned {
+                            Button("取消置顶") {
+                                store.send(.togglePin(note.noteId))
+                            }
+                        } else {
+                            Button("置顶") {
+                                store.send(.togglePin(note.noteId))
+                            }
+                        }
                     }
+                    
+                    Divider()
                     
                     Button("删除", role: .destructive) {
                         if isBatchSelection {

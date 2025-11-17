@@ -9,13 +9,6 @@ struct NoteRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                // 置顶图标
-                if note.isPinned {
-                    Image(systemName: "pin.fill")
-                        .font(.caption2)
-                        .foregroundColor(.orange)
-                }
-                
                 // 标题（带高亮）
                 Group {
                     if searchKeywords.isEmpty {
@@ -55,9 +48,16 @@ struct NoteRowView: View {
             
             // 底部信息
             HStack {
-                // 左侧：星标图标 + 标签
+                // 左侧：置顶图标 + 星标图标 + 标签
                 HStack(spacing: 6) {
-                    // 星标图标（移至左下角）
+                    // 置顶图标（移至左下角，与星标一行）
+                    if note.isPinned {
+                        Image(systemName: "pin.fill")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                    }
+                    
+                    // 星标图标（左下角）
                     if note.isStarred {
                         Image(systemName: "star.fill")
                             .font(.caption2)

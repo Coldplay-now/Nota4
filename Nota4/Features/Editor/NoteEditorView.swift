@@ -42,6 +42,15 @@ struct NoteEditorView: View {
                             }
                             .buttonStyle(.plain)
                             
+                            // 置顶按钮
+                            Button {
+                                store.send(.togglePin)
+                            } label: {
+                                Image(systemName: note.isPinned ? "pin.fill" : "pin")
+                                    .foregroundColor(note.isPinned ? .orange : .gray)
+                            }
+                            .buttonStyle(.plain)
+                            
                             // 删除按钮
                             Button(role: .destructive) {
                                 store.send(.requestDeleteNote)

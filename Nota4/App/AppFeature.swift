@@ -234,6 +234,20 @@ struct AppFeature {
                     .send(.sidebar(.loadCounts))
                 )
                 
+            // 编辑器置顶切换完成 → 更新笔记列表和侧边栏计数
+            case .editor(.pinToggled):
+                if let updatedNote = state.editor.note {
+                    return .concatenate(
+                        .send(.noteList(.updateNoteInList(updatedNote))),
+                        .send(.noteList(.loadNotes)),
+                        .send(.sidebar(.loadCounts))
+                    )
+                }
+                return .concatenate(
+                    .send(.noteList(.loadNotes)),
+                    .send(.sidebar(.loadCounts))
+                )
+                
             // 编辑器删除笔记完成 → 更新笔记列表和侧边栏计数
             case .editor(.noteDeleted):
                 return .concatenate(
