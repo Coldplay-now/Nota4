@@ -125,36 +125,36 @@ struct FormatButtonGroup: View {
     
     var body: some View {
         WithPerceptionTracking {
-            ControlGroup {
-                ToolbarButton(
-                    title: "加粗",
-                    icon: "bold",
+        ControlGroup {
+            ToolbarButton(
+                title: "加粗",
+                icon: "bold",
                     shortcut: "⌘B",
                     isActive: store.isBoldActive,
                     isEnabled: store.isToolbarEnabled
-                ) {
-                    store.send(.formatBold)
-                }
-                
-                ToolbarButton(
-                    title: "斜体",
-                    icon: "italic",
+            ) {
+                store.send(.formatBold)
+            }
+            
+            ToolbarButton(
+                title: "斜体",
+                icon: "italic",
                     shortcut: "⌘I",
                     isActive: store.isItalicActive,
                     isEnabled: store.isToolbarEnabled
-                ) {
-                    store.send(.formatItalic)
-                }
-                
-                ToolbarButton(
-                    title: "行内代码",
-                    icon: "chevron.left.forwardslash.chevron.right",
+            ) {
+                store.send(.formatItalic)
+            }
+            
+            ToolbarButton(
+                title: "行内代码",
+                icon: "chevron.left.forwardslash.chevron.right",
                     shortcut: "⌘E",
                     isActive: store.isInlineCodeActive,
                     isEnabled: store.isToolbarEnabled
-                ) {
-                    store.send(.formatInlineCode)
-                }
+            ) {
+                store.send(.formatInlineCode)
+            }
                 
                 ToolbarButton(
                     title: "删除线",
@@ -210,21 +210,21 @@ struct HeadingMenu: View {
     
     var body: some View {
         WithPerceptionTracking {
-            Menu {
-                Button("标题 1", systemImage: "h1.square") {
-                    store.send(.insertHeading1)
-                }
-                .keyboardShortcut("1", modifiers: .command)
-                
-                Button("标题 2", systemImage: "h2.square") {
-                    store.send(.insertHeading2)
-                }
-                .keyboardShortcut("2", modifiers: .command)
-                
-                Button("标题 3", systemImage: "h3.square") {
-                    store.send(.insertHeading3)
-                }
-                .keyboardShortcut("3", modifiers: .command)
+        Menu {
+            Button("标题 1", systemImage: "h1.square") {
+                store.send(.insertHeading1)
+            }
+            .keyboardShortcut("1", modifiers: .command)
+            
+            Button("标题 2", systemImage: "h2.square") {
+                store.send(.insertHeading2)
+            }
+            .keyboardShortcut("2", modifiers: .command)
+            
+            Button("标题 3", systemImage: "h3.square") {
+                store.send(.insertHeading3)
+            }
+            .keyboardShortcut("3", modifiers: .command)
                 
                 Button("标题 4", systemImage: "h4.square") {
                     store.send(.insertHeading4)
@@ -240,11 +240,11 @@ struct HeadingMenu: View {
                     store.send(.insertHeading6)
                 }
                 .keyboardShortcut("6", modifiers: .command)
-            } label: {
+        } label: {
                 Label("标题", systemImage: "textformat")
-                    .labelStyle(.iconOnly)
+                .labelStyle(.iconOnly)
                     .frame(width: 32, height: 32)
-            }
+        }
             .help("插入标题（H1-H6）")
             .disabled(!store.isToolbarEnabled)
             .background(
@@ -267,35 +267,35 @@ struct ListButtonGroup: View {
     
     var body: some View {
         WithPerceptionTracking {
-            ControlGroup {
-                ToolbarButton(
-                    title: "无序列表",
-                    icon: "list.bullet",
+        ControlGroup {
+            ToolbarButton(
+                title: "无序列表",
+                icon: "list.bullet",
                     shortcut: "⌘L",
                     isActive: false,
                     isEnabled: store.isToolbarEnabled
-                ) {
-                    store.send(.insertUnorderedList)
-                }
-                
-                ToolbarButton(
-                    title: "有序列表",
-                    icon: "list.number",
+            ) {
+                store.send(.insertUnorderedList)
+            }
+            
+            ToolbarButton(
+                title: "有序列表",
+                icon: "list.number",
                     shortcut: "⇧⌘L",
                     isActive: false,
                     isEnabled: store.isToolbarEnabled
-                ) {
-                    store.send(.insertOrderedList)
-                }
-                
-                ToolbarButton(
-                    title: "任务列表",
-                    icon: "checklist",
+            ) {
+                store.send(.insertOrderedList)
+            }
+            
+            ToolbarButton(
+                title: "任务列表",
+                icon: "checklist",
                     shortcut: "⌥⌘L",
                     isActive: false,
                     isEnabled: store.isToolbarEnabled
-                ) {
-                    store.send(.insertTaskList)
+            ) {
+                store.send(.insertTaskList)
                 }
             }
         }
@@ -309,26 +309,26 @@ struct InsertButtonGroup: View {
     
     var body: some View {
         WithPerceptionTracking {
-            ControlGroup {
-                ToolbarButton(
-                    title: "链接",
-                    icon: "link",
+        ControlGroup {
+            ToolbarButton(
+                title: "链接",
+                icon: "link",
                     shortcut: "⌘K",
                     isActive: false,
                     isEnabled: store.isToolbarEnabled
-                ) {
-                    store.send(.insertLink)
-                }
-                
-                ToolbarButton(
-                    title: "代码块",
-                    icon: "curlybraces",
+            ) {
+                store.send(.insertLink)
+            }
+            
+            ToolbarButton(
+                title: "代码块",
+                icon: "curlybraces",
                     shortcut: "⇧⌘K",
                     isActive: false,
                     isEnabled: store.isToolbarEnabled
-                ) {
-                    store.send(.insertCodeBlock)
-                }
+            ) {
+                store.send(.insertCodeBlock)
+            }
                 
                 ToolbarButton(
                     title: "插入图片",
@@ -393,14 +393,14 @@ struct StarButton: View {
     
     var body: some View {
         WithPerceptionTracking {
-            ToolbarButton(
-                title: "切换星标",
-                icon: store.note?.isStarred ?? false ? "star.fill" : "star",
+        ToolbarButton(
+            title: "切换星标",
+            icon: store.note?.isStarred ?? false ? "star.fill" : "star",
                 shortcut: "⌘D",
                 isActive: store.note?.isStarred ?? false,
                 isEnabled: store.isToolbarEnabled
-            ) {
-                store.send(.toggleStar)
+        ) {
+            store.send(.toggleStar)
             }
         }
     }

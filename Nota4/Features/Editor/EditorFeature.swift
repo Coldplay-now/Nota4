@@ -78,6 +78,9 @@ struct EditorFeature {
         // 从笔记列表搜索传递过来的关键词（用于自动高亮）
         var listSearchKeywords: [String] = []
         
+        // 笔记目录，用于预览时解析相对路径
+        var noteDirectory: URL? = nil
+        
         // MARK: - Computed Properties
         
         var hasUnsavedChanges: Bool {
@@ -127,6 +130,9 @@ struct EditorFeature {
         case confirmDeleteNote
         case noteDeleted(String)  // 笔记删除完成通知（noteId）
         case cancelDeleteNote
+        case noteDirectoryUpdated(URL?)  // 笔记目录更新
+        case cleanupUnusedImages  // 清理未使用的图片
+        case unusedImagesCleaned(Int)  // 清理完成通知（清理的图片数量）
         case createNote
         case applyPreferences(EditorPreferences)
         case noteCreated(Result<Note, Error>)
@@ -277,7 +283,6 @@ struct EditorFeature {
         Reduce { state, action in
             switch action {
             case .binding(\.content):
-                print("⚪ [BINDING] Content changed: length=\(state.content.count)")
                 // 仅在预览模式下触发渲染
                 if state.viewMode != .editOnly {
                     return .send(.preview(.contentChanged(state.content)))
@@ -285,7 +290,6 @@ struct EditorFeature {
                 return .none
                 
             case .binding(\.title):
-                print("⚪ [BINDING] Title changed: '\(state.title)'")
                 // 标题编辑时不自动保存，保证用户输入的连续性和完整性
                 // 只有在用户手动切换焦点时（通过 onFocusChange）才触发保存
                 // 这样可以避免输入过程中触发列表更新和卡片移动
@@ -295,16 +299,14 @@ struct EditorFeature {
                 return .none
                 
             case .loadNote(let id):
-                print("🟢 [LOAD] Loading note: \(id)")
-                print("🟢 [LOAD] Current note: \(state.note?.noteId ?? "none")")
-                print("🟢 [LOAD] Has unsaved changes: \(state.hasUnsavedChanges)")
+                // 清除笔记目录
+                state.noteDirectory = nil
                 
                 // 判断是否是切换笔记（不是首次加载）
                 let isSwitchingNote = state.note != nil && state.note?.noteId != id
                 
                 // 切换笔记前先保存当前笔记（仅当已有笔记时）
                 if state.note != nil && state.hasUnsavedChanges {
-                    print("🟡 [LOAD] Saving current note before switching...")
                     return .concatenate(
                         .send(.manualSave),
                         .run { send in
@@ -317,7 +319,6 @@ struct EditorFeature {
                 
                 // 如果是切换笔记，重置为编辑模式并清除预览内容
                 if isSwitchingNote {
-                    print("🔄 [LOAD] Switching note - resetting to edit mode")
                     state.viewMode = .editOnly
                     state.preview.renderedHTML = ""
                     state.preview.isRendering = false
@@ -349,7 +350,6 @@ struct EditorFeature {
                 )
                 
             case .noteLoaded(.success(let note)):
-                print("✅ [LOAD] Note loaded: \(note.noteId)")
                 state.note = note
                 state.content = note.content
                 state.title = note.title
@@ -368,33 +368,39 @@ struct EditorFeature {
                 // 确保切换笔记后始终回到编辑模式
                 // 这样可以避免预览内容残留的问题
                 if state.viewMode != .editOnly {
-                    print("🔄 [LOAD] Resetting to edit mode after note loaded")
                     state.viewMode = .editOnly
                     state.preview.renderedHTML = ""
                     state.preview.isRendering = false
                     state.preview.renderError = nil
                 }
                 
+                // 异步获取笔记目录
+                let noteId = note.noteId
+                let keywords = state.listSearchKeywords
+                let content = state.content
+                
                 // 如果有从笔记列表搜索传递过来的关键词，自动执行搜索并高亮
-                if !state.listSearchKeywords.isEmpty {
-                    print("🔍 [LOAD] 自动高亮搜索关键词: \(state.listSearchKeywords)")
-                    // 捕获关键词和内容，避免在异步闭包中捕获 inout 参数
-                    let keywords = state.listSearchKeywords
-                    let content = state.content
-                    // 使用普通搜索（不区分大小写，不使用正则表达式）
+                if !keywords.isEmpty {
                     return .run { send in
+                        // 获取笔记目录
+                        let directory = try await notaFileManager.getNoteDirectory(for: noteId)
+                        await send(.noteDirectoryUpdated(directory))
+                        
+                        // 执行搜索并高亮
                         let matches = await performListSearch(
                             keywords: keywords,
                             in: content
                         )
                         await send(.updateSearchHighlights(matches: matches, currentIndex: 0))
                     }
+                } else {
+                    return .run { send in
+                        let directory = try await notaFileManager.getNoteDirectory(for: noteId)
+                        await send(.noteDirectoryUpdated(directory))
+                    }
                 }
                 
-                return .none
-                
             case .noteLoaded(.failure(let error)):
-                print("❌ 加载笔记失败: \(error)")
                 return .none
                 
             case .viewModeChanged(let mode):
@@ -417,25 +423,10 @@ struct EditorFeature {
                 return .none
                 
             case .autoSave:
-                print("🔵 [SAVE] autoSave triggered")
-                print("🔵 [SAVE] hasUnsavedChanges: \(state.hasUnsavedChanges)")
-                print("🔵 [SAVE] note exists: \(state.note != nil)")
-                if let note = state.note {
-                    print("🔵 [SAVE] note id: \(note.noteId)")
-                    print("🔵 [SAVE] Current title: '\(state.title)'")
-                    print("🔵 [SAVE] Last saved title: '\(state.lastSavedTitle)'")
-                    print("🔵 [SAVE] Current content length: \(state.content.count)")
-                    print("🔵 [SAVE] Last saved content length: \(state.lastSavedContent.count)")
-                    print("🔵 [SAVE] Title changed: \(state.title != state.lastSavedTitle)")
-                    print("🔵 [SAVE] Content changed: \(state.content != state.lastSavedContent)")
-                }
-                
                 guard state.hasUnsavedChanges, let note = state.note else {
-                    print("🔴 [SAVE] Skip save - no changes or no note")
                     return .none
                 }
                 
-                print("🟢 [SAVE] Saving note...")
                 state.isSaving = true
                 
                 var updatedNote = note
@@ -455,7 +446,6 @@ struct EditorFeature {
                 }
                 
             case .manualSave:
-                print("🟡 [SAVE] manualSave triggered")
                 // 手动保存立即触发，不防抖
                 return .concatenate(
                     .cancel(id: CancelID.autoSave),
@@ -463,7 +453,6 @@ struct EditorFeature {
                 )
                 
             case .saveCompleted:
-                print("✅ [SAVE] Save completed successfully")
                 state.isSaving = false
                 state.lastSavedContent = state.content
                 state.lastSavedTitle = state.title
@@ -480,7 +469,6 @@ struct EditorFeature {
                 
             case .saveFailed(let error):
                 state.isSaving = false
-                print("❌ 保存失败: \(error)")
                 return .none
                 
             case .insertMarkdown(let format):
@@ -549,7 +537,58 @@ struct EditorFeature {
                 }
                 
             case .noteDeleted:
+                // 清除笔记目录
+                state.noteDirectory = nil
                 // 完成通知，由 AppFeature 处理
+                return .none
+                
+            case .noteDirectoryUpdated(let directory):
+                state.noteDirectory = directory
+                return .none
+                
+            case .cleanupUnusedImages:
+                guard let note = state.note else { return .none }
+                let noteId = note.noteId
+                let content = note.content
+                
+                return .run { send in
+                    let noteDirectory = try await notaFileManager.getNoteDirectory(for: noteId)
+                    let assetsDirectory = noteDirectory.appendingPathComponent("assets")
+                    
+                    // 1. 从 content 中提取所有图片路径
+                    let imagePaths = extractImagePaths(from: content)
+                    
+                    // 2. 扫描 assets 目录中的所有文件
+                    let fileManager = FileManager.default
+                    guard fileManager.fileExists(atPath: assetsDirectory.path) else {
+                        await send(.unusedImagesCleaned(0))
+                        return
+                    }
+                    
+                    let assetFiles = try fileManager.contentsOfDirectory(
+                        at: assetsDirectory,
+                        includingPropertiesForKeys: nil
+                    )
+                    
+                    // 3. 找出未使用的文件
+                    var deletedCount = 0
+                    for fileURL in assetFiles {
+                        let fileName = fileURL.lastPathComponent
+                        let relativePath = "assets/\(fileName)"
+                        
+                        // 检查是否在 content 中被引用
+                        if !imagePaths.contains(relativePath) {
+                            try? fileManager.removeItem(at: fileURL)
+                            deletedCount += 1
+                        }
+                    }
+                    
+                    await send(.unusedImagesCleaned(deletedCount))
+                } catch: { error, send in
+                    await send(.unusedImagesCleaned(0))
+                }
+                
+            case .unusedImagesCleaned(let count):
                 return .none
                 
             case .cancelDeleteNote:
@@ -558,7 +597,6 @@ struct EditorFeature {
                 return .none
                 
             case .createNote:
-                print("🆕 [CREATE] Creating new note...")
                 let noteId = uuid().uuidString
                 let now = date.now
                 let newNote = Note(
@@ -579,7 +617,6 @@ struct EditorFeature {
                 }
                 
             case .noteCreated(.success(let note)):
-                print("✅ [CREATE] Note created successfully: \(note.noteId)")
                 state.note = note
                 state.selectedNoteId = note.noteId
                 state.content = note.content
@@ -589,11 +626,9 @@ struct EditorFeature {
                 return .none
                 
             case .noteCreated(.failure(let error)):
-                print("❌ 创建笔记失败: \(error)")
                 return .none
                 
             case .applyPreferences(let prefs):
-                print("📐 [EDITOR] Applying preferences")
                 state.editorStyle = EditorStyle(from: prefs)
                 return .none
                 
@@ -991,7 +1026,6 @@ struct EditorFeature {
             case .focusChanged(let isFocused):
                 // 失去焦点时保存
                 if !isFocused {
-                    print("🟡 [FOCUS] Editor lost focus, triggering save")
                     return .send(.manualSave)
                 }
                 return .none
@@ -1021,7 +1055,25 @@ struct EditorFeature {
                 state.preview.renderError = nil
                 
                 let content = state.content
-                let options = state.preview.renderOptions
+                let noteId = state.note?.noteId
+                
+                // 如果 noteDirectory 还没有设置，先获取它再渲染
+                if state.noteDirectory == nil, let noteId = noteId {
+                    return .run { send in
+                        do {
+                            let directory = try await notaFileManager.getNoteDirectory(for: noteId)
+                            await send(.noteDirectoryUpdated(directory))
+                        } catch {
+                            // 获取失败，继续渲染（不设置 baseURL）
+                        }
+                        // 无论成功失败，都重新触发渲染
+                        await send(.preview(.render))
+                    }
+                }
+                
+                // noteDirectory 已就绪或不可用，执行渲染
+                var options = state.preview.renderOptions
+                options.noteDirectory = state.noteDirectory
                 
                 return .run { send in
                     let html = try await markdownRenderer.renderToHTML(
@@ -1102,7 +1154,6 @@ struct EditorFeature {
                 
             case .search(.toggleReplaceMode):
                 state.search.isReplaceMode.toggle()
-                print("🔄 [SEARCH] 替换模式切换: \(state.search.isReplaceMode)")
                 return .none
                 
             case .search(.searchTextChanged(let text)):
@@ -1305,7 +1356,6 @@ struct EditorFeature {
             case .setListSearchKeywords(let keywords):
                 // 设置从笔记列表搜索传递过来的关键词
                 state.listSearchKeywords = keywords
-                print("🔍 [LIST_SEARCH] 设置搜索关键词: \(keywords)")
                 return .none
             }
         }
@@ -1435,6 +1485,54 @@ struct EditorFeature {
         }
         
         return matches
+    }
+    
+    /// 从 Markdown 内容中提取所有图片路径
+    /// 返回 Set<String> 包含所有相对路径（如 "assets/image.png"）
+    private func extractImagePaths(from markdown: String) -> Set<String> {
+        var imagePaths: Set<String> = []
+        
+        // 使用正则表达式匹配所有图片语法：![alt](path)
+        // 匹配模式：![...](path) 或 ![alt](path "title")
+        let pattern = "!\\[([^\\]]*)\\]\\(([^)]+)\\)"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+            return imagePaths
+        }
+        
+        let matches = regex.matches(
+            in: markdown,
+            range: NSRange(markdown.startIndex..., in: markdown)
+        )
+        
+        for match in matches {
+            guard match.numberOfRanges >= 3,
+                  let pathRange = Range(match.range(at: 2), in: markdown) else {
+                continue
+            }
+            
+            var path = String(markdown[pathRange])
+            
+            // 移除可能的标题部分（"title"）
+            if let titleIndex = path.firstIndex(of: "\"") {
+                path = String(path[..<titleIndex])
+            }
+            
+            // 移除空格
+            path = path.trimmingCharacters(in: .whitespaces)
+            
+            // 跳过网络 URL 和绝对路径
+            if path.hasPrefix("http://") || path.hasPrefix("https://") ||
+               path.hasPrefix("file://") || path.hasPrefix("/") {
+                continue
+            }
+            
+            // 只保留相对路径
+            if !path.isEmpty {
+                imagePaths.insert(path)
+            }
+        }
+        
+        return imagePaths
     }
     
     /// 执行正则表达式搜索

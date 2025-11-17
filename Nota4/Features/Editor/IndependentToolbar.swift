@@ -14,6 +14,19 @@ struct IndependentToolbar: View {
             HStack(spacing: 12) {
                 // 预览模式下隐藏所有编辑按钮，只显示视图模式切换
                 if store.viewMode != .previewOnly {
+                    // 搜索按钮
+                    NoteListToolbarButton(
+                        title: store.search.isSearchPanelVisible ? "关闭搜索" : "搜索",
+                        icon: store.search.isSearchPanelVisible ? "xmark.circle.fill" : "magnifyingglass",
+                        shortcut: "⌘F",
+                        isEnabled: store.note != nil
+                    ) {
+                        store.send(.search(.toggleSearchPanel))
+                    }
+                    
+                    Divider()
+                        .frame(height: 20)
+                    
                     // 核心工具：始终显示
                     FormatButtonGroup(store: store)
                     

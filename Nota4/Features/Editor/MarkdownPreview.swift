@@ -32,7 +32,10 @@ struct MarkdownPreview: View {
                         description: Text("在编辑器中输入 Markdown 文本以查看预览")
                     )
                 } else {
-                    WebViewWrapper(html: store.preview.renderedHTML)
+                    WebViewWrapper(
+                        html: store.preview.renderedHTML,
+                        baseURL: store.noteDirectory
+                    )
                 }
             }
             .onAppear {

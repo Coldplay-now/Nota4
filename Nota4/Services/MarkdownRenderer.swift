@@ -29,6 +29,9 @@ actor MarkdownRenderer {
         // 3. Markdown → HTML（使用 Ink）
         var html = parser.html(from: preprocessed.markdown)
         
+        // 3.5. 处理图片路径（验证和转换）
+        html = processImagePaths(in: html, noteDirectory: options.noteDirectory)
+        
         // 4. 生成 TOC 和标题映射（从原始 Markdown，在添加 ID 之前）
         //    这样可以使用映射来确保 ID 一致性
         let shouldGenerateTOC = hasTOCMarker || options.includeTOC
@@ -390,21 +393,21 @@ actor MarkdownRenderer {
                     
                     // 记录映射关系（键为原始标题文本，值为生成的 ID）
                     headingMap[title] = id
-                    
-                    // 处理层级变化
-                    if level > currentLevel {
-                        for _ in currentLevel..<level {
-                            toc += "<ul>\n"
-                        }
-                    } else if level < currentLevel {
-                        for _ in level..<currentLevel {
-                            toc += "</ul>\n</li>\n"
-                        }
+                
+                // 处理层级变化
+                if level > currentLevel {
+                    for _ in currentLevel..<level {
+                        toc += "<ul>\n"
                     }
-                    
-                    toc += "<li><a href=\"#\(id)\">\(escapeHTML(title))</a></li>\n"
-                    currentLevel = level
+                } else if level < currentLevel {
+                    for _ in level..<currentLevel {
+                        toc += "</ul>\n</li>\n"
+                    }
                 }
+                
+                toc += "<li><a href=\"#\(id)\">\(escapeHTML(title))</a></li>\n"
+                currentLevel = level
+            }
             }
             
             // 更新偏移量（包括换行符）
@@ -500,6 +503,7 @@ actor MarkdownRenderer {
         options: RenderOptions
     ) async -> String {
         let css = await getCSS(for: options.themeId)
+        let imageErrorCSS = getImageErrorCSS()
         
         return """
         <!DOCTYPE html>
@@ -509,6 +513,7 @@ actor MarkdownRenderer {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Preview</title>
             \(css)
+            \(imageErrorCSS)
             \(getMermaidScript())
             \(getKaTeXScript())
         </head>
@@ -751,6 +756,130 @@ actor MarkdownRenderer {
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
         <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
         """
+    }
+    
+    /// 获取无效图片的 CSS 样式
+    private func getImageErrorCSS() -> String {
+        return """
+        <style>
+        /* 无效图片样式 */
+        img[data-broken="true"] {
+            border: 2px dashed #ff6b6b;
+            background-color: #ffe0e0;
+            padding: 20px;
+            display: inline-block;
+            position: relative;
+            min-width: 200px;
+            min-height: 100px;
+        }
+        
+        img[data-broken="true"]::after {
+            content: "图片无法加载";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff6b6b;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            img[data-broken="true"] {
+                border-color: #ff6b6b;
+                background-color: #3d2a2a;
+            }
+            
+            img[data-broken="true"]::after {
+                color: #ff8c8c;
+            }
+        }
+        </style>
+        """
+    }
+    
+    /// 处理图片路径：验证相对路径文件是否存在，为无效图片添加标记
+    private func processImagePaths(in html: String, noteDirectory: URL?) -> String {
+        var result = html
+        
+        // 使用正则表达式匹配所有 <img> 标签
+        // 匹配模式：<img ... src="..." ...>
+        let pattern = "<img([^>]*?)src=\"([^\"]+)\"([^>]*?)>"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+            return result
+        }
+        
+        let matches = regex.matches(
+            in: result,
+            range: NSRange(result.startIndex..., in: result)
+        )
+        
+        // 从后往前处理，避免索引偏移
+        for match in matches.reversed() {
+            guard match.numberOfRanges >= 4,
+                  let beforeSrcRange = Range(match.range(at: 1), in: result),
+                  let srcRange = Range(match.range(at: 2), in: result),
+                  let afterSrcRange = Range(match.range(at: 3), in: result) else {
+                continue
+            }
+            
+            let beforeSrc = String(result[beforeSrcRange])
+            let srcPath = String(result[srcRange])
+            let afterSrc = String(result[afterSrcRange])
+            
+            // 检查路径类型
+            let isNetworkURL = srcPath.hasPrefix("http://") || srcPath.hasPrefix("https://")
+            let isDataURL = srcPath.hasPrefix("data:")
+            let isAbsolutePath = srcPath.hasPrefix("/") || srcPath.hasPrefix("file://")
+            
+            // 如果是网络 URL 或 data URL，跳过验证
+            if isNetworkURL || isDataURL {
+                continue
+            }
+            
+            // 如果是绝对路径，检查文件是否存在
+            if isAbsolutePath {
+                let fileURL: URL
+                if srcPath.hasPrefix("file://") {
+                    guard let url = URL(string: srcPath) else { continue }
+                    fileURL = url
+                } else {
+                    fileURL = URL(fileURLWithPath: srcPath)
+                }
+                
+                let fileManager = FileManager.default
+                if !fileManager.fileExists(atPath: fileURL.path) {
+                    // 文件不存在，添加错误标记
+                    let newImgTag = "<img\(beforeSrc)src=\"\(srcPath)\"\(afterSrc) data-broken=\"true\">"
+                    let fullRange = Range(match.range, in: result)!
+                    result.replaceSubrange(fullRange, with: newImgTag)
+                }
+                continue
+            }
+            
+            // 相对路径：需要 noteDirectory 来验证
+            guard let noteDir = noteDirectory else {
+                // 没有笔记目录，无法验证，跳过
+                // 让 WebView 通过 baseURL 来解析相对路径
+                continue
+            }
+            
+            // 构建完整路径进行验证
+            let imageURL = noteDir.appendingPathComponent(srcPath)
+            let fileManager = FileManager.default
+            
+            // 检查文件是否存在
+            if !fileManager.fileExists(atPath: imageURL.path) {
+                // 文件不存在，添加错误标记
+                let newImgTag = "<img\(beforeSrc)src=\"\(srcPath)\"\(afterSrc) data-broken=\"true\">"
+                let fullRange = Range(match.range, in: result)!
+                result.replaceSubrange(fullRange, with: newImgTag)
+            }
+            // 文件存在，保持原有的相对路径，让 WebView 通过 baseURL 解析
+        }
+        
+        return result
     }
 }
 

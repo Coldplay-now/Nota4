@@ -7,6 +7,7 @@ import WebKit
 /// 用于在 SwiftUI 中显示 HTML 内容
 struct WebViewWrapper: NSViewRepresentable {
     let html: String
+    let baseURL: URL?  // 新增参数，用于解析相对路径
     
     func makeNSView(context: Context) -> WKWebView {
         let webView = WKWebView()
@@ -15,10 +16,12 @@ struct WebViewWrapper: NSViewRepresentable {
     }
     
     func updateNSView(_ webView: WKWebView, context: Context) {
-        // 只在内容变化时才更新
-        if context.coordinator.lastHTML != html {
+        // 只在内容或 baseURL 变化时才更新
+        if context.coordinator.lastHTML != html || 
+           context.coordinator.lastBaseURL != baseURL {
             context.coordinator.lastHTML = html
-            webView.loadHTMLString(html, baseURL: nil)
+            context.coordinator.lastBaseURL = baseURL
+            webView.loadHTMLString(html, baseURL: baseURL)
         }
     }
     
@@ -28,6 +31,7 @@ struct WebViewWrapper: NSViewRepresentable {
     
     class Coordinator: NSObject, WKNavigationDelegate {
         var lastHTML: String = ""
+        var lastBaseURL: URL? = nil
         
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             // 允许初始加载
@@ -107,9 +111,9 @@ struct WebViewWrapper: NSViewRepresentable {
                 
                 // 外部链接（http/https）在外部浏览器打开
                 if url.scheme == "http" || url.scheme == "https" {
-                    NSWorkspace.shared.open(url)
-                    decisionHandler(.cancel)
-                    return
+                NSWorkspace.shared.open(url)
+                decisionHandler(.cancel)
+                return
                 }
             }
             
@@ -122,27 +126,30 @@ struct WebViewWrapper: NSViewRepresentable {
 // MARK: - Preview
 
 #Preview {
-    WebViewWrapper(html: """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <style>
-            body {
-                font-family: -apple-system;
-                padding: 2rem;
-            }
-            h1 {
-                color: #333;
-            }
-        </style>
-    </head>
-    <body>
-        <h1>预览测试</h1>
-        <p>这是一个简单的 HTML 预览。</p>
-    </body>
-    </html>
-    """)
+    WebViewWrapper(
+        html: """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {
+                    font-family: -apple-system;
+                    padding: 2rem;
+                }
+                h1 {
+                    color: #333;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>预览测试</h1>
+            <p>这是一个简单的 HTML 预览。</p>
+        </body>
+        </html>
+        """,
+        baseURL: nil
+    )
     .frame(width: 600, height: 400)
 }
 

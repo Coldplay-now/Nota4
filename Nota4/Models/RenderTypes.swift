@@ -13,6 +13,9 @@ struct RenderOptions: Equatable {
     /// 是否显示代码行号
     var codeLineNumbers: Bool = false
     
+    /// 笔记目录，用于解析相对路径（如图片路径）
+    var noteDirectory: URL? = nil
+    
     static let `default` = RenderOptions()
 }
 

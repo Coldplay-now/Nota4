@@ -65,9 +65,12 @@ struct NoteListView: View {
                 // 2. selectedNoteId 被清除，且 selectedNotes 为空（清除选择）
                 // 这样可以避免在多选时覆盖多选状态
                 if let noteId = newNoteId {
-                    // 只在 selectedNotes 为空或只包含该 ID 时更新（避免覆盖多选状态）
-                    if selectedNotes.isEmpty || selectedNotes == [noteId] {
+                    // 如果 selectedNotes 不包含该 ID，更新 selectedNotes（包括新建笔记的场景）
+                    if !selectedNotes.contains(noteId) {
                         selectedNotes = [noteId]
+                    } else if selectedNotes.count == 1 && selectedNotes.contains(noteId) {
+                        // 如果已经是唯一选中项，保持不变
+                        // 这个分支实际上不需要，但保留以保持逻辑清晰
                     }
                 } else if newNoteId == nil && selectedNotes.isEmpty {
                     // 只在 selectedNotes 为空时才清除（避免覆盖多选状态）

@@ -11,16 +11,16 @@ struct NoteRowView: View {
             HStack {
                 // 标题（带高亮）
                 Group {
-                    if searchKeywords.isEmpty {
-                        Text(note.title.isEmpty ? "无标题" : note.title)
-                            .font(.headline)
+                if searchKeywords.isEmpty {
+                    Text(note.title.isEmpty ? "无标题" : note.title)
+                        .font(.headline)
                             .foregroundStyle(Color(nsColor: .labelColor))
-                            .lineLimit(2)
-                    } else {
-                        Text(note.title.isEmpty ? "无标题" : note.title.highlightingOccurrences(of: searchKeywords))
-                            .font(.headline)
+                        .lineLimit(2)
+                } else {
+                    Text(note.title.isEmpty ? "无标题" : note.title.highlightingOccurrences(of: searchKeywords))
+                        .font(.headline)
                             .foregroundStyle(Color(nsColor: .labelColor))
-                            .lineLimit(2)
+                        .lineLimit(2)
                     }
                 }
                 .colorScheme(.light) // 强制使用浅色模式文字颜色
@@ -31,16 +31,16 @@ struct NoteRowView: View {
             
             // 预览（带高亮）
             Group {
-                if searchKeywords.isEmpty {
-                    Text(note.preview)
-                        .font(.subheadline)
+            if searchKeywords.isEmpty {
+                Text(note.preview)
+                    .font(.subheadline)
                         .foregroundStyle(Color(nsColor: .secondaryLabelColor))
-                        .lineLimit(3)
-                } else {
-                    Text(note.preview.highlightingOccurrences(of: searchKeywords))
-                        .font(.subheadline)
+                    .lineLimit(3)
+            } else {
+                Text(note.preview.highlightingOccurrences(of: searchKeywords))
+                    .font(.subheadline)
                         .foregroundStyle(Color(nsColor: .secondaryLabelColor))
-                        .lineLimit(3)
+                    .lineLimit(3)
                 }
             }
             .colorScheme(.light) // 强制使用浅色模式文字颜色
@@ -64,10 +64,10 @@ struct NoteRowView: View {
                             .foregroundColor(.yellow)
                     }
                     
-                    // 标签
-                    if !note.tags.isEmpty {
-                        HStack(spacing: 4) {
-                            ForEach(Array(note.tags.prefix(2)), id: \.self) { tag in
+                // 标签
+                if !note.tags.isEmpty {
+                    HStack(spacing: 4) {
+                        ForEach(Array(note.tags.prefix(2)), id: \.self) { tag in
                             Text(tag)
                                 .font(.caption2)
                                 .foregroundStyle(Color(nsColor: .labelColor))
@@ -75,7 +75,7 @@ struct NoteRowView: View {
                                 .padding(.vertical, 2)
                                 .background(Color.accentColor.opacity(0.2))
                                 .cornerRadius(4)
-                            }
+                        }
                         if note.tags.count > 2 {
                             Text("+\(note.tags.count - 2)")
                                 .font(.caption2)
