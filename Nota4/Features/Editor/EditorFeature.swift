@@ -909,6 +909,7 @@ struct EditorFeature {
                 return .run { [url, note] send in
                     // 获取笔记目录
                     let noteDirectory = try await notaFileManager.getNoteDirectory(for: note.noteId)
+                    
                     let assetsDirectory = noteDirectory.appendingPathComponent("assets")
                     
                     // 确保 assets 目录存在
@@ -928,9 +929,11 @@ struct EditorFeature {
                     
                     // 生成相对路径
                     let relativePath = "assets/\(fileName)"
+                    print("✅ [INSERT] 图片插入成功: \(relativePath)")
                     
                     await send(.imageInserted(imageId: imageId, relativePath: relativePath))
                 } catch: { error, send in
+                    print("❌ [INSERT] 插入图片失败: \(error.localizedDescription)")
                     await send(.imageInsertFailed(error))
                 }
                 
@@ -943,6 +946,7 @@ struct EditorFeature {
                     altText: "图片",
                     imagePath: relativePath
                 )
+                
                 state.content = result.newText
                 state.selectionRange = result.newSelection
                 state.showImagePicker = false
@@ -1063,7 +1067,7 @@ struct EditorFeature {
                             let directory = try await notaFileManager.getNoteDirectory(for: noteId)
                             await send(.noteDirectoryUpdated(directory))
                         } catch {
-                            // 获取失败，继续渲染（不设置 baseURL）
+                            print("❌ [RENDER] noteDirectory 获取失败: \(error.localizedDescription)")
                         }
                         // 无论成功失败，都重新触发渲染
                         await send(.preview(.render))
@@ -1081,6 +1085,7 @@ struct EditorFeature {
                     )
                     await send(.preview(.renderCompleted(.success(html))))
                 } catch: { error, send in
+                    print("❌ [RENDER] 渲染失败: \(error.localizedDescription)")
                     await send(.preview(.renderCompleted(.failure(error))))
                 }
                 .cancellable(id: CancelID.previewRender, cancelInFlight: true)

@@ -28,7 +28,36 @@ struct WebViewWrapper: NSViewRepresentable {
            context.coordinator.lastBaseURL != baseURL {
             context.coordinator.lastHTML = html
             context.coordinator.lastBaseURL = baseURL
-            webView.loadHTMLString(html, baseURL: baseURL)
+            
+            // 关键修复：使用 loadFileURL 而不是 loadHTMLString
+            // 这样可以正确授予 WebView 访问本地文件的 Sandbox 权限
+            if let baseURL = baseURL {
+                // 将临时 HTML 文件放在 noteDirectory 中
+                // 这样 HTML 和图片在同一个目录结构下，避免跨目录访问问题
+                let htmlFile = baseURL.appendingPathComponent(".preview_\(UUID().uuidString).html")
+                
+                do {
+                    // 写入 HTML 到临时文件
+                    try html.write(to: htmlFile, atomically: true, encoding: .utf8)
+                    
+                    // 使用 loadFileURL 加载，并授予访问整个 noteDirectory 的权限
+                    // allowingReadAccessTo 必须是目录，不能是文件
+                    webView.loadFileURL(htmlFile, allowingReadAccessTo: baseURL)
+                    
+                    // 清理之前的临时文件
+                    if let oldFile = context.coordinator.lastTempFile {
+                        try? FileManager.default.removeItem(at: oldFile)
+                    }
+                    context.coordinator.lastTempFile = htmlFile
+                } catch {
+                    print("❌ [WebView] 创建临时文件失败: \(error.localizedDescription)")
+                    // 降级到 loadHTMLString
+                    webView.loadHTMLString(html, baseURL: baseURL)
+                }
+            } else {
+                // 无 baseURL，使用标准 loadHTMLString
+                webView.loadHTMLString(html, baseURL: nil)
+            }
         }
     }
     
@@ -39,6 +68,14 @@ struct WebViewWrapper: NSViewRepresentable {
     class Coordinator: NSObject, WKNavigationDelegate {
         var lastHTML: String = ""
         var lastBaseURL: URL? = nil
+        var lastTempFile: URL? = nil
+        
+        deinit {
+            // 清理临时文件
+            if let tempFile = lastTempFile {
+                try? FileManager.default.removeItem(at: tempFile)
+            }
+        }
         
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             // 允许初始加载

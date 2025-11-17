@@ -849,7 +849,8 @@ actor MarkdownRenderer {
                 }
                 
                 let fileManager = FileManager.default
-                if !fileManager.fileExists(atPath: fileURL.path) {
+                let exists = fileManager.fileExists(atPath: fileURL.path)
+                if !exists {
                     // 文件不存在，添加错误标记
                     let newImgTag = "<img\(beforeSrc)src=\"\(srcPath)\"\(afterSrc) data-broken=\"true\">"
                     let fullRange = Range(match.range, in: result)!
@@ -858,25 +859,31 @@ actor MarkdownRenderer {
                 continue
             }
             
-            // 相对路径：需要 noteDirectory 来验证
+            // 相对路径：需要 noteDirectory 来解析
             guard let noteDir = noteDirectory else {
-                // 没有笔记目录，无法验证，跳过
-                // 让 WebView 通过 baseURL 来解析相对路径
                 continue
             }
             
-            // 构建完整路径进行验证
+            // 构建完整路径
             let imageURL = noteDir.appendingPathComponent(srcPath)
-            let fileManager = FileManager.default
             
-            // 检查文件是否存在
-            if !fileManager.fileExists(atPath: imageURL.path) {
+            let fileManager = FileManager.default
+            let exists = fileManager.fileExists(atPath: imageURL.path)
+            
+            if exists {
+                // 文件存在，转换为完整的 file:// URL
+                // 这对于从 noteDirectory 内的临时 HTML 文件加载时是必需的
+                let fullFileURL = imageURL.absoluteString
+                let newImgTag = "<img\(beforeSrc)src=\"\(fullFileURL)\"\(afterSrc)>"
+                let fullRange = Range(match.range, in: result)!
+                result.replaceSubrange(fullRange, with: newImgTag)
+            } else {
                 // 文件不存在，添加错误标记
                 let newImgTag = "<img\(beforeSrc)src=\"\(srcPath)\"\(afterSrc) data-broken=\"true\">"
                 let fullRange = Range(match.range, in: result)!
                 result.replaceSubrange(fullRange, with: newImgTag)
+                print("⚠️ [IMAGE] 图片文件不存在: \(srcPath)")
             }
-            // 文件存在，保持原有的相对路径，让 WebView 通过 baseURL 解析
         }
         
         return result
