@@ -167,6 +167,140 @@ struct MarkdownTextEditor: NSViewRepresentable {
             self.parent = parent
         }
         
+        // MARK: - Context Menu Filtering
+        
+        /// 过滤系统右键菜单，只保留需要的菜单项
+        func textView(_ textView: NSTextView, menu: NSMenu, for event: NSEvent, at charIndex: Int) -> NSMenu? {
+            // 创建新菜单，只包含需要的菜单项
+            let filteredMenu = NSMenu()
+            
+            // 允许的菜单项 action（保留这些）
+            let allowedActions: Set<Selector> = [
+                #selector(NSText.cut(_:)),                // Cut
+                #selector(NSText.copy(_:)),               // Copy
+                #selector(NSText.paste(_:))              // Paste
+            ]
+            
+            // Undo/Redo 的 action selector（NSResponder 标准方法）
+            let undoAction = Selector(("undo:"))
+            let redoAction = Selector(("redo:"))
+            
+            // Share 菜单的标题关键词（中英文）
+            let shareKeywords = ["Share", "分享", "共享"]
+            
+            // Undo/Redo 菜单的标题关键词（中英文）
+            let undoKeywords = ["Undo", "撤销", "撤消"]
+            let redoKeywords = ["Redo", "重做", "恢复"]
+            
+            // 遍历系统菜单，只添加允许的菜单项
+            for item in menu.items {
+                // 检查是否是 Undo 菜单（通过 action 或标题识别）
+                if let action = item.action, (action == undoAction || undoKeywords.contains(where: { item.title.contains($0) })) {
+                    let newItem = item.copy() as! NSMenuItem
+                    // 不设置 target，让响应链自动找到 textView（这样 validateUserInterfaceItem 才能正常工作）
+                    newItem.target = nil
+                    newItem.title = "撤销"  // 确保使用中文标题
+                    filteredMenu.addItem(newItem)
+                }
+                // 检查是否是 Redo 菜单（通过 action 或标题识别）
+                else if let action = item.action, (action == redoAction || redoKeywords.contains(where: { item.title.contains($0) })) {
+                    let newItem = item.copy() as! NSMenuItem
+                    // 不设置 target，让响应链自动找到 textView（这样 validateUserInterfaceItem 才能正常工作）
+                    newItem.target = nil
+                    newItem.title = "重做"  // 确保使用中文标题
+                    filteredMenu.addItem(newItem)
+                }
+                // 检查是否是允许的 action（Cut, Copy, Paste）
+                else if let action = item.action, allowedActions.contains(action) {
+                    // 复制菜单项
+                    let newItem = item.copy() as! NSMenuItem
+                    // 确保使用中文标题
+                    if action == #selector(NSText.cut(_:)) {
+                        newItem.title = "剪切"
+                    } else if action == #selector(NSText.copy(_:)) {
+                        newItem.title = "复制"
+                    } else if action == #selector(NSText.paste(_:)) {
+                        newItem.title = "粘贴"
+                    }
+                    filteredMenu.addItem(newItem)
+                }
+                // 检查是否是 Share 菜单（通过标题识别）
+                else if shareKeywords.contains(where: { item.title.contains($0) }) {
+                    let newItem = item.copy() as! NSMenuItem
+                    newItem.title = "分享"  // 确保使用中文标题
+                    filteredMenu.addItem(newItem)
+                }
+                // 处理分隔符（但只在有内容时添加）
+                else if item.isSeparatorItem {
+                    if filteredMenu.items.count > 0 && !filteredMenu.items.last!.isSeparatorItem {
+                        filteredMenu.addItem(NSMenuItem.separator())
+                    }
+                }
+            }
+            
+            // 如果系统菜单中没有 Undo/Redo，手动添加
+            let hasUndo = filteredMenu.items.contains { item in
+                if let action = item.action {
+                    return action == undoAction || undoKeywords.contains(where: { item.title.contains($0) })
+                }
+                return false
+            }
+            let hasRedo = filteredMenu.items.contains { item in
+                if let action = item.action {
+                    return action == redoAction || redoKeywords.contains(where: { item.title.contains($0) })
+                }
+                return false
+            }
+            
+            // 如果没有 Undo，手动添加
+            if !hasUndo {
+                let undoItem = NSMenuItem(title: "撤销", action: undoAction, keyEquivalent: "z")
+                // 不设置 target，让响应链自动找到 textView（这样 validateUserInterfaceItem 才能正常工作）
+                undoItem.keyEquivalentModifierMask = .command
+                filteredMenu.insertItem(undoItem, at: 0)
+            } else {
+                // 如果系统菜单中有 Undo，确保使用中文标题
+                // 遍历所有菜单项，找到所有 Undo 菜单项并设置为中文
+                for item in filteredMenu.items {
+                    if let action = item.action, (action == undoAction || undoKeywords.contains(where: { item.title.contains($0) })) {
+                        item.title = "撤销"
+                        // 不设置 target，让响应链自动找到 textView
+                        item.target = nil
+                    }
+                }
+            }
+            
+            // 如果没有 Redo，手动添加
+            if !hasRedo {
+                let redoItem = NSMenuItem(title: "重做", action: redoAction, keyEquivalent: "z")
+                // 不设置 target，让响应链自动找到 textView（这样 validateUserInterfaceItem 才能正常工作）
+                redoItem.keyEquivalentModifierMask = [.command, .shift]
+                if hasUndo {
+                    filteredMenu.insertItem(redoItem, at: 1)
+                } else {
+                    filteredMenu.insertItem(redoItem, at: 0)
+                }
+            } else {
+                // 如果系统菜单中有 Redo，确保使用中文标题
+                // 遍历所有菜单项，找到所有 Redo 菜单项并设置为中文
+                for item in filteredMenu.items {
+                    if let action = item.action, (action == redoAction || redoKeywords.contains(where: { item.title.contains($0) })) {
+                        item.title = "重做"
+                        // 不设置 target，让响应链自动找到 textView
+                        item.target = nil
+                    }
+                }
+            }
+            
+            // 在 Undo/Redo 后添加分隔符（如果还没有）
+            if filteredMenu.items.count > 0 && !filteredMenu.items[0].isSeparatorItem {
+                filteredMenu.insertItem(NSMenuItem.separator(), at: hasUndo && hasRedo ? 2 : (hasUndo || hasRedo ? 1 : 0))
+            }
+            
+            // 如果没有找到任何菜单项，返回 nil（使用系统默认菜单）
+            return filteredMenu.items.isEmpty ? nil : filteredMenu
+        }
+        
         // MARK: - Search Highlight Methods
         
         func updateSearchHighlights(matches: [NSRange], currentIndex: Int) {
