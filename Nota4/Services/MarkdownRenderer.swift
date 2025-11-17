@@ -29,26 +29,38 @@ actor MarkdownRenderer {
         // 3. Markdown → HTML（使用 Ink）
         var html = parser.html(from: preprocessed.markdown)
         
-        // 4. 注入代码高亮
+        // 4. 生成 TOC 和标题映射（从原始 Markdown，在添加 ID 之前）
+        //    这样可以使用映射来确保 ID 一致性
+        let shouldGenerateTOC = hasTOCMarker || options.includeTOC
+        let tocResult: (toc: String?, headingMap: [String: String])
+        if shouldGenerateTOC {
+            let result = generateTOC(from: markdown)
+            tocResult = (result.toc, result.headingMap)
+        } else {
+            tocResult = (nil, [:])
+        }
+        let toc = tocResult.toc
+        let headingMap = tocResult.headingMap
+        
+        // 5. 为标题添加 id 属性（使用映射确保与 TOC 一致）
+        html = addHeadingIds(to: html, headingMap: headingMap)
+        
+        // 6. 注入代码高亮
         html = highlightCodeBlocks(html)
         
-        // 5. 注入 Mermaid 图表
+        // 7. 注入 Mermaid 图表
         html = injectMermaidCharts(html, charts: preprocessed.mermaidCharts)
         
-        // 6. 注入数学公式
+        // 8. 注入数学公式
         html = injectMathFormulas(html, formulas: preprocessed.mathFormulas)
         
-        // 7. 生成 TOC（如果有 [TOC] 标记或者选项启用）
-        let shouldGenerateTOC = hasTOCMarker || options.includeTOC
-        let toc = shouldGenerateTOC ? generateTOC(from: markdown) : nil
-        
-        // 8. 替换 [TOC] 标记
-        if hasTOCMarker && toc != nil {
-            html = html.replacingOccurrences(of: "<p>[TOC]</p>", with: toc!)
-            html = html.replacingOccurrences(of: "<p>[toc]</p>", with: toc!)
+        // 9. 替换 [TOC] 标记（如果有）
+        if hasTOCMarker, let tocHTML = toc {
+            html = html.replacingOccurrences(of: "<p>[TOC]</p>", with: tocHTML)
+            html = html.replacingOccurrences(of: "<p>[toc]</p>", with: tocHTML)
         }
         
-        // 9. 构建完整 HTML（如果有 [TOC] 标记，则不在顶部添加 TOC）
+        // 10. 构建完整 HTML（如果有 [TOC] 标记，则不在顶部添加 TOC）
         return await buildFullHTML(
             content: html,
             toc: hasTOCMarker ? nil : toc,
@@ -136,6 +148,84 @@ actor MarkdownRenderer {
             mermaidCharts: mermaidCharts,
             mathFormulas: mathFormulas
         )
+    }
+    
+    /// 为标题添加 id 属性，以便锚点链接能正确跳转
+    /// - Parameters:
+    ///   - html: HTML 内容
+    ///   - headingMap: 标题文本到 ID 的映射（从原始 Markdown 生成）
+    /// - Returns: 添加了 id 属性的 HTML
+    private func addHeadingIds(to html: String, headingMap: [String: String]) -> String {
+        var result = html
+        
+        // 匹配所有 h1-h6 标题标签（包括嵌套的 HTML 标签）
+        // 使用非贪婪匹配来捕获整个标题内容，包括嵌套标签
+        let pattern = "<(h[1-6])([^>]*)>(.*?)</h[1-6]>"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) else {
+            return result
+        }
+        
+        let matches = regex.matches(
+            in: result,
+            range: NSRange(result.startIndex..., in: result)
+        )
+        
+        // 从后往前处理，避免索引偏移
+        for match in matches.reversed() {
+            guard match.numberOfRanges >= 4,
+                  let tagRange = Range(match.range(at: 1), in: result),
+                  let attrsRange = Range(match.range(at: 2), in: result),
+                  let contentRange = Range(match.range(at: 3), in: result) else {
+                continue
+            }
+            
+            let tag = String(result[tagRange])
+            let attrs = String(result[attrsRange])
+            let content = String(result[contentRange])
+            
+            // 如果已经有 id 属性，跳过
+            if attrs.contains("id=") {
+                continue
+            }
+            
+            // 从 HTML 内容中提取纯文本
+            let plainText = extractPlainText(from: content)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            // 跳过空标题
+            guard !plainText.isEmpty else {
+                continue
+            }
+            
+            // 优先使用映射中的 ID（确保与 TOC 一致）
+            let id: String
+            if let mappedID = headingMap[plainText] {
+                // 找到精确匹配
+                id = mappedID
+            } else {
+                // 如果映射中没有，尝试模糊匹配（处理可能的空白字符差异）
+                let normalizedText = plainText.replacingOccurrences(
+                    of: "\\s+",
+                    with: " ",
+                    options: .regularExpression
+                ).trimmingCharacters(in: .whitespaces)
+                
+                if let mappedID = headingMap[normalizedText] {
+                    id = mappedID
+                } else {
+                    // 如果仍然找不到，使用 generateHeadingID 生成（降级方案）
+                    id = generateHeadingID(from: plainText)
+                }
+            }
+            
+            // 构建新的标题标签，添加 id 属性
+            let newTag = "<\(tag)\(attrs.isEmpty ? "" : " \(attrs)") id=\"\(id)\">\(content)</\(tag)>"
+            
+            let fullRange = Range(match.range, in: result)!
+            result.replaceSubrange(fullRange, with: newTag)
+        }
+        
+        return result
     }
     
     /// 代码块语法高亮
@@ -246,35 +336,79 @@ actor MarkdownRenderer {
         return result
     }
     
-    /// 生成 TOC
-    private func generateTOC(from markdown: String) -> String {
+    /// 生成 TOC 和标题映射
+    /// 返回: (toc: TOC HTML, headingMap: [标题文本: ID])
+    /// 注意：会排除代码块、引用块、Mermaid 块、公式块中的标题
+    private func generateTOC(from markdown: String) -> (toc: String, headingMap: [String: String]) {
         var toc = "<nav class=\"toc\">\n<h2>目录</h2>\n<ul>\n"
+        var headingMap: [String: String] = [:]
         
+        // 1. 标记所有需要跳过的区域（代码块、引用块、Mermaid 块、公式块）
+        let excludedRanges = getExcludedRanges(from: markdown)
+        
+        // 2. 遍历所有行，只处理不在排除区域内的标题
         let lines = markdown.components(separatedBy: .newlines)
         var currentLevel = 0
+        var currentOffset = 0 // 当前行的字符偏移量
         
         for line in lines {
-            if line.hasPrefix("#") {
-                let level = line.prefix(while: { $0 == "#" }).count
-                let title = line.dropFirst(level).trimmingCharacters(in: .whitespaces)
-                let id = title.lowercased()
-                    .replacingOccurrences(of: " ", with: "-")
-                    .replacingOccurrences(of: "[^a-z0-9\\-]", with: "", options: .regularExpression)
-                
-                // 处理层级变化
-                if level > currentLevel {
-                    for _ in currentLevel..<level {
-                        toc += "<ul>\n"
-                    }
-                } else if level < currentLevel {
-                    for _ in level..<currentLevel {
-                        toc += "</ul>\n</li>\n"
-                    }
-                }
-                
-                toc += "<li><a href=\"#\(id)\">\(escapeHTML(title))</a></li>\n"
-                currentLevel = level
+            let lineStart = currentOffset
+            let lineEnd = currentOffset + line.count
+            let lineRange = lineStart..<lineEnd
+            
+            // 检查当前行是否在排除区域内
+            let isExcluded = excludedRanges.contains { range in
+                range.overlaps(lineRange)
             }
+            
+            // 如果不在排除区域内，且是标题行，则处理
+            if !isExcluded && line.hasPrefix("#") {
+                let level = line.prefix(while: { $0 == "#" }).count
+                
+                // 确保 # 后面有空格（真正的标题格式）
+                // Markdown 标题格式：至少一个 #，后面必须跟空格
+                if level >= 1 && level <= 6 {
+                    let afterHash = line.dropFirst(level)
+                    let trimmedAfterHash = afterHash.trimmingCharacters(in: .whitespaces)
+                    
+                    // 标题格式：## 后面必须有空格
+                    guard afterHash.first == " " || afterHash.isEmpty else {
+                        currentOffset = lineEnd + 1
+                        continue
+                    }
+                    
+                    let title = trimmedAfterHash
+                    
+                    // 跳过空标题
+                    guard !title.isEmpty else {
+                        currentOffset = lineEnd + 1 // +1 for newline
+                        continue
+                    }
+                    
+                    // 使用统一的 ID 生成函数
+                    let id = generateHeadingID(from: title)
+                    
+                    // 记录映射关系（键为原始标题文本，值为生成的 ID）
+                    headingMap[title] = id
+                    
+                    // 处理层级变化
+                    if level > currentLevel {
+                        for _ in currentLevel..<level {
+                            toc += "<ul>\n"
+                        }
+                    } else if level < currentLevel {
+                        for _ in level..<currentLevel {
+                            toc += "</ul>\n</li>\n"
+                        }
+                    }
+                    
+                    toc += "<li><a href=\"#\(id)\">\(escapeHTML(title))</a></li>\n"
+                    currentLevel = level
+                }
+            }
+            
+            // 更新偏移量（包括换行符）
+            currentOffset = lineEnd + 1
         }
         
         // 关闭所有未关闭的标签
@@ -283,7 +417,80 @@ actor MarkdownRenderer {
         }
         
         toc += "</nav>"
-        return toc
+        return (toc, headingMap)
+    }
+    
+    /// 获取需要排除的区域（代码块、引用块、Mermaid 块、公式块）
+    /// 返回: 所有排除区域的字符范围数组
+    private func getExcludedRanges(from markdown: String) -> [Range<Int>] {
+        var excludedRanges: [Range<Int>] = []
+        
+        // 1. 匹配所有代码块（```...```）
+        let codeBlockPattern = "```[\\s\\S]*?```"
+        if let regex = try? NSRegularExpression(pattern: codeBlockPattern) {
+            let matches = regex.matches(
+                in: markdown,
+                range: NSRange(markdown.startIndex..., in: markdown)
+            )
+            for match in matches {
+                if let range = Range(match.range, in: markdown) {
+                    let start = markdown.distance(from: markdown.startIndex, to: range.lowerBound)
+                    let end = markdown.distance(from: markdown.startIndex, to: range.upperBound)
+                    excludedRanges.append(start..<end)
+                }
+            }
+        }
+        
+        // 2. 匹配引用块（以 > 开头的行，可能多行）
+        // 使用行级别匹配更准确
+        let lines = markdown.components(separatedBy: .newlines)
+        var currentOffset = 0
+        var inBlockquote = false
+        var blockquoteStart = 0
+        
+        for line in lines {
+            let lineStart = currentOffset
+            let isBlockquoteLine = line.hasPrefix(">")
+            
+            if isBlockquoteLine && !inBlockquote {
+                // 开始引用块
+                inBlockquote = true
+                blockquoteStart = lineStart
+            } else if !isBlockquoteLine && inBlockquote {
+                // 结束引用块
+                let blockquoteEnd = lineStart
+                excludedRanges.append(blockquoteStart..<blockquoteEnd)
+                inBlockquote = false
+            }
+            
+            currentOffset += line.count + 1 // +1 for newline
+        }
+        
+        // 处理文档末尾的引用块
+        if inBlockquote {
+            excludedRanges.append(blockquoteStart..<currentOffset)
+        }
+        
+        // 3. 匹配数学公式块（$$...$$）
+        let blockMathPattern = "\\$\\$[\\s\\S]*?\\$\\$"
+        if let regex = try? NSRegularExpression(pattern: blockMathPattern) {
+            let matches = regex.matches(
+                in: markdown,
+                range: NSRange(markdown.startIndex..., in: markdown)
+            )
+            for match in matches {
+                if let range = Range(match.range, in: markdown) {
+                    let start = markdown.distance(from: markdown.startIndex, to: range.lowerBound)
+                    let end = markdown.distance(from: markdown.startIndex, to: range.upperBound)
+                    excludedRanges.append(start..<end)
+                }
+            }
+        }
+        
+        // 4. 匹配行内数学公式（$...$）- 虽然不太可能包含标题，但为了完整性也排除
+        // 注意：行内公式通常很短，不太可能包含多行标题，但为了安全起见也排除
+        
+        return excludedRanges
     }
     
     /// 构建完整 HTML
@@ -428,6 +635,82 @@ actor MarkdownRenderer {
             .replacingOccurrences(of: ">", with: "&gt;")
             .replacingOccurrences(of: "\"", with: "&quot;")
             .replacingOccurrences(of: "'", with: "&#39;")
+    }
+    
+    /// 解码 HTML 实体
+    /// 将 HTML 实体（如 &amp;、&lt; 等）转换回原始字符
+    private func decodeHTMLEntities(_ text: String) -> String {
+        var result = text
+        // 按顺序解码，避免重复解码
+        result = result.replacingOccurrences(of: "&amp;", with: "&")
+        result = result.replacingOccurrences(of: "&lt;", with: "<")
+        result = result.replacingOccurrences(of: "&gt;", with: ">")
+        result = result.replacingOccurrences(of: "&quot;", with: "\"")
+        result = result.replacingOccurrences(of: "&#39;", with: "'")
+        result = result.replacingOccurrences(of: "&nbsp;", with: " ")
+        return result
+    }
+    
+    /// 从 HTML 中提取纯文本
+    /// 移除所有 HTML 标签，解码 HTML 实体，返回纯文本
+    private func extractPlainText(from html: String) -> String {
+        var result = html
+        
+        // 1. 移除所有 HTML 标签（包括嵌套标签）
+        // 使用正则表达式匹配 <...> 标签
+        let tagPattern = "<[^>]+>"
+        if let regex = try? NSRegularExpression(pattern: tagPattern, options: []) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(
+                in: result,
+                options: [],
+                range: range,
+                withTemplate: ""
+            )
+        }
+        
+        // 2. 解码 HTML 实体
+        result = decodeHTMLEntities(result)
+        
+        // 3. 清理多余的空白字符
+        result = result
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        return result
+    }
+    
+    /// 从文本生成标题 ID
+    /// 规则：小写、空格转连字符、移除特殊字符（保留中文字符、数字、连字符）
+    private func generateHeadingID(from text: String) -> String {
+        var id = text.lowercased()
+        
+        // 1. 空格转连字符
+        id = id.replacingOccurrences(of: " ", with: "-")
+        
+        // 2. 移除特殊字符，但保留：
+        //    - 小写字母 a-z
+        //    - 数字 0-9
+        //    - 连字符 -
+        //    - 中文字符（Unicode 范围 \u{4e00}-\u{9fff}）
+        id = id.replacingOccurrences(
+            of: "[^a-z0-9\\-\\u{4e00}-\\u{9fff}]",
+            with: "",
+            options: .regularExpression
+        )
+        
+        // 3. 移除连续的连字符
+        id = id.replacingOccurrences(
+            of: "-+",
+            with: "-",
+            options: .regularExpression
+        )
+        
+        // 4. 移除开头和结尾的连字符
+        id = id.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        
+        // 5. 如果 id 为空，返回默认值
+        return id.isEmpty ? "heading" : id
     }
     
     private func getCSS(for themeId: String?) async -> String {

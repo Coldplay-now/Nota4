@@ -60,31 +60,31 @@ struct AppView: View {
         WithPerceptionTracking {
             VStack(spacing: 0) {
                 // 主内容区域
-                NavigationSplitView(
-                    columnVisibility: Binding(
-                        get: { store.columnVisibility },
-                        set: { store.send(.columnVisibilityChanged($0)) }
-                    )
-                ) {
-                    // 侧边栏
-                    SidebarView(
-                        store: store.scope(state: \.sidebar, action: \.sidebar)
-                    )
-                    .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 250)
-                } content: {
-                    // 笔记列表
-                    NoteListView(
-                        store: store.scope(state: \.noteList, action: \.noteList)
-                    )
+            NavigationSplitView(
+                columnVisibility: Binding(
+                    get: { store.columnVisibility },
+                    set: { store.send(.columnVisibilityChanged($0)) }
+                )
+            ) {
+                // 侧边栏
+                SidebarView(
+                    store: store.scope(state: \.sidebar, action: \.sidebar)
+                )
+                .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 250)
+            } content: {
+                // 笔记列表
+                NoteListView(
+                    store: store.scope(state: \.noteList, action: \.noteList)
+                )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 280, max: 500)
-                } detail: {
-                    // 编辑器
-                    NoteEditorView(
-                        store: store.scope(state: \.editor, action: \.editor)
-                    )
+            } detail: {
+                // 编辑器
+                NoteEditorView(
+                    store: store.scope(state: \.editor, action: \.editor)
+                )
                     // 不设置最小宽度，让编辑器区域灵活适应窗口大小
-                }
-                .navigationSplitViewStyle(.balanced)
+            }
+            .navigationSplitViewStyle(.balanced)
                 
                 // 状态栏
                 StatusBarView(store: store)

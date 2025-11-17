@@ -99,7 +99,10 @@ EOF
 
 # 7. 复制图标
 echo -e "${YELLOW}7. 复制应用图标...${NC}"
-if [ -f "$PROJECT_ROOT/Resources/AppIcon.icns" ]; then
+if [ -f "$PROJECT_ROOT/Nota4/Nota4/Resources/AppIcon.icns" ]; then
+    cp "$PROJECT_ROOT/Nota4/Nota4/Resources/AppIcon.icns" "$RESOURCES_DIR/"
+    echo -e "${GREEN}✓ 图标已复制${NC}"
+elif [ -f "$PROJECT_ROOT/Resources/AppIcon.icns" ]; then
     cp "$PROJECT_ROOT/Resources/AppIcon.icns" "$RESOURCES_DIR/"
     echo -e "${GREEN}✓ 图标已复制${NC}"
 else

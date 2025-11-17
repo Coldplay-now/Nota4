@@ -65,8 +65,12 @@ EOF
     fi
     
     # 复制图标（如果存在）
-    if [ -f "Nota4/Resources/AppIcon.icns" ] && [ ! -f "$APP_DIR/Contents/Resources/AppIcon.icns" ]; then
+    if [ -f "Nota4/Nota4/Resources/AppIcon.icns" ]; then
+        cp "Nota4/Nota4/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/"
+        echo -e "${BLUE}  ✓ 图标已复制${NC}"
+    elif [ -f "Nota4/Resources/AppIcon.icns" ]; then
         cp "Nota4/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/"
+        echo -e "${BLUE}  ✓ 图标已复制${NC}"
     fi
     
     # 复制 Themes 目录

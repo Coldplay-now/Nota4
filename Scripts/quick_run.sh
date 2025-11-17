@@ -65,8 +65,12 @@ EOF
     fi
     
     # 复制图标（如果存在）
-    if [ -f "Resources/AppIcon.icns" ] && [ ! -f "$APP_DIR/Contents/Resources/AppIcon.icns" ]; then
+    if [ -f "Nota4/Nota4/Resources/AppIcon.icns" ]; then
+        cp "Nota4/Nota4/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/"
+        echo -e "${BLUE}  ✓ 图标已复制${NC}"
+    elif [ -f "Resources/AppIcon.icns" ]; then
         cp "Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/"
+        echo -e "${BLUE}  ✓ 图标已复制${NC}"
     fi
 else
     echo -e "${GREEN}✅ 应用包已是最新${NC}"

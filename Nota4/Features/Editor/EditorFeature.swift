@@ -230,6 +230,9 @@ struct EditorFeature {
                 print("🟢 [LOAD] Current note: \(state.note?.noteId ?? "none")")
                 print("🟢 [LOAD] Has unsaved changes: \(state.hasUnsavedChanges)")
                 
+                // 判断是否是切换笔记（不是首次加载）
+                let isSwitchingNote = state.note != nil && state.note?.noteId != id
+                
                 // 切换笔记前先保存当前笔记（仅当已有笔记时）
                 if state.note != nil && state.hasUnsavedChanges {
                     print("🟡 [LOAD] Saving current note before switching...")
@@ -240,6 +243,27 @@ struct EditorFeature {
                             try await mainQueue.sleep(for: .milliseconds(100))
                             await send(.loadNote(id))
                         }
+                    )
+                }
+                
+                // 如果是切换笔记，重置为编辑模式并清除预览内容
+                if isSwitchingNote {
+                    print("🔄 [LOAD] Switching note - resetting to edit mode")
+                    state.viewMode = .editOnly
+                    state.preview.renderedHTML = ""
+                    state.preview.isRendering = false
+                    state.preview.renderError = nil
+                    // 取消正在进行的预览渲染
+                    return .merge(
+                        .cancel(id: CancelID.previewRender),
+                        .cancel(id: CancelID.loadNote),
+                        .run { send in
+                            let note = try await noteRepository.fetchNote(byId: id)
+                            await send(.noteLoaded(.success(note)))
+                        } catch: { error, send in
+                            await send(.noteLoaded(.failure(error)))
+                        }
+                        .cancellable(id: CancelID.loadNote, cancelInFlight: true)
                     )
                 }
                 
@@ -256,11 +280,23 @@ struct EditorFeature {
                 )
                 
             case .noteLoaded(.success(let note)):
+                print("✅ [LOAD] Note loaded: \(note.noteId)")
                 state.note = note
                 state.content = note.content
                 state.title = note.title
                 state.lastSavedContent = note.content
                 state.lastSavedTitle = note.title
+                
+                // 确保切换笔记后始终回到编辑模式
+                // 这样可以避免预览内容残留的问题
+                if state.viewMode != .editOnly {
+                    print("🔄 [LOAD] Resetting to edit mode after note loaded")
+                    state.viewMode = .editOnly
+                    state.preview.renderedHTML = ""
+                    state.preview.isRendering = false
+                    state.preview.renderError = nil
+                }
+                
                 return .none
                 
             case .noteLoaded(.failure(let error)):
