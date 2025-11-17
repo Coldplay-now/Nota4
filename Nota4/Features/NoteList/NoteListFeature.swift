@@ -123,8 +123,11 @@ struct NoteListFeature {
         case noteSelected(String)
         case notesSelected(Set<String>)
         case deleteNotes(Set<String>)
+        case deleteNotesCompleted  // 删除完成通知
         case restoreNotes(Set<String>)
+        case restoreNotesCompleted  // 恢复完成通知
         case permanentlyDeleteNotes(Set<String>)
+        case permanentlyDeleteNotesCompleted  // 永久删除完成通知
         case toggleStar(String)
         case togglePin(String)
         case filterChanged(State.Filter)
@@ -210,13 +213,23 @@ struct NoteListFeature {
                     try await noteRepository.deleteNotes(ids)
                     print("✅ [DELETE] Notes deleted successfully, reloading list...")
                     await send(.loadNotes)
+                    await send(.deleteNotesCompleted)  // 发送完成通知
                 }
+                
+            case .deleteNotesCompleted:
+                // 完成通知，由 AppFeature 处理
+                return .none
                 
             case .restoreNotes(let ids):
                 return .run { send in
                     try await noteRepository.restoreNotes(ids)
                     await send(.loadNotes)
+                    await send(.restoreNotesCompleted)  // 发送完成通知
                 }
+                
+            case .restoreNotesCompleted:
+                // 完成通知，由 AppFeature 处理
+                return .none
                 
             case .requestPermanentDelete(let ids):
                 // 显示确认对话框
@@ -235,6 +248,7 @@ struct NoteListFeature {
                         try await notaFileManager.deleteNoteFile(noteId: id)
                     }
                     await send(.loadNotes)
+                    await send(.permanentlyDeleteNotesCompleted)  // 发送完成通知
                 }
                 
             case .cancelPermanentDelete:
@@ -251,7 +265,12 @@ struct NoteListFeature {
                         try await notaFileManager.deleteNoteFile(noteId: id)
                     }
                     await send(.loadNotes)
+                    await send(.permanentlyDeleteNotesCompleted)  // 发送完成通知
                 }
+                
+            case .permanentlyDeleteNotesCompleted:
+                // 完成通知，由 AppFeature 处理
+                return .none
                 
             case .toggleStar(let id):
                 guard let note = state.notes.first(where: { $0.noteId == id }) else {

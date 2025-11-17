@@ -265,7 +265,7 @@ struct AppFeature {
             case .noteList(.toggleStar):
                 return .send(.sidebar(.loadCounts))
                 
-            // 笔记列表删除笔记 → 更新侧边栏计数，如果删除的是当前编辑的笔记则清空编辑器
+            // 笔记列表删除笔记 → 只处理编辑器清空，不更新计数（计数在删除完成后更新）
             case .noteList(.deleteNotes(let ids)):
                 // 如果删除的笔记中包含当前编辑的笔记，清空编辑器
                 if let currentNoteId = state.editor.selectedNoteId, ids.contains(currentNoteId) {
@@ -276,18 +276,30 @@ struct AppFeature {
                     state.editor.lastSavedContent = ""
                     state.editor.lastSavedTitle = ""
                 }
+                return .none  // 不立即更新计数，等待删除完成通知
+                
+            // 删除完成 → 更新侧边栏计数
+            case .noteList(.deleteNotesCompleted):
                 return .send(.sidebar(.loadCounts))
                 
             // 笔记列表切换置顶 → 更新侧边栏计数（列表会重新加载）
             case .noteList(.togglePin):
                 return .send(.sidebar(.loadCounts))
                 
-            // 笔记列表恢复笔记 → 更新侧边栏计数（列表会重新加载）
+            // 笔记列表恢复笔记 → 不立即更新计数（计数在恢复完成后更新）
             case .noteList(.restoreNotes):
+                return .none  // 不立即更新计数，等待恢复完成通知
+                
+            // 恢复完成 → 更新侧边栏计数
+            case .noteList(.restoreNotesCompleted):
                 return .send(.sidebar(.loadCounts))
                 
-            // 笔记列表永久删除笔记 → 更新侧边栏计数（列表会重新加载）
+            // 笔记列表永久删除笔记 → 不立即更新计数（计数在永久删除完成后更新）
             case .noteList(.permanentlyDeleteNotes):
+                return .none  // 不立即更新计数，等待永久删除完成通知
+                
+            // 永久删除完成 → 更新侧边栏计数
+            case .noteList(.permanentlyDeleteNotesCompleted):
                 return .send(.sidebar(.loadCounts))
                 
             // 笔记列表请求创建 → 转发给编辑器

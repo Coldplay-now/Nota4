@@ -60,17 +60,26 @@ struct NoteListView: View {
                 }
             }
             .onChange(of: store.selectedNoteId) { _, newNoteId in
-                // 当 selectedNoteId 改变时（例如创建笔记后），更新 selectedNotes
+                // 只在以下情况更新 selectedNotes：
+                // 1. selectedNoteId 被设置，且 selectedNotes 为空或只包含该 ID（单选场景）
+                // 2. selectedNoteId 被清除，且 selectedNotes 为空（清除选择）
+                // 这样可以避免在多选时覆盖多选状态
                 if let noteId = newNoteId {
-                    selectedNotes = [noteId]
-                } else if newNoteId == nil && !selectedNotes.isEmpty {
-                    // 如果 selectedNoteId 被清除（例如删除后），也清除 selectedNotes
+                    // 只在 selectedNotes 为空或只包含该 ID 时更新（避免覆盖多选状态）
+                    if selectedNotes.isEmpty || selectedNotes == [noteId] {
+                        selectedNotes = [noteId]
+                    }
+                } else if newNoteId == nil && selectedNotes.isEmpty {
+                    // 只在 selectedNotes 为空时才清除（避免覆盖多选状态）
                     selectedNotes = []
                 }
             }
             .onChange(of: store.selectedNoteIds) { _, newIds in
                 // 同步 store.selectedNoteIds 到 selectedNotes（用于批量选择）
-                if newIds.isEmpty && !selectedNotes.isEmpty {
+                if !newIds.isEmpty {
+                    // 如果 store.selectedNoteIds 有值，同步到 selectedNotes
+                    selectedNotes = newIds
+                } else if newIds.isEmpty && !selectedNotes.isEmpty {
                     // 如果 selectedNoteIds 被清除（例如删除后），也清除 selectedNotes
                     selectedNotes = []
                 }
