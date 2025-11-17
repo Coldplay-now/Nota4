@@ -70,6 +70,7 @@ protocol NoteRepositoryProtocol {
     func restoreNotes(_ noteIds: Set<String>) async throws
     func permanentlyDeleteNotes(_ noteIds: Set<String>) async throws
     func fetchAllTags() async throws -> [SidebarFeature.State.Tag]
+    func getTotalCount() async throws -> Int
 }
 
 protocol NotaFileManagerProtocol {

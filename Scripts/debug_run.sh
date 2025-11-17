@@ -20,3 +20,5 @@ echo "✅ Nota4 started"
 echo "📊 To view logs: tail -f $LOG_FILE"
 echo "🔍 To filter sidebar logs: tail -f $LOG_FILE | grep SIDEBAR"
 
+
+

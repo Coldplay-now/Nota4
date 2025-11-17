@@ -67,7 +67,7 @@ struct AppFeature {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                // 应用启动时加载笔记、侧边栏计数和偏好设置
+                // 应用启动时加载笔记、侧边栏计数、状态栏统计和偏好设置
                 return .merge(
                     .send(.noteList(.loadNotes)),
                     .send(.sidebar(.loadCounts)),  // 加载侧边栏计数

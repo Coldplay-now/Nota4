@@ -226,6 +226,17 @@ actor NoteRepositoryImpl: NoteRepositoryProtocol {
             }
         }
     }
+    
+    // MARK: - Statistics
+    
+    func getTotalCount() async throws -> Int {
+        try await dbQueue.read { db in
+            try Int.fetchOne(
+                db,
+                sql: "SELECT COUNT(*) FROM notes WHERE is_deleted = 0"
+            ) ?? 0
+        }
+    }
 }
 
 // MARK: - Repository Error
@@ -348,6 +359,10 @@ actor NoteRepositoryMock: NoteRepositoryProtocol {
             SidebarFeature.State.Tag(name: "学习", count: 2),
             SidebarFeature.State.Tag(name: "生活", count: 1),
         ]
+    }
+    
+    func getTotalCount() async throws -> Int {
+        return notes.filter { !$0.isDeleted }.count
     }
 }
 

@@ -13,6 +13,7 @@ struct Nota4App: App {
         WindowGroup {
             AppView(store: store, appDelegate: appDelegate)
         }
+        .windowStyle(.hiddenTitleBar)
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("新建笔记") {
@@ -57,31 +58,37 @@ struct AppView: View {
     
     var body: some View {
         WithPerceptionTracking {
-            NavigationSplitView(
-                columnVisibility: Binding(
-                    get: { store.columnVisibility },
-                    set: { store.send(.columnVisibilityChanged($0)) }
-                )
-            ) {
-                // 侧边栏
-                SidebarView(
-                    store: store.scope(state: \.sidebar, action: \.sidebar)
-                )
-                .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 250)
-            } content: {
-                // 笔记列表
-                NoteListView(
-                    store: store.scope(state: \.noteList, action: \.noteList)
-                )
-                .navigationSplitViewColumnWidth(min: 280, ideal: 350, max: 500)
-            } detail: {
-                // 编辑器
-                NoteEditorView(
-                    store: store.scope(state: \.editor, action: \.editor)
-                )
+            VStack(spacing: 0) {
+                // 主内容区域
+                NavigationSplitView(
+                    columnVisibility: Binding(
+                        get: { store.columnVisibility },
+                        set: { store.send(.columnVisibilityChanged($0)) }
+                    )
+                ) {
+                    // 侧边栏
+                    SidebarView(
+                        store: store.scope(state: \.sidebar, action: \.sidebar)
+                    )
+                    .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 250)
+                } content: {
+                    // 笔记列表
+                    NoteListView(
+                        store: store.scope(state: \.noteList, action: \.noteList)
+                    )
+                    .navigationSplitViewColumnWidth(min: 280, ideal: 280, max: 500)
+                } detail: {
+                    // 编辑器
+                    NoteEditorView(
+                        store: store.scope(state: \.editor, action: \.editor)
+                    )
+                }
+                .navigationSplitViewStyle(.balanced)
+                
+                // 状态栏
+                StatusBarView(store: store)
             }
-            .navigationSplitViewStyle(.balanced)
-            .frame(minWidth: 800, minHeight: 600)
+            .frame(minWidth: 800, minHeight: 622)
             .onAppear {
                 // 设置 AppDelegate 的 store 引用
                 appDelegate.store = store
