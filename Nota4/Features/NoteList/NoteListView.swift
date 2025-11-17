@@ -121,6 +121,10 @@ struct NoteListView: View {
             }
             return false
         }()
+        
+        // 检查是否批量选择（当前笔记在选中列表中，且选中数量 > 1）
+        let isBatchSelection = selectedNotes.count > 1 && selectedNotes.contains(note.noteId)
+        
         NoteRowView(note: note, searchKeywords: store.searchKeywords)
             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                 if isTrash {
@@ -186,12 +190,44 @@ struct NoteListView: View {
                         store.send(.requestPermanentDelete([note.noteId]))
                     }
                 } else {
-                    Button("星标") {
-                        store.send(.toggleStar(note.noteId))
+                    // 批量选择时，显示两个菜单项
+                    if isBatchSelection {
+                        Button("星标") {
+                            // 为所有选中的笔记添加星标（只对没有星标的笔记操作）
+                            for noteId in selectedNotes {
+                                if let note = store.notes.first(where: { $0.noteId == noteId }), !note.isStarred {
+                                    store.send(.toggleStar(noteId))
+                                }
+                            }
+                        }
+                        
+                        Button("去除星标") {
+                            // 为所有选中的笔记去除星标（只对有星标的笔记操作）
+                            for noteId in selectedNotes {
+                                if let note = store.notes.first(where: { $0.noteId == noteId }), note.isStarred {
+                                    store.send(.toggleStar(noteId))
+                                }
+                            }
+                        }
+                    } else {
+                        // 单个笔记，根据星标状态显示对应菜单
+                        if note.isStarred {
+                            Button("去除星标") {
+                                store.send(.toggleStar(note.noteId))
+                            }
+                        } else {
+                            Button("星标") {
+                                store.send(.toggleStar(note.noteId))
+                            }
+                        }
                     }
                     
                     Button("删除", role: .destructive) {
-                        store.send(.deleteNotes([note.noteId]))
+                        if isBatchSelection {
+                            store.send(.deleteNotes(selectedNotes))
+                        } else {
+                            store.send(.deleteNotes([note.noteId]))
+                        }
                     }
                 }
             }
