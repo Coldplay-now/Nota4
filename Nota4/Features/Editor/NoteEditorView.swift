@@ -1,5 +1,6 @@
 import SwiftUI
 import ComposableArchitecture
+import AppKit
 
 struct NoteEditorView: View {
     @Bindable var store: StoreOf<EditorFeature>
@@ -131,6 +132,53 @@ struct NoteEditorView: View {
                 }
             } message: {
                 Text("确定要删除这篇笔记吗？此操作可以在回收站中恢复。")
+            }
+            .onChange(of: store.showImagePicker) { oldValue, newValue in
+                if newValue {
+                    showImagePicker()
+                }
+            }
+            .onChange(of: store.showAttachmentPicker) { oldValue, newValue in
+                if newValue {
+                    showAttachmentPicker()
+                }
+            }
+        }
+    }
+    
+    // MARK: - File Picker Helpers
+    
+    private func showImagePicker() {
+        let panel = NSOpenPanel()
+        panel.title = "选择图片"
+        panel.message = "请选择要插入的图片文件"
+        panel.allowedContentTypes = [.image]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        
+        panel.begin { response in
+            if response == .OK, let url = panel.url {
+                store.send(.insertImage(url))
+            } else {
+                store.send(.dismissImagePicker)
+            }
+        }
+    }
+    
+    private func showAttachmentPicker() {
+        let panel = NSOpenPanel()
+        panel.title = "选择附件"
+        panel.message = "请选择要插入的附件文件"
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        
+        panel.begin { response in
+            if response == .OK, let url = panel.url {
+                store.send(.insertAttachment(url))
+            } else {
+                store.send(.dismissAttachmentPicker)
             }
         }
     }

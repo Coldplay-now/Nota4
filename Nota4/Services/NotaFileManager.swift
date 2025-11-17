@@ -193,6 +193,20 @@ actor NotaFileManagerImpl: NotaFileManagerProtocol {
         try FileManager.default.removeItem(at: trashURL)
     }
     
+    /// 获取笔记的资源目录（用于存储 assets 和 attachments）
+    func getNoteDirectory(for noteId: String) async throws -> URL {
+        // 笔记目录：notesDirectory/{noteId}/
+        let noteDir = notesDirectory.appendingPathComponent(noteId)
+        
+        // 确保目录存在
+        try FileManager.default.createDirectory(
+            at: noteDir,
+            withIntermediateDirectories: true
+        )
+        
+        return noteDir
+    }
+    
     // MARK: - Import/Export
     
     func importFile(from url: URL) async throws -> Note {
@@ -329,6 +343,11 @@ actor NotaFileManagerMock: NotaFileManagerProtocol {
     
     func deleteNoteFile(noteId: String) async throws {
         print("🗑️ Mock: Deleted note file: \(noteId).nota")
+    }
+    
+    func getNoteDirectory(for noteId: String) async throws -> URL {
+        let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        return documentsURL.appendingPathComponent("NotaLibrary/notes/\(noteId)")
     }
 }
 

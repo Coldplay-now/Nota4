@@ -21,6 +21,15 @@ struct EditorFeature {
         var preview: PreviewState = PreviewState()
         var showDeleteConfirmation: Bool = false
         
+        // MARK: - Insert Dialog States
+        
+        var showImagePicker: Bool = false
+        var showAttachmentPicker: Bool = false
+        var isInsertingImage: Bool = false
+        var isInsertingAttachment: Bool = false
+        var insertError: String? = nil
+        var footnoteCounter: Int = 1  // 脚注计数器
+        
         // MARK: - Preview State
         
         struct PreviewState: Equatable {
@@ -123,6 +132,24 @@ struct EditorFeature {
         case insertTaskList
         case insertLink
         case insertCodeBlock
+        case insertTable(columns: Int, rows: Int)
+        case insertBlockquote
+        case insertHorizontalRule
+        case formatStrikethrough
+        case formatUnderline
+        case insertFootnote(footnoteNumber: Int)
+        case insertInlineMath
+        case insertBlockMath
+        
+        // MARK: - Image and Attachment Actions
+        
+        case showImagePicker
+        case dismissImagePicker
+        case showAttachmentPicker
+        case dismissAttachmentPicker
+        case insertAttachment(URL)
+        case attachmentInserted(fileName: String, relativePath: String)
+        case attachmentInsertFailed(Error)
         
         // MARK: - Markdown Format
         
@@ -242,10 +269,12 @@ struct EditorFeature {
                 
             case .viewModeChanged(let mode):
                 let oldMode = state.viewMode
+                // 立即更新状态，确保 UI 立即响应
                 state.viewMode = mode
                 
-                // 切换到预览模式时触发渲染
+                // 切换到预览模式时触发渲染（异步，不阻塞 UI）
                 if mode != .editOnly && oldMode == .editOnly {
+                    // 直接发送渲染任务，TCA 会异步执行，不会阻塞状态更新
                     return .send(.preview(.render))
                 }
                 
@@ -333,34 +362,6 @@ struct EditorFeature {
                 ) ?? state.content.endIndex
                 state.content.insert(contentsOf: insertion, at: index)
                 state.cursorPosition += insertion.count
-                return .none
-                
-            case .insertImage(let sourceURL):
-                guard let noteId = state.selectedNoteId else {
-                    return .none
-                }
-                
-                return .run { send in
-                    let imageId = try await imageManager.copyImage(from: sourceURL, to: noteId)
-                    let relativePath = "attachments/\(noteId)/\(imageId)"
-                    await send(.imageInserted(imageId: imageId, relativePath: relativePath))
-                } catch: { error, send in
-                    await send(.imageInsertFailed(error))
-                }
-                
-            case .imageInserted(_, let relativePath):
-                let markdown = "\n![\(relativePath)](\(relativePath))\n"
-                let index = state.content.index(
-                    state.content.startIndex,
-                    offsetBy: state.cursorPosition,
-                    limitedBy: state.content.endIndex
-                ) ?? state.content.endIndex
-                state.content.insert(contentsOf: markdown, at: index)
-                state.cursorPosition += markdown.count
-                return .none
-                
-            case .imageInsertFailed(let error):
-                print("❌ 插入图片失败: \(error)")
                 return .none
                 
             case .toggleStar:
@@ -621,6 +622,223 @@ struct EditorFeature {
                 state.selectionRange = result.newSelection
                 return .send(.manualSave)
                 
+            case .insertTable(let columns, let rows):
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.insertTable(
+                    text: state.content,
+                    selection: state.selectionRange,
+                    columns: columns,
+                    rows: rows
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .insertBlockquote:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.insertBlockquote(
+                    text: state.content,
+                    selection: state.selectionRange
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .insertHorizontalRule:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.insertHorizontalRule(
+                    text: state.content,
+                    selection: state.selectionRange
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .formatStrikethrough:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.formatStrikethrough(
+                    text: state.content,
+                    selection: state.selectionRange
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .formatUnderline:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.formatUnderline(
+                    text: state.content,
+                    selection: state.selectionRange
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .insertFootnote(let footnoteNumber):
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.insertFootnote(
+                    text: state.content,
+                    selection: state.selectionRange,
+                    footnoteNumber: state.footnoteCounter
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                state.footnoteCounter += 1
+                return .send(.manualSave)
+                
+            case .insertInlineMath:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.insertInlineMath(
+                    text: state.content,
+                    selection: state.selectionRange
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .insertBlockMath:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.insertBlockMath(
+                    text: state.content,
+                    selection: state.selectionRange
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .showImagePicker:
+                state.showImagePicker = true
+                return .none
+                
+            case .dismissImagePicker:
+                state.showImagePicker = false
+                return .none
+                
+            case .showAttachmentPicker:
+                state.showAttachmentPicker = true
+                return .none
+                
+            case .dismissAttachmentPicker:
+                state.showAttachmentPicker = false
+                return .none
+                
+            case .insertImage(let url):
+                guard let note = state.note else { return .none }
+                state.isInsertingImage = true
+                state.insertError = nil
+                
+                return .run { [url, note] send in
+                    // 获取笔记目录
+                    let noteDirectory = try await notaFileManager.getNoteDirectory(for: note.noteId)
+                    let assetsDirectory = noteDirectory.appendingPathComponent("assets")
+                    
+                    // 确保 assets 目录存在
+                    try FileManager.default.createDirectory(
+                        at: assetsDirectory,
+                        withIntermediateDirectories: true
+                    )
+                    
+                    // 生成文件名
+                    let fileExtension = url.pathExtension.isEmpty ? "png" : url.pathExtension
+                    let imageId = UUID().uuidString
+                    let fileName = "\(imageId).\(fileExtension)"
+                    let destinationURL = assetsDirectory.appendingPathComponent(fileName)
+                    
+                    // 复制文件
+                    try FileManager.default.copyItem(at: url, to: destinationURL)
+                    
+                    // 生成相对路径
+                    let relativePath = "assets/\(fileName)"
+                    
+                    await send(.imageInserted(imageId: imageId, relativePath: relativePath))
+                } catch: { error, send in
+                    await send(.imageInsertFailed(error))
+                }
+                
+            case .imageInserted(let imageId, let relativePath):
+                state.isInsertingImage = false
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.insertImage(
+                    text: state.content,
+                    selection: state.selectionRange,
+                    altText: "图片",
+                    imagePath: relativePath
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                state.showImagePicker = false
+                return .send(.manualSave)
+                
+            case .imageInsertFailed(let error):
+                state.isInsertingImage = false
+                state.insertError = error.localizedDescription
+                state.showImagePicker = false
+                return .none
+                
+            case .insertAttachment(let url):
+                guard let note = state.note else { return .none }
+                state.isInsertingAttachment = true
+                state.insertError = nil
+                
+                return .run { [url, note] send in
+                    // 获取笔记目录
+                    let noteDirectory = try await notaFileManager.getNoteDirectory(for: note.noteId)
+                    let attachmentsDirectory = noteDirectory.appendingPathComponent("attachments")
+                    
+                    // 确保 attachments 目录存在
+                    try FileManager.default.createDirectory(
+                        at: attachmentsDirectory,
+                        withIntermediateDirectories: true
+                    )
+                    
+                    // 获取文件名
+                    let fileName = url.lastPathComponent
+                    let destinationURL = attachmentsDirectory.appendingPathComponent(fileName)
+                    
+                    // 如果文件已存在，添加序号
+                    var finalFileName = fileName
+                    var finalDestinationURL = destinationURL
+                    var counter = 1
+                    while FileManager.default.fileExists(atPath: finalDestinationURL.path) {
+                        let nameWithoutExt = (fileName as NSString).deletingPathExtension
+                        let ext = (fileName as NSString).pathExtension
+                        finalFileName = "\(nameWithoutExt)_\(counter).\(ext)"
+                        finalDestinationURL = attachmentsDirectory.appendingPathComponent(finalFileName)
+                        counter += 1
+                    }
+                    
+                    // 复制文件
+                    try FileManager.default.copyItem(at: url, to: finalDestinationURL)
+                    
+                    // 生成相对路径
+                    let relativePath = "attachments/\(finalFileName)"
+                    
+                    await send(.attachmentInserted(fileName: finalFileName, relativePath: relativePath))
+                } catch: { error, send in
+                    await send(.attachmentInsertFailed(error))
+                }
+                
+            case .attachmentInserted(let fileName, let relativePath):
+                state.isInsertingAttachment = false
+                guard state.note != nil else { return .none }
+                let nameWithoutExt = (fileName as NSString).deletingPathExtension
+                let result = MarkdownFormatter.insertAttachment(
+                    text: state.content,
+                    selection: state.selectionRange,
+                    fileName: nameWithoutExt,
+                    filePath: relativePath
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                state.showAttachmentPicker = false
+                return .send(.manualSave)
+                
+            case .attachmentInsertFailed(let error):
+                state.isInsertingAttachment = false
+                state.insertError = error.localizedDescription
+                state.showAttachmentPicker = false
+                return .none
+                
             case .selectionChanged(let range):
                 state.selectionRange = range
                 return .none
@@ -753,6 +971,16 @@ extension EditorFeature.State {
         
         let selectedText = (content as NSString).substring(with: selectionRange)
         return selectedText.hasPrefix("`") && selectedText.hasSuffix("`")
+    }
+    
+    /// 检测当前选中文本是否为删除线格式
+    var isStrikethroughActive: Bool {
+        guard selectionRange.length > 0 else { return false }
+        guard selectionRange.location < content.utf16.count else { return false }
+        guard selectionRange.location + selectionRange.length <= content.utf16.count else { return false }
+        
+        let selectedText = (content as NSString).substring(with: selectionRange)
+        return selectedText.hasPrefix("~~") && selectedText.hasSuffix("~~")
     }
     
     /// 检测当前行是否为标题，返回标题级别（1-6）或 nil

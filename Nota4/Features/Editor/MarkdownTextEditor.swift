@@ -355,6 +355,210 @@ struct MarkdownFormatter {
             )
         }
     }
+    
+    /// 插入表格
+    static func insertTable(
+        text: String,
+        selection: NSRange,
+        columns: Int,
+        rows: Int
+    ) -> (newText: String, newSelection: NSRange) {
+        // 生成表头
+        let headerCells = (1...columns).map { "列\($0)" }
+        let header = "| " + headerCells.joined(separator: " | ") + " |"
+        
+        // 生成分隔线
+        let separator = "| " + (1...columns).map { _ in "-----" }.joined(separator: " | ") + " |"
+        
+        // 生成表格行
+        var tableRows: [String] = []
+        for _ in 1...rows {
+            let rowCells = (1...columns).map { _ in "单元格" }
+            let row = "| " + rowCells.joined(separator: " | ") + " |"
+            tableRows.append(row)
+        }
+        
+        // 组合表格
+        let table = "\n\(header)\n\(separator)\n\(tableRows.joined(separator: "\n"))\n"
+        
+        // 插入到文本
+        let mutableText = NSMutableString(string: text)
+        mutableText.insert(table, at: selection.location)
+        
+        // 光标定位到第一个单元格（表头第一列）
+        let newLocation = selection.location + header.count - headerCells[0].count - 3 // "| 列1" 的位置
+        let newSelection = NSRange(location: newLocation, length: headerCells[0].count)
+        
+        return (
+            newText: mutableText as String,
+            newSelection: newSelection
+        )
+    }
+    
+    /// 插入图片
+    static func insertImage(
+        text: String,
+        selection: NSRange,
+        altText: String,
+        imagePath: String
+    ) -> (newText: String, newSelection: NSRange) {
+        let markdown = "![\(altText)](\(imagePath))"
+        let mutableText = NSMutableString(string: text)
+        mutableText.insert(markdown, at: selection.location)
+        
+        // 光标定位到 alt text 位置
+        let altTextStart = selection.location + 2 // "![" 后面
+        let newSelection = NSRange(location: altTextStart, length: altText.count)
+        
+        return (
+            newText: mutableText as String,
+            newSelection: newSelection
+        )
+    }
+    
+    /// 插入附件链接
+    static func insertAttachment(
+        text: String,
+        selection: NSRange,
+        fileName: String,
+        filePath: String
+    ) -> (newText: String, newSelection: NSRange) {
+        let markdown = "[\(fileName)](\(filePath))"
+        let mutableText = NSMutableString(string: text)
+        mutableText.insert(markdown, at: selection.location)
+        
+        // 光标定位到文件名位置
+        let fileNameStart = selection.location + 1 // "[" 后面
+        let newSelection = NSRange(location: fileNameStart, length: fileName.count)
+        
+        return (
+            newText: mutableText as String,
+            newSelection: newSelection
+        )
+    }
+    
+    /// 插入区块引用
+    static func insertBlockquote(
+        text: String,
+        selection: NSRange
+    ) -> (newText: String, newSelection: NSRange) {
+        return formatLineStart(
+            text: text,
+            selection: selection,
+            prefix: ">",
+            replaceExistingPrefixes: []
+        )
+    }
+    
+    /// 插入分隔线
+    static func insertHorizontalRule(
+        text: String,
+        selection: NSRange
+    ) -> (newText: String, newSelection: NSRange) {
+        let insertion = "\n---\n"
+        let mutableText = NSMutableString(string: text)
+        mutableText.insert(insertion, at: selection.location)
+        
+        // 光标定位到分隔线后
+        let newLocation = selection.location + insertion.count
+        return (
+            newText: mutableText as String,
+            newSelection: NSRange(location: newLocation, length: 0)
+        )
+    }
+    
+    /// 格式化删除线
+    static func formatStrikethrough(
+        text: String,
+        selection: NSRange
+    ) -> (newText: String, newSelection: NSRange) {
+        return formatWrap(
+            text: text,
+            selection: selection,
+            prefix: "~~",
+            suffix: "~~",
+            placeholder: "删除的文本"
+        )
+    }
+    
+    /// 格式化下划线（使用 HTML 标签）
+    static func formatUnderline(
+        text: String,
+        selection: NSRange
+    ) -> (newText: String, newSelection: NSRange) {
+        return formatWrap(
+            text: text,
+            selection: selection,
+            prefix: "<u>",
+            suffix: "</u>",
+            placeholder: "下划线文本"
+        )
+    }
+    
+    /// 插入脚注
+    static func insertFootnote(
+        text: String,
+        selection: NSRange,
+        footnoteNumber: Int
+    ) -> (newText: String, newSelection: NSRange) {
+        let mutableText = NSMutableString(string: text)
+        
+        // 插入脚注引用
+        let footnoteRef = "[^\(footnoteNumber)]"
+        mutableText.insert(footnoteRef, at: selection.location)
+        
+        // 在文档末尾添加脚注定义
+        let footnoteDef = "\n\n[^\(footnoteNumber)]: 脚注内容"
+        mutableText.append(footnoteDef)
+        
+        // 光标定位到脚注引用位置
+        let newLocation = selection.location + footnoteRef.count
+        return (
+            newText: mutableText as String,
+            newSelection: NSRange(location: newLocation, length: 0)
+        )
+    }
+    
+    /// 插入行内公式
+    static func insertInlineMath(
+        text: String,
+        selection: NSRange
+    ) -> (newText: String, newSelection: NSRange) {
+        return formatWrap(
+            text: text,
+            selection: selection,
+            prefix: "$",
+            suffix: "$",
+            placeholder: "E = mc^2"
+        )
+    }
+    
+    /// 插入行间公式
+    static func insertBlockMath(
+        text: String,
+        selection: NSRange
+    ) -> (newText: String, newSelection: NSRange) {
+        let selectedText = (text as NSString).substring(with: selection)
+        let mutableText = NSMutableString(string: text)
+        
+        if selection.length > 0 {
+            // 有选中文本，包裹在公式块中
+            let insertion = "$$\n\(selectedText)\n$$"
+            mutableText.replaceCharacters(in: selection, with: insertion)
+            return (
+                newText: mutableText as String,
+                newSelection: NSRange(location: selection.location + 3, length: selectedText.count)
+            )
+        } else {
+            // 无选中文本，插入占位符
+            let insertion = "$$\nE = mc^2\n$$"
+            mutableText.insert(insertion, at: selection.location)
+            return (
+                newText: mutableText as String,
+                newSelection: NSRange(location: selection.location + 3, length: 9)
+            )
+        }
+    }
 }
 
 // MARK: - String Extension

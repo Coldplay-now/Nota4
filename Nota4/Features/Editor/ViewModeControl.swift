@@ -7,11 +7,12 @@ import ComposableArchitecture
 /// 使用 Toggle 按钮在编辑和预览模式之间切换
 struct ViewModeControl: View {
     let store: StoreOf<EditorFeature>
+    @State private var isHovered = false
     
     var body: some View {
         WithPerceptionTracking {
             Button {
-                // 在编辑和预览之间切换
+                // 立即更新状态，不等待预览渲染
                 let newMode: EditorFeature.State.ViewMode = store.viewMode == .editOnly ? .previewOnly : .editOnly
                 store.send(.viewModeChanged(newMode))
             } label: {
@@ -22,14 +23,19 @@ struct ViewModeControl: View {
             .buttonStyle(.plain)
             .background(
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(Color(nsColor: .controlBackgroundColor))
+                    .fill(isHovered ? Color(nsColor: .controlAccentColor).opacity(0.15) : Color(nsColor: .controlBackgroundColor))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 6)
                     .stroke(Color(nsColor: .separatorColor), lineWidth: 0.5)
             )
             .foregroundColor(Color.primary)
+            .contentShape(Rectangle())  // 确保整个区域可点击
             .help(store.viewMode == .editOnly ? "切换到预览模式" : "切换到编辑模式")
+            .onHover { hovering in
+                isHovered = hovering
+            }
+            .animation(.easeInOut(duration: 0.15), value: isHovered)
         }
     }
 }

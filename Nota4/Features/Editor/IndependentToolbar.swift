@@ -35,6 +35,19 @@ struct IndependentToolbar: View {
                             .frame(height: 20)
                         
                         InsertButtonGroup(store: store)
+                        
+                        Divider()
+                            .frame(height: 20)
+                        
+                        TableMenu(store: store)
+                    }
+                    
+                    // 区块按钮组：根据空间显示
+                    if availableWidth > 650 {
+                        Divider()
+                            .frame(height: 20)
+                        
+                        BlockButtonGroup(store: store)
                     }
                     
                     // 更多菜单
@@ -79,6 +92,7 @@ struct IndependentToolbar: View {
 struct MoreMenu: View {
     let store: StoreOf<EditorFeature>
     let hiddenTools: Bool  // 是否隐藏了列表和插入工具
+    @State private var isHovered = false
     
     var body: some View {
         WithPerceptionTracking {
@@ -118,6 +132,36 @@ struct MoreMenu: View {
                     Divider()
                 }
                 
+                Section("插入") {
+                    Button("插入附件", systemImage: "paperclip") {
+                        store.send(.showAttachmentPicker)
+                    }
+                    .keyboardShortcut("a", modifiers: [.command, .shift])
+                }
+                
+                Divider()
+                
+                Section("格式") {
+                    Button("下划线", systemImage: "underline") {
+                        store.send(.formatUnderline)
+                    }
+                    .keyboardShortcut("u", modifiers: [.command, .shift])
+                    
+                    Button("脚注", systemImage: "textformat.superscript") {
+                        store.send(.insertFootnote(footnoteNumber: store.footnoteCounter))
+                    }
+                    
+                    Button("行内公式", systemImage: "function") {
+                        store.send(.insertInlineMath)
+                    }
+                    
+                    Button("行间公式", systemImage: "function") {
+                        store.send(.insertBlockMath)
+                    }
+                }
+                
+                Divider()
+                
                 Section("笔记") {
                     Button("切换星标", systemImage: store.note?.isStarred ?? false ? "star.fill" : "star") {
                         store.send(.toggleStar)
@@ -132,6 +176,15 @@ struct MoreMenu: View {
             }
             .help("更多格式选项")
             .disabled(!store.isToolbarEnabled)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isHovered ? Color(nsColor: .controlAccentColor).opacity(0.15) : Color.clear)
+            )
+            .contentShape(Rectangle())
+            .onHover { hovering in
+                isHovered = hovering
+            }
+            .animation(.easeInOut(duration: 0.15), value: isHovered)
         }
     }
 }

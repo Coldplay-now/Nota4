@@ -149,6 +149,48 @@ struct FormatButtonGroup: View {
                 ) {
                     store.send(.formatInlineCode)
                 }
+                
+                ToolbarButton(
+                    title: "删除线",
+                    icon: "strikethrough",
+                    shortcut: "⌘⇧X",
+                    isActive: store.isStrikethroughActive,
+                    isEnabled: store.isToolbarEnabled
+                ) {
+                    store.send(.formatStrikethrough)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - 区块按钮组
+
+struct BlockButtonGroup: View {
+    let store: StoreOf<EditorFeature>
+    
+    var body: some View {
+        WithPerceptionTracking {
+            ControlGroup {
+                ToolbarButton(
+                    title: "区块引用",
+                    icon: "quote.opening",
+                    shortcut: "⌘⇧Q",
+                    isActive: false,
+                    isEnabled: store.isToolbarEnabled
+                ) {
+                    store.send(.insertBlockquote)
+                }
+                
+                ToolbarButton(
+                    title: "分隔线",
+                    icon: "minus",
+                    shortcut: "⌘⇧-",
+                    isActive: false,
+                    isEnabled: store.isToolbarEnabled
+                ) {
+                    store.send(.insertHorizontalRule)
+                }
             }
         }
     }
@@ -158,6 +200,7 @@ struct FormatButtonGroup: View {
 
 struct HeadingMenu: View {
     let store: StoreOf<EditorFeature>
+    @State private var isHovered = false
     
     var body: some View {
         WithPerceptionTracking {
@@ -198,6 +241,15 @@ struct HeadingMenu: View {
             }
             .help("插入标题（H1-H6）")
             .disabled(!store.isToolbarEnabled)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isHovered ? Color(nsColor: .controlAccentColor).opacity(0.15) : Color.clear)
+            )
+            .contentShape(Rectangle())
+            .onHover { hovering in
+                isHovered = hovering
+            }
+            .animation(.easeInOut(duration: 0.15), value: isHovered)
         }
     }
 }
@@ -271,7 +323,59 @@ struct InsertButtonGroup: View {
                 ) {
                     store.send(.insertCodeBlock)
                 }
+                
+                ToolbarButton(
+                    title: "插入图片",
+                    icon: "photo",
+                    shortcut: "⌘⇧I",
+                    isActive: false,
+                    isEnabled: store.isToolbarEnabled
+                ) {
+                    store.send(.showImagePicker)
+                }
             }
+        }
+    }
+}
+
+// MARK: - 表格菜单
+
+struct TableMenu: View {
+    let store: StoreOf<EditorFeature>
+    @State private var isHovered = false
+    
+    var body: some View {
+        WithPerceptionTracking {
+            Menu {
+                Section("常用尺寸") {
+                    Button("2x3 表格", systemImage: "tablecells") {
+                        store.send(.insertTable(columns: 2, rows: 3))
+                    }
+                    
+                    Button("3x4 表格", systemImage: "tablecells") {
+                        store.send(.insertTable(columns: 3, rows: 4))
+                    }
+                    
+                    Button("4x5 表格", systemImage: "tablecells") {
+                        store.send(.insertTable(columns: 4, rows: 5))
+                    }
+                }
+            } label: {
+                Label("表格", systemImage: "tablecells")
+                    .labelStyle(.iconOnly)
+                    .frame(width: 32, height: 32)
+            }
+            .help("插入表格")
+            .disabled(!store.isToolbarEnabled)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isHovered ? Color(nsColor: .controlAccentColor).opacity(0.15) : Color.clear)
+            )
+            .contentShape(Rectangle())
+            .onHover { hovering in
+                isHovered = hovering
+            }
+            .animation(.easeInOut(duration: 0.15), value: isHovered)
         }
     }
 }
@@ -338,7 +442,8 @@ struct ToolbarButton: View {
             return Color.accentColor.opacity(0.15)
         }
         if isHovered {
-            return Color(nsColor: .controlAccentColor).opacity(0.1)
+            // 增强 hover 效果，使用更明显的背景色
+            return Color(nsColor: .controlAccentColor).opacity(0.15)
         }
         return Color.clear
     }
