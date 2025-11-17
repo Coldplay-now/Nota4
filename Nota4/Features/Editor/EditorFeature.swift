@@ -41,6 +41,43 @@ struct EditorFeature {
             var renderOptions: RenderOptions = .default
         }
         
+        // MARK: - Search State
+        
+        struct SearchState: Equatable {
+            var isSearchPanelVisible: Bool = false
+            var searchText: String = ""
+            var replaceText: String = ""
+            var isReplaceMode: Bool = false  // 是否为替换模式
+            var matchCase: Bool = false      // 区分大小写
+            var wholeWords: Bool = false     // 全词匹配
+            var useRegex: Bool = false       // 使用正则表达式
+            
+            // 搜索结果
+            var matches: [NSRange] = []      // 所有匹配项的范围
+            var currentMatchIndex: Int = -1   // 当前选中的匹配项索引（-1 表示未选中）
+            
+            // 计算属性
+            var hasMatches: Bool {
+                !matches.isEmpty
+            }
+            
+            var matchCount: Int {
+                matches.count
+            }
+            
+            var currentMatch: NSRange? {
+                guard currentMatchIndex >= 0 && currentMatchIndex < matches.count else {
+                    return nil
+                }
+                return matches[currentMatchIndex]
+            }
+        }
+        
+        var search: SearchState = SearchState()
+        
+        // 从笔记列表搜索传递过来的关键词（用于自动高亮）
+        var listSearchKeywords: [String] = []
+        
         // MARK: - Computed Properties
         
         var hasUnsavedChanges: Bool {
@@ -72,6 +109,7 @@ struct EditorFeature {
         case binding(BindingAction<State>)
         case loadNote(String)
         case noteLoaded(Result<Note, Error>)
+        case setListSearchKeywords([String])  // 设置从笔记列表搜索传递过来的关键词
         case viewModeChanged(State.ViewMode)
         case autoSave
         case manualSave
@@ -150,6 +188,32 @@ struct EditorFeature {
         case insertAttachment(URL)
         case attachmentInserted(fileName: String, relativePath: String)
         case attachmentInsertFailed(Error)
+        
+        // MARK: - Search Actions
+        
+        case search(SearchAction)
+        
+        enum SearchAction: Equatable {
+            case showSearchPanel
+            case hideSearchPanel
+            case toggleReplaceMode
+            case searchTextChanged(String)
+            case replaceTextChanged(String)
+            case matchCaseToggled
+            case wholeWordsToggled
+            case useRegexToggled
+            case findNext
+            case findPrevious
+            case replaceCurrent
+            case replaceAll
+            case updateMatches([NSRange])  // 内部使用，更新匹配项
+            case selectMatch(Int)          // 内部使用，选中指定匹配项
+        }
+        
+        // MARK: - Search Highlight Actions
+        
+        case updateSearchHighlights(matches: [NSRange], currentIndex: Int)
+        case clearSearchHighlights
         
         // MARK: - Markdown Format
         
@@ -295,6 +359,22 @@ struct EditorFeature {
                     state.preview.renderedHTML = ""
                     state.preview.isRendering = false
                     state.preview.renderError = nil
+                }
+                
+                // 如果有从笔记列表搜索传递过来的关键词，自动执行搜索并高亮
+                if !state.listSearchKeywords.isEmpty {
+                    print("🔍 [LOAD] 自动高亮搜索关键词: \(state.listSearchKeywords)")
+                    // 捕获关键词和内容，避免在异步闭包中捕获 inout 参数
+                    let keywords = state.listSearchKeywords
+                    let content = state.content
+                    // 使用普通搜索（不区分大小写，不使用正则表达式）
+                    return .run { send in
+                        let matches = await performListSearch(
+                            keywords: keywords,
+                            in: content
+                        )
+                        await send(.updateSearchHighlights(matches: matches, currentIndex: 0))
+                    }
                 }
                 
                 return .none
@@ -957,8 +1037,377 @@ struct EditorFeature {
             case .preview(.dismissError):
                 state.preview.renderError = nil
                 return .none
+            
+            // MARK: - Search Action Handlers
+            
+            case .search(.showSearchPanel):
+                state.search.isSearchPanelVisible = true
+                return .none
+                
+            case .search(.hideSearchPanel):
+                state.search.isSearchPanelVisible = false
+                state.search.searchText = ""
+                state.search.replaceText = ""
+                state.search.matches = []
+                state.search.currentMatchIndex = -1
+                return .run { send in
+                    // 清除编辑器中的高亮
+                    await send(.clearSearchHighlights)
+                }
+                
+            case .search(.toggleReplaceMode):
+                state.search.isReplaceMode.toggle()
+                print("🔄 [SEARCH] 替换模式切换: \(state.search.isReplaceMode)")
+                return .none
+                
+            case .search(.searchTextChanged(let text)):
+                state.search.searchText = text
+                if text.isEmpty {
+                    state.search.matches = []
+                    state.search.currentMatchIndex = -1
+                    return .run { send in
+                        await send(.clearSearchHighlights)
+                    }
+                }
+                // 执行搜索（异步）
+                // 注意：需要捕获当前的 search state，因为 state 可能在闭包执行前改变
+                let currentOptions = state.search
+                return .run { [content = state.content] send in
+                    let matches = await performSearch(
+                        text: text,
+                        in: content,
+                        options: currentOptions
+                    )
+                    await send(.search(.updateMatches(matches)))
+                }
+                .cancellable(id: CancelID.search, cancelInFlight: true)
+                
+            case .search(.replaceTextChanged(let text)):
+                state.search.replaceText = text
+                return .none
+                
+            case .search(.matchCaseToggled):
+                state.search.matchCase.toggle()
+                // 重新搜索
+                if !state.search.searchText.isEmpty {
+                    return .run { [content = state.content, searchText = state.search.searchText, options = state.search] send in
+                        let matches = await performSearch(
+                            text: searchText,
+                            in: content,
+                            options: options
+                        )
+                        await send(.search(.updateMatches(matches)))
+                    }
+                }
+                return .none
+                
+            case .search(.wholeWordsToggled):
+                state.search.wholeWords.toggle()
+                // 重新搜索
+                if !state.search.searchText.isEmpty {
+                    return .run { [content = state.content, searchText = state.search.searchText, options = state.search] send in
+                        let matches = await performSearch(
+                            text: searchText,
+                            in: content,
+                            options: options
+                        )
+                        await send(.search(.updateMatches(matches)))
+                    }
+                }
+                return .none
+                
+            case .search(.useRegexToggled):
+                state.search.useRegex.toggle()
+                // 重新搜索
+                if !state.search.searchText.isEmpty {
+                    return .run { [content = state.content, searchText = state.search.searchText, options = state.search] send in
+                        let matches = await performSearch(
+                            text: searchText,
+                            in: content,
+                            options: options
+                        )
+                        await send(.search(.updateMatches(matches)))
+                    }
+                }
+                return .none
+                
+            case .search(.updateMatches(let matches)):
+                print("🔍 [SEARCH] 更新匹配项: \(matches.count) 个")
+                state.search.matches = matches
+                if matches.isEmpty {
+                    state.search.currentMatchIndex = -1
+                } else if state.search.currentMatchIndex < 0 {
+                    // 如果有匹配项但未选中，选中第一个
+                    state.search.currentMatchIndex = 0
+                }
+                let currentIndex = state.search.currentMatchIndex
+                print("🔍 [SEARCH] 当前匹配索引: \(currentIndex)")
+                // 状态更新会自动触发 MarkdownTextEditor 的 updateNSView
+                // 通过 searchMatches 和 currentSearchIndex 参数传递
+                return .none
+                
+            case .search(.findNext):
+                guard !state.search.matches.isEmpty else { return .none }
+                let nextIndex = (state.search.currentMatchIndex + 1) % state.search.matches.count
+                state.search.currentMatchIndex = nextIndex
+                // 状态更新会自动触发 MarkdownTextEditor 的 updateNSView
+                return .none
+                
+            case .search(.findPrevious):
+                guard !state.search.matches.isEmpty else { return .none }
+                let prevIndex = state.search.currentMatchIndex <= 0 
+                    ? state.search.matches.count - 1 
+                    : state.search.currentMatchIndex - 1
+                state.search.currentMatchIndex = prevIndex
+                // 状态更新会自动触发 MarkdownTextEditor 的 updateNSView
+                return .none
+                
+            case .search(.replaceCurrent):
+                guard let currentMatch = state.search.currentMatch,
+                      !state.search.replaceText.isEmpty else {
+                    return .none
+                }
+                // 替换当前匹配项
+                let mutableText = NSMutableString(string: state.content)
+                mutableText.replaceCharacters(in: currentMatch, with: state.search.replaceText)
+                state.content = mutableText as String
+                
+                // 重新搜索（因为内容已改变）
+                let searchText = state.search.searchText
+                let searchOptions = state.search
+                let newContent = state.content
+                return .run { send in
+                    let matches = await performSearch(
+                        text: searchText,
+                        in: newContent,
+                        options: searchOptions
+                    )
+                    await send(.search(.updateMatches(matches)))
+                }
+                
+            case .search(.replaceAll):
+                guard !state.search.matches.isEmpty,
+                      !state.search.replaceText.isEmpty else {
+                    return .none
+                }
+                // 从后往前替换，避免索引偏移
+                let mutableText = NSMutableString(string: state.content)
+                for range in state.search.matches.reversed() {
+                    mutableText.replaceCharacters(in: range, with: state.search.replaceText)
+                }
+                state.content = mutableText as String
+                
+                // 清除搜索结果
+                state.search.matches = []
+                state.search.currentMatchIndex = -1
+                return .run { send in
+                    await send(.clearSearchHighlights)
+                }
+                
+            case .search(.selectMatch(let index)):
+                // 内部使用，由高亮逻辑处理
+                return .none
+            
+            // MARK: - Search Highlight Action Handlers
+            
+            case .updateSearchHighlights(let matches, let currentIndex):
+                // 更新搜索高亮状态
+                state.search.matches = matches
+                state.search.currentMatchIndex = currentIndex
+                print("🔍 [HIGHLIGHT] 更新高亮: \(matches.count) 个匹配项, 当前索引: \(currentIndex)")
+                // 状态更新会触发 MarkdownTextEditor 的 updateNSView，从而更新高亮
+                return .none
+                
+            case .clearSearchHighlights:
+                // 清除高亮：将 matches 和 currentIndex 重置
+                // 状态更新会触发 MarkdownTextEditor 的 updateNSView，从而清除高亮
+                state.search.matches = []
+                state.search.currentMatchIndex = -1
+                return .none
+                
+            case .setListSearchKeywords(let keywords):
+                // 设置从笔记列表搜索传递过来的关键词
+                state.listSearchKeywords = keywords
+                print("🔍 [LIST_SEARCH] 设置搜索关键词: \(keywords)")
+                return .none
             }
         }
+    }
+    
+    // MARK: - Search Helper Functions
+    
+    /// 执行笔记列表搜索（支持多关键词，AND 逻辑）
+    private func performListSearch(
+        keywords: [String],
+        in content: String
+    ) async -> [NSRange] {
+        guard !keywords.isEmpty else { return [] }
+        
+        let nsContent = content as NSString
+        let lowercaseContent = content.lowercased()
+        var allMatches: [NSRange] = []
+        
+        // 对于每个关键词，找到所有匹配项
+        for keyword in keywords {
+            guard !keyword.isEmpty else { continue }
+            let lowercaseKeyword = keyword.lowercased()
+            var keywordMatches: [NSRange] = []
+            
+            var searchRange = NSRange(location: 0, length: nsContent.length)
+            while searchRange.location < nsContent.length {
+                // 在 lowercaseContent 中搜索（不区分大小写）
+                if let range = lowercaseContent.range(
+                    of: lowercaseKeyword,
+                    range: Range(searchRange, in: lowercaseContent)
+                ) {
+                    let nsRange = NSRange(range, in: content)
+                    keywordMatches.append(nsRange)
+                    
+                    // 继续搜索下一个匹配项
+                    let nextLocation = nsRange.location + nsRange.length
+                    if nextLocation >= nsContent.length {
+                        break
+                    }
+                    searchRange = NSRange(location: nextLocation, length: nsContent.length - nextLocation)
+                } else {
+                    break
+                }
+            }
+            
+            // 如果是第一个关键词，直接使用其匹配项
+            if allMatches.isEmpty {
+                allMatches = keywordMatches
+            } else {
+                // 对于后续关键词，只保留与之前匹配项重叠或相邻的匹配项
+                // 这里简化处理：保留所有匹配项，让用户看到所有可能的匹配
+                allMatches.append(contentsOf: keywordMatches)
+            }
+        }
+        
+        // 去重并排序
+        allMatches = Array(Set(allMatches)).sorted { $0.location < $1.location }
+        
+        return allMatches
+    }
+    
+    /// 执行搜索
+    private func performSearch(
+        text: String,
+        in content: String,
+        options: State.SearchState
+    ) async -> [NSRange] {
+        guard !text.isEmpty else { return [] }
+        
+        var searchText = text
+        var contentText = content
+        
+        // 处理大小写
+        if !options.matchCase {
+            searchText = searchText.lowercased()
+            contentText = contentText.lowercased()
+        }
+        
+        // 处理正则表达式
+        if options.useRegex {
+            return await performRegexSearch(
+                pattern: text,  // 使用原始文本，不转换大小写
+                in: content,   // 使用原始内容
+                matchCase: options.matchCase
+            )
+        }
+        
+        // 处理全词匹配
+        if options.wholeWords {
+            return await performWholeWordSearch(
+                word: text,     // 使用原始文本
+                in: content,   // 使用原始内容
+                matchCase: options.matchCase
+            )
+        }
+        
+        // 普通搜索
+        // 使用 NSString 的 rangeOfString 方法，它更可靠地处理 Unicode 和大小写
+        var matches: [NSRange] = []
+        let nsContent = content as NSString
+        
+        var searchOptions: NSString.CompareOptions = []
+        if !options.matchCase {
+            searchOptions.insert(.caseInsensitive)
+        }
+        
+        var searchRange = NSRange(location: 0, length: nsContent.length)
+        while searchRange.location < nsContent.length {
+            let foundRange = nsContent.range(
+                of: text,
+                options: searchOptions,
+                range: searchRange
+            )
+            
+            if foundRange.location == NSNotFound {
+                break
+            }
+            
+            matches.append(foundRange)
+            
+            // 继续搜索下一个匹配项
+            let nextLocation = foundRange.location + foundRange.length
+            if nextLocation >= nsContent.length {
+                break
+            }
+            searchRange = NSRange(location: nextLocation, length: nsContent.length - nextLocation)
+        }
+        
+        return matches
+    }
+    
+    /// 执行正则表达式搜索
+    private func performRegexSearch(
+        pattern: String,
+        in content: String,
+        matchCase: Bool
+    ) async -> [NSRange] {
+        var options: NSRegularExpression.Options = []
+        if !matchCase {
+            options.insert(.caseInsensitive)
+        }
+        
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: options) else {
+            return []
+        }
+        
+        let nsContent = content as NSString
+        let matches = regex.matches(in: content, range: NSRange(location: 0, length: nsContent.length))
+        return matches.map { $0.range }
+    }
+    
+    /// 执行全词匹配搜索
+    private func performWholeWordSearch(
+        word: String,
+        in content: String,
+        matchCase: Bool
+    ) async -> [NSRange] {
+        var searchText = word
+        var contentText = content
+        
+        if !matchCase {
+            searchText = searchText.lowercased()
+            contentText = contentText.lowercased()
+        }
+        
+        var matches: [NSRange] = []
+        let nsContent = content as NSString
+        let nsContentLower = contentText as NSString
+        
+        // 使用正则表达式匹配单词边界
+        let pattern = "\\b\(NSRegularExpression.escapedPattern(for: searchText))\\b"
+        let options: NSRegularExpression.Options = matchCase ? [] : .caseInsensitive
+        
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: options) else {
+            return []
+        }
+        
+        let regexMatches = regex.matches(in: content, range: NSRange(location: 0, length: nsContent.length))
+        return regexMatches.map { $0.range }
     }
     
     // MARK: - Cancel IDs
@@ -967,6 +1416,7 @@ struct EditorFeature {
         case autoSave
         case loadNote
         case previewRender
+        case search
     }
 }
 

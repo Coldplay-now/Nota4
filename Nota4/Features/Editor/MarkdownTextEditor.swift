@@ -15,6 +15,10 @@ struct MarkdownTextEditor: NSViewRepresentable {
     let onSelectionChange: (NSRange) -> Void
     let onFocusChange: (Bool) -> Void
     
+    // 搜索高亮相关
+    var searchMatches: [NSRange] = []
+    var currentSearchIndex: Int = -1
+    
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSTextView.scrollableTextView()
         let textView = scrollView.documentView as! NSTextView
@@ -55,6 +59,9 @@ struct MarkdownTextEditor: NSViewRepresentable {
         
         // 设置代理
         textView.delegate = context.coordinator
+        
+        // 保存 textView 引用到 coordinator
+        context.coordinator.textView = textView
         
         return scrollView
     }
@@ -125,6 +132,25 @@ struct MarkdownTextEditor: NSViewRepresentable {
                 textStorage.addAttribute(.font, value: font, range: fullRange)
             }
         }
+        
+        // 确保 textView 引用已设置
+        if context.coordinator.textView == nil {
+            context.coordinator.textView = textView
+        }
+        
+        // 更新搜索高亮（每次 updateNSView 都检查，因为 searchMatches 或 currentSearchIndex 可能已改变）
+        // 检查是否需要更新（避免不必要的更新）
+        let needsUpdate = searchMatches.count != context.coordinator.searchHighlights.count || 
+                         currentSearchIndex != context.coordinator.currentHighlightIndex ||
+                         (searchMatches.count > 0 && context.coordinator.searchHighlights.count == 0) ||
+                         (searchMatches.count == 0 && context.coordinator.searchHighlights.count > 0)
+        
+        if needsUpdate {
+            context.coordinator.updateSearchHighlights(
+                matches: searchMatches,
+                currentIndex: currentSearchIndex
+            )
+        }
     }
     
     func makeCoordinator() -> Coordinator {
@@ -133,9 +159,87 @@ struct MarkdownTextEditor: NSViewRepresentable {
     
     class Coordinator: NSObject, NSTextViewDelegate {
         var parent: MarkdownTextEditor
+        weak var textView: NSTextView?
+        var searchHighlights: [NSRange] = []
+        var currentHighlightIndex: Int = -1
         
         init(_ parent: MarkdownTextEditor) {
             self.parent = parent
+        }
+        
+        // MARK: - Search Highlight Methods
+        
+        func updateSearchHighlights(matches: [NSRange], currentIndex: Int) {
+            guard let textView = textView else {
+                print("⚠️ [SEARCH] textView 未设置，无法更新高亮")
+                return
+            }
+            guard let textStorage = textView.textStorage else {
+                print("⚠️ [SEARCH] textStorage 未设置，无法更新高亮")
+                return
+            }
+            
+            // 如果 matches 为空，清除高亮
+            if matches.isEmpty {
+                clearSearchHighlights()
+                return
+            }
+            
+            print("🔍 [SEARCH] 更新高亮: \(matches.count) 个匹配项, 当前索引: \(currentIndex)")
+            
+            // 清除之前的高亮
+            clearSearchHighlights()
+            
+            // 保存高亮范围
+            searchHighlights = matches
+            currentHighlightIndex = currentIndex
+            
+            // 应用高亮
+            for (index, range) in matches.enumerated() {
+                guard range.location != NSNotFound,
+                      range.location >= 0,
+                      range.location + range.length <= textStorage.length else {
+                    print("⚠️ [SEARCH] 无效的范围: \(range), textStorage.length: \(textStorage.length)")
+                    continue
+                }
+                
+                // 获取该范围内的现有属性（保留字体、段落样式等）
+                let existingAttributes = textStorage.attributes(at: range.location, effectiveRange: nil)
+                var newAttributes = existingAttributes
+                
+                // 当前匹配项使用蓝色背景
+                if index == currentIndex {
+                    newAttributes[.backgroundColor] = NSColor.systemBlue.withAlphaComponent(0.3)
+                    newAttributes[.foregroundColor] = NSColor.labelColor
+                } else {
+                    // 其他匹配项使用黄色背景（统一为黄色）
+                    newAttributes[.backgroundColor] = NSColor.systemYellow.withAlphaComponent(0.2)
+                    newAttributes[.foregroundColor] = NSColor.labelColor
+                }
+                
+                // 使用 setAttributes 确保覆盖已有属性（包括代码块、引用块等的灰色背景）
+                textStorage.setAttributes(newAttributes, range: range)
+            }
+            
+            // 滚动到当前匹配项
+            if currentIndex >= 0 && currentIndex < matches.count {
+                let range = matches[currentIndex]
+                textView.scrollRangeToVisible(range)
+                textView.setSelectedRange(range)
+            }
+        }
+        
+        func clearSearchHighlights() {
+            guard let textView = textView else { return }
+            guard let textStorage = textView.textStorage else { return }
+            
+            // 移除所有高亮属性（但保留字体和段落样式）
+            let fullRange = NSRange(location: 0, length: textStorage.length)
+            textStorage.removeAttribute(.backgroundColor, range: fullRange)
+            textStorage.removeAttribute(.foregroundColor, range: fullRange)
+            
+            searchHighlights = []
+            currentHighlightIndex = -1
         }
         
         func textDidChange(_ notification: Notification) {

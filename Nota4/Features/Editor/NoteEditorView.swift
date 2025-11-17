@@ -6,6 +6,22 @@ struct NoteEditorView: View {
     @Bindable var store: StoreOf<EditorFeature>
     @FocusState private var isTitleFocused: Bool
     
+    private var titleField: some View {
+        HighlightedTitleField(
+            text: $store.title,
+            searchKeywords: store.listSearchKeywords,
+            onFocusChange: { isFocused in
+                if !isFocused {
+                    store.send(.manualSave)
+                }
+            },
+            isFocused: Binding(
+                get: { isTitleFocused },
+                set: { isTitleFocused = $0 }
+            )
+        )
+    }
+    
     var body: some View {
         WithPerceptionTracking {
             Group {
@@ -13,19 +29,7 @@ struct NoteEditorView: View {
                     VStack(spacing: 0) {
                         // 标题栏
                         HStack {
-                            TextField(
-                                "标题",
-                                text: $store.title
-                            )
-                            .font(.title)
-                            .textFieldStyle(.plain)
-                            .focused($isTitleFocused)
-                            .onChange(of: isTitleFocused) { oldValue, newValue in
-                                // 失去焦点时保存
-                                if !newValue {
-                                    store.send(.manualSave)
-                                }
-                            }
+                            titleField
                             
                             Spacer()
                             
@@ -53,6 +57,11 @@ struct NoteEditorView: View {
                         // 独立工具栏
                         IndependentToolbar(store: store)
                         
+                        // 搜索面板（条件显示）
+                        if store.search.isSearchPanelVisible {
+                            SearchPanel(store: store)
+                        }
+                        
                         Divider()
                         
                         // 编辑器/预览区域
@@ -76,7 +85,9 @@ struct NoteEditorView: View {
                                     },
                                     onFocusChange: { isFocused in
                                         store.send(.focusChanged(isFocused))
-                                    }
+                                    },
+                                    searchMatches: store.search.matches,
+                                    currentSearchIndex: store.search.currentMatchIndex
                                 )
                                 // 编辑模式：占满整个可用空间，不限制宽度
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)

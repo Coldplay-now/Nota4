@@ -95,35 +95,14 @@ actor DatabaseManager {
             try db.create(index: "idx_note_tags_tag", on: "note_tags", columns: ["tag"])
         }
         
-        // v2: 创建全文搜索表
-        migrator.registerMigration("v2_create_fts") { db in
-            try db.create(virtualTable: "notes_fts", using: FTS5()) { t in
-                t.column("noteId").notIndexed()
-                t.column("title")
-                t.column("content")
-                t.tokenizer = .unicode61()
-            }
-            
-            // 创建触发器，自动同步到 FTS 表
-            try db.execute(sql: """
-                CREATE TRIGGER notes_fts_insert AFTER INSERT ON notes BEGIN
-                    INSERT INTO notes_fts(rowid, noteId, title, content)
-                    VALUES (new.id, new.noteId, new.title, new.content);
-                END;
-                """)
-            
-            try db.execute(sql: """
-                CREATE TRIGGER notes_fts_update AFTER UPDATE ON notes BEGIN
-                    UPDATE notes_fts SET noteId = new.noteId, title = new.title, content = new.content
-                    WHERE rowid = new.id;
-                END;
-                """)
-            
-            try db.execute(sql: """
-                CREATE TRIGGER notes_fts_delete AFTER DELETE ON notes BEGIN
-                    DELETE FROM notes_fts WHERE rowid = old.id;
-                END;
-                """)
+        // v2: 移除 FTS5（完全清理现有数据库中的 FTS5 表和触发器）
+        migrator.registerMigration("v2_remove_fts") { db in
+            // 删除触发器
+            try db.execute(sql: "DROP TRIGGER IF EXISTS notes_fts_insert")
+            try db.execute(sql: "DROP TRIGGER IF EXISTS notes_fts_update")
+            try db.execute(sql: "DROP TRIGGER IF EXISTS notes_fts_delete")
+            // 删除 FTS5 表
+            try db.execute(sql: "DROP TABLE IF EXISTS notes_fts")
         }
         
         // 执行迁移
@@ -138,7 +117,6 @@ actor DatabaseManager {
         try dbQueue.write { db in
             try db.execute(sql: "DELETE FROM note_tags")
             try db.execute(sql: "DELETE FROM notes")
-            try db.execute(sql: "DELETE FROM notes_fts")
         }
     }
     

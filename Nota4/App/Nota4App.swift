@@ -48,6 +48,47 @@ struct Nota4App: App {
                 }
                 .keyboardShortcut(",", modifiers: .command)
             }
+            
+            // MARK: - Search Commands
+            
+            CommandGroup(after: .textEditing) {
+                Button("查找") {
+                    store.send(.editor(.search(.showSearchPanel)))
+                }
+                .keyboardShortcut("f", modifiers: .command)
+                
+                Button("查找并替换") {
+                    store.send(.editor(.search(.toggleReplaceMode)))
+                    if !store.editor.search.isSearchPanelVisible {
+                        store.send(.editor(.search(.showSearchPanel)))
+                    }
+                }
+                .keyboardShortcut("f", modifiers: [.command, .option])
+                
+                Divider()
+                
+                Button("查找下一个") {
+                    store.send(.editor(.search(.findNext)))
+                }
+                .keyboardShortcut("g", modifiers: .command)
+                
+                Button("查找上一个") {
+                    store.send(.editor(.search(.findPrevious)))
+                }
+                .keyboardShortcut("g", modifiers: [.command, .shift])
+                
+                Divider()
+                
+                Button("替换") {
+                    store.send(.editor(.search(.replaceCurrent)))
+                }
+                .keyboardShortcut("e", modifiers: [.command, .option])
+                
+                Button("全部替换") {
+                    store.send(.editor(.search(.replaceAll)))
+                }
+                .keyboardShortcut("e", modifiers: [.command, .option, .shift])
+            }
         }
     }
 }

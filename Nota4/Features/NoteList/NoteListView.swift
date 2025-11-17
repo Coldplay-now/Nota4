@@ -23,57 +23,15 @@ struct NoteListView: View {
     
     var body: some View {
         WithPerceptionTracking {
-            List(store.filteredNotes, id: \.noteId, selection: $selectedNotes) { note in
-                noteRow(note: note, store: store)
-            }
-            .listStyle(.plain)
-            .searchable(
-                text: Binding(
-                    get: { store.searchText },
-                    set: { store.send(.binding(.set(\.searchText, $0))) }
-                ),
-                isPresented: Binding(
-                    get: { store.isSearching },
-                    set: { store.send(.binding(.set(\.isSearching, $0))) }
-                )
-            )
-            .toolbar {
-                ToolbarItemGroup(placement: .automatic) {
-                    // 新建笔记按钮
-                    Button {
-                        store.send(.createNote)
-                    } label: {
-                        Label("新建笔记", systemImage: "square.and.pencil")
-                    }
-                    .help("创建新笔记 (⌘N)")
-                    
-                    // 排序菜单
-                    Menu {
-                        Picker("排序", selection: Binding(
-                            get: { store.sortOrder },
-                            set: { store.send(.sortOrderChanged($0)) }
-                        )) {
-                            Label("最近更新", systemImage: "clock")
-                                .tag(NoteListFeature.State.SortOrder.updated)
-                            Label("创建时间", systemImage: "calendar")
-                                .tag(NoteListFeature.State.SortOrder.created)
-                            Label("标题", systemImage: "textformat")
-                                .tag(NoteListFeature.State.SortOrder.title)
-                        }
-                    } label: {
-                        Label("排序", systemImage: "arrow.up.arrow.down")
-                }
+            VStack(spacing: 0) {
+                // 工具栏
+                NoteListToolbar(store: store)
                 
-                    // 批量删除
-                if !selectedNotes.isEmpty {
-                        Button(role: .destructive) {
-                            store.send(.deleteNotes(selectedNotes))
-                            selectedNotes.removeAll()
-                        } label: {
-                            Label("删除 \(selectedNotes.count) 项", systemImage: "trash")
-                        }
-                    }
+                // 笔记列表
+                List(store.filteredNotes, id: \.noteId, selection: $selectedNotes) { note in
+                    noteRow(note: note, store: store)
                 }
+                .listStyle(.plain)
             }
             .onChange(of: selectedNotes) { _, newValue in
                 if newValue.count == 1 {

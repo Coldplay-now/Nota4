@@ -64,6 +64,10 @@ struct NoteListFeature {
                     case .tags(let tags):
                         return !note.tags.isDisjoint(with: tags) && !note.isDeleted
                     case .search(let keyword):
+                        guard !keyword.isEmpty else {
+                            return !note.isDeleted
+                        }
+                        
                         // 不区分大小写的搜索
                         let lowercaseKeyword = keyword.lowercased()
                         let lowercaseTitle = note.title.lowercased()
@@ -71,6 +75,16 @@ struct NoteListFeature {
                         
                         // 支持空格分词：每个词都必须匹配
                         let keywords = lowercaseKeyword.split(separator: " ").map(String.init)
+                        
+                        // 单个关键词（可能是单个字符、标点符号、中文单字）
+                        if keywords.count == 1 {
+                            let word = keywords[0]
+                            // 直接使用 contains，支持所有字符类型（中文、英文、标点符号）
+                            let matches = lowercaseTitle.contains(word) || lowercaseContent.contains(word)
+                            return matches && !note.isDeleted
+                        }
+                        
+                        // 多个关键词：每个词都必须匹配（AND 逻辑）
                         let matches = keywords.allSatisfy { word in
                             lowercaseTitle.contains(word) || lowercaseContent.contains(word)
                         }

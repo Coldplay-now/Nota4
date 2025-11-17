@@ -86,20 +86,10 @@ actor NoteRepositoryImpl: NoteRepositoryProtocol {
                     .filter(noteIds.contains(Note.Columns.noteId))
                     .filter(Note.Columns.isDeleted == false)
                 
-            case .search(let keyword):
-                // 使用 FTS5 全文搜索
-                let noteIds = try String.fetchAll(
-                    db,
-                    sql: """
-                        SELECT noteId FROM notes_fts 
-                        WHERE notes_fts MATCH ? 
-                        LIMIT 100
-                        """,
-                    arguments: [keyword]
-                )
-                request = request
-                    .filter(noteIds.contains(Note.Columns.noteId))
-                    .filter(Note.Columns.isDeleted == false)
+            case .search:
+                // 不使用 FTS5，直接返回所有未删除的笔记
+                // 搜索逻辑在 filteredNotes 计算属性中实现（支持所有字符类型，不依赖分词机制）
+                request = request.filter(Note.Columns.isDeleted == false)
             }
             
             // 排序：置顶优先，然后按更新时间

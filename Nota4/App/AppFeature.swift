@@ -171,7 +171,20 @@ struct AppFeature {
                 
             // 笔记列表选中 → 加载到编辑器
             case .noteList(.noteSelected(let id)):
-                return .send(.editor(.loadNote(id)))
+                // 检查是否有搜索关键词，如果有则传递给编辑器用于自动高亮
+                let searchKeywords = state.noteList.searchKeywords
+                if !searchKeywords.isEmpty {
+                    return .concatenate(
+                        .send(.editor(.setListSearchKeywords(searchKeywords))),
+                        .send(.editor(.loadNote(id)))
+                    )
+                } else {
+                    // 没有搜索关键词，清除之前的高亮
+                    return .concatenate(
+                        .send(.editor(.setListSearchKeywords([]))),
+                        .send(.editor(.loadNote(id)))
+                    )
+                }
                 
             // 笔记列表多选 → 清空编辑器
             case .noteList(.notesSelected(let ids)) where ids.count > 1:
