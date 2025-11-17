@@ -9,15 +9,17 @@ struct SearchPanel: View {
     @Bindable var store: StoreOf<EditorFeature>
     @FocusState private var isSearchFieldFocused: Bool
     @FocusState private var isReplaceFieldFocused: Bool
+    @State private var isReplaceButtonHovered = false
+    @State private var isReplaceAllButtonHovered = false
     
     var body: some View {
         WithPerceptionTracking {
-            HStack(spacing: 12) {
+            HStack(alignment: .center, spacing: 8) {
                 // 搜索框
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
-                        .font(.system(size: 14))
+                        .font(.system(size: 12))
                     
                     TextField("搜索...", text: Binding(
                         get: { store.search.searchText },
@@ -32,12 +34,13 @@ struct SearchPanel: View {
                     if !store.search.searchText.isEmpty && store.search.hasMatches {
                         // 显示匹配数量
                         Text("\(store.search.currentMatchIndex + 1)/\(store.search.matchCount)")
-                            .font(.system(size: 11))
+                            .font(.system(size: 10))
                             .foregroundColor(.secondary)
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .frame(maxWidth: 200)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
                 .background(
                     RoundedRectangle(cornerRadius: 6)
                         .fill(Color(nsColor: .textBackgroundColor))
@@ -51,12 +54,12 @@ struct SearchPanel: View {
                 Button {
                     store.send(.search(.toggleReplaceMode))
                 } label: {
-                    Image(systemName: "arrow.left.arrow.right")
-                        .font(.system(size: 14))
-                        .frame(width: 32, height: 32)
+                    Image(systemName: store.search.isReplaceMode ? "arrow.left.arrow.right.circle.fill" : "arrow.left.arrow.right")
+                        .font(.system(size: 12))
+                        .frame(width: 28, height: 28)
                 }
                 .buttonStyle(.plain)
-                .help(store.search.isReplaceMode ? "关闭替换" : "开启替换")
+                .help(store.search.isReplaceMode ? "关闭替换模式" : "开启替换模式")
                 .background(
                     RoundedRectangle(cornerRadius: 6)
                         .fill(store.search.isReplaceMode ? Color.accentColor.opacity(0.15) : Color.clear)
@@ -71,9 +74,9 @@ struct SearchPanel: View {
                     ))
                     .textFieldStyle(.plain)
                     .focused($isReplaceFieldFocused)
-                    .frame(width: 150)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
+                    .frame(maxWidth: 120)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
                     .background(
                         RoundedRectangle(cornerRadius: 6)
                             .fill(Color(nsColor: .textBackgroundColor))
@@ -84,37 +87,13 @@ struct SearchPanel: View {
                     )
                 }
                 
-                // 选项菜单
-                Menu {
-                    Toggle("区分大小写", isOn: Binding(
-                        get: { store.search.matchCase },
-                        set: { _ in store.send(.search(.matchCaseToggled)) }
-                    ))
-                    
-                    Toggle("全词匹配", isOn: Binding(
-                        get: { store.search.wholeWords },
-                        set: { _ in store.send(.search(.wholeWordsToggled)) }
-                    ))
-                    
-                    Toggle("正则表达式", isOn: Binding(
-                        get: { store.search.useRegex },
-                        set: { _ in store.send(.search(.useRegexToggled)) }
-                    ))
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 14))
-                        .frame(width: 32, height: 32)
-                }
-                .buttonStyle(.plain)
-                .help("搜索选项")
-                
                 // 导航按钮
                 Button {
                     store.send(.search(.findPrevious))
                 } label: {
                     Image(systemName: "chevron.up")
-                        .font(.system(size: 14))
-                        .frame(width: 32, height: 32)
+                        .font(.system(size: 12))
+                        .frame(width: 28, height: 28)
                 }
                 .buttonStyle(.plain)
                 .disabled(!store.search.hasMatches)
@@ -124,8 +103,8 @@ struct SearchPanel: View {
                     store.send(.search(.findNext))
                 } label: {
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 14))
-                        .frame(width: 32, height: 32)
+                        .font(.system(size: 12))
+                        .frame(width: 28, height: 28)
                 }
                 .buttonStyle(.plain)
                 .disabled(!store.search.hasMatches)
@@ -137,21 +116,41 @@ struct SearchPanel: View {
                         store.send(.search(.replaceCurrent))
                     } label: {
                         Text("替换")
-                            .font(.system(size: 12))
-                            .frame(width: 50, height: 28)
+                            .font(.system(size: 10))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 4)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.plain)
                     .disabled(!store.search.hasMatches || store.search.replaceText.isEmpty)
+                    .background(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(isReplaceButtonHovered && store.search.hasMatches && !store.search.replaceText.isEmpty ? Color(nsColor: .controlAccentColor).opacity(0.2) : Color(nsColor: .controlAccentColor).opacity(0.15))
+                    )
+                    .foregroundColor(.primary)
+                    .onHover { hovering in
+                        isReplaceButtonHovered = hovering
+                    }
+                    .animation(.easeInOut(duration: 0.15), value: isReplaceButtonHovered)
                     
                     Button {
                         store.send(.search(.replaceAll))
                     } label: {
                         Text("全部替换")
-                            .font(.system(size: 12))
-                            .frame(width: 70, height: 28)
+                            .font(.system(size: 10))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 4)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.plain)
                     .disabled(!store.search.hasMatches || store.search.replaceText.isEmpty)
+                    .background(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(isReplaceAllButtonHovered && store.search.hasMatches && !store.search.replaceText.isEmpty ? Color(nsColor: .controlAccentColor).opacity(0.2) : Color(nsColor: .controlAccentColor).opacity(0.15))
+                    )
+                    .foregroundColor(.primary)
+                    .onHover { hovering in
+                        isReplaceAllButtonHovered = hovering
+                    }
+                    .animation(.easeInOut(duration: 0.15), value: isReplaceAllButtonHovered)
                 }
                 
                 // 关闭按钮
@@ -159,14 +158,15 @@ struct SearchPanel: View {
                     store.send(.search(.hideSearchPanel))
                 } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 14))
-                        .frame(width: 32, height: 32)
+                        .font(.system(size: 12))
+                        .frame(width: 28, height: 28)
                 }
                 .buttonStyle(.plain)
                 .help("关闭 (ESC)")
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .frame(maxWidth: 500, alignment: .leading)  // 限制整体宽度，左对齐
+            .padding(.horizontal, 16)  // 与工具栏的 padding 一致，确保左对齐
+            .padding(.vertical, 8)
             .background(Color(nsColor: .controlBackgroundColor))
             .overlay(
                 Rectangle()

@@ -69,6 +69,9 @@ struct NoteEditorView: View {
                         // 搜索面板（条件显示）
                         if store.search.isSearchPanelVisible {
                             SearchPanel(store: store)
+                                .frame(maxWidth: .infinity, alignment: .leading)  // 左对齐，与工具栏一致
+                                .transition(.move(edge: .top).combined(with: .opacity))
+                                .animation(.easeInOut(duration: 0.2), value: store.search.isSearchPanelVisible)
                         }
                         
                         Divider()
@@ -140,6 +143,16 @@ struct NoteEditorView: View {
             .onChange(of: store.showAttachmentPicker) { oldValue, newValue in
                 if newValue {
                     showAttachmentPicker()
+                }
+            }
+            .onChange(of: store.note) { oldNote, newNote in
+                // 当笔记加载后，如果是新创建的笔记（标题为"无标题"且内容为空），自动设置焦点到标题栏
+                if let note = newNote, note.title == "无标题" && note.content.isEmpty {
+                    // 使用 Task 延迟一点时间，确保视图已经更新
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(100))
+                        isTitleFocused = true
+                    }
                 }
             }
         }

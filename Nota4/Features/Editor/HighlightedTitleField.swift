@@ -119,10 +119,10 @@ struct HighlightedTitleField: NSViewRepresentable {
                         range: Range(searchRange, in: lowercaseText)
                     ) {
                         let nsRange = NSRange(range, in: text)
-                        // 应用黄色背景高亮
+                        // 应用橙色背景高亮（提升饱和度）
                         attributedString.addAttribute(
                             .backgroundColor,
-                            value: NSColor.systemYellow.withAlphaComponent(0.2),
+                            value: NSColor.systemOrange.withAlphaComponent(0.4),
                             range: nsRange
                         )
                         attributedString.addAttribute(

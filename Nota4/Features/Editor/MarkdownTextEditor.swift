@@ -427,13 +427,13 @@ struct MarkdownTextEditor: NSViewRepresentable {
                 let existingAttributes = textStorage.attributes(at: range.location, effectiveRange: nil)
                 var newAttributes = existingAttributes
                 
-                // 当前匹配项使用蓝色背景
+                // 当前匹配项使用蓝色背景（提升饱和度）
                 if index == currentIndex {
-                    newAttributes[.backgroundColor] = NSColor.systemBlue.withAlphaComponent(0.3)
+                    newAttributes[.backgroundColor] = NSColor.systemBlue.withAlphaComponent(0.5)
                     newAttributes[.foregroundColor] = NSColor.labelColor
                 } else {
-                    // 其他匹配项使用黄色背景（统一为黄色）
-                    newAttributes[.backgroundColor] = NSColor.systemYellow.withAlphaComponent(0.2)
+                    // 其他匹配项使用橙色背景（提升饱和度）
+                    newAttributes[.backgroundColor] = NSColor.systemOrange.withAlphaComponent(0.4)
                     newAttributes[.foregroundColor] = NSColor.labelColor
                 }
                 

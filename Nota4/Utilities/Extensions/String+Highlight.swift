@@ -19,8 +19,8 @@ extension String {
             while let range = lowercaseText.range(of: lowercaseKeyword, range: searchRange) {
                 // 转换为 AttributedString 的范围
                 if let attributedRange = Range(range, in: attributedString) {
-                    // 设置高亮样式
-                    attributedString[attributedRange].backgroundColor = .yellow.opacity(0.4)
+                    // 设置高亮样式（使用橙色，提升饱和度）
+                    attributedString[attributedRange].backgroundColor = .orange.opacity(0.5)
                     attributedString[attributedRange].foregroundColor = .primary
                 }
                 
