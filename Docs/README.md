@@ -1,6 +1,6 @@
 # Nota4 文档中心
 
-> 📚 **最后更新**: 2025-11-16 09:09:20  
+> 📚 **最后更新**: 2025-11-17 14:34:57  
 > 🏗️ **项目**: Nota4 - 基于 SwiftUI 4.0 + TCA 1.11 的现代化 macOS Markdown 笔记应用
 
 ---
@@ -11,16 +11,33 @@
 Docs/
 ├── README.md                    # 本文档
 │
+├── Features/                    # 🎯 功能文档
+│   ├── Search/                  # 搜索功能
+│   ├── UI/                      # UI/工具栏
+│   ├── Theme/                   # 主题系统
+│   ├── Preview/                 # 预览渲染
+│   ├── Mermaid/                 # Mermaid 图表
+│   └── Editor/                  # 编辑器功能
+│
 ├── Reports/                     # 📊 总结报告
 │   ├── PHASE1_COMPLETION_SUMMARY.md
 │   ├── PHASE1_FINAL_REPORT.md
 │   ├── PROJECT_MILESTONE_SUMMARY.md
 │   ├── GIT_PUSH_SUMMARY.md
-│   └── REFACTORING_SUMMARY.md
+│   ├── REFACTORING_SUMMARY.md
+│   ├── BUG_FIXES_20251116.md
+│   ├── IMPORT_FEATURE_FIX.md
+│   ├── CODE_BLOCK_ENHANCEMENT.md
+│   ├── WINDOW_NOT_SHOWING_FIX.md
+│   ├── FINAL_IMPLEMENTATION_REPORT.md
+│   └── DOCUMENTATION_ORGANIZATION_SUMMARY.md
 │
 ├── Guides/                      # 📖 开发指南
 │   ├── TEST_DRIVEN_OPTIMIZATION_GUIDE.md
-│   └── CI_CD_PLAN_A_GUIDE.md
+│   ├── CI_CD_PLAN_A_GUIDE.md
+│   ├── COMPREHENSIVE_TEST_DOCUMENT.md
+│   ├── MANUAL_TEST_CHECKLIST.md
+│   └── QUICK_START_TESTING.md
 │
 ├── Reviews/                     # 🔍 代码审查
 │   └── EXHAUSTIVITY_REVIEW.md
@@ -29,13 +46,21 @@ Docs/
 │   └── CI_CD_PLAN_A_SETUP_REPORT.md
 │
 ├── Architecture/                # 🏛️ 架构设计
-│   └── (架构相关文档)
+│   ├── SYSTEM_ARCHITECTURE.md
+│   ├── NOTE_STATE_UPDATE_ANALYSIS.md
+│   ├── SIDEBAR_COUNT_TCA_FIX.md
+│   └── SIDEBAR_COUNT_FIX.md
 │
 ├── API/                         # 🔌 API 文档
 │   └── (API 接口文档)
 │
 ├── Development/                 # 💻 开发文档
-│   └── (开发流程、规范等)
+│   ├── GIT_WORKFLOW.md
+│   ├── SWIFT_STYLE_GUIDE.md
+│   ├── XCODE_DEBUG_GUIDE.md
+│   ├── XCODE_DEVELOPMENT_WORKFLOW.md
+│   ├── DEBUG_MONITORING_GUIDE.md
+│   └── DEBUG_TOOLS_SUMMARY.md
 │
 ├── PRD/                         # 📋 产品需求
 │   └── (产品需求文档)
@@ -87,6 +112,12 @@ Docs/
 - `PROJECT_MILESTONE_SUMMARY.md` - 项目里程碑总结
 - `GIT_PUSH_SUMMARY.md` - Git 推送记录
 - `REFACTORING_SUMMARY.md` - 重构总结报告
+- `BUG_FIXES_20251116.md` - Bug 修复报告
+- `IMPORT_FEATURE_FIX.md` - 导入功能修复
+- `CODE_BLOCK_ENHANCEMENT.md` - 代码块增强
+- `WINDOW_NOT_SHOWING_FIX.md` - 窗口显示修复
+- `FINAL_IMPLEMENTATION_REPORT.md` - 最终实现报告
+- `DOCUMENTATION_ORGANIZATION_SUMMARY.md` - 文档组织总结
 
 ---
 
@@ -127,6 +158,9 @@ Docs/
 **当前文档**:
 - `TEST_DRIVEN_OPTIMIZATION_GUIDE.md` - 测试驱动优化指南
 - `CI_CD_PLAN_A_GUIDE.md` - CI/CD 配置指南
+- `COMPREHENSIVE_TEST_DOCUMENT.md` - 综合测试文档
+- `MANUAL_TEST_CHECKLIST.md` - 手动测试清单
+- `QUICK_START_TESTING.md` - 快速开始测试
 
 ---
 
@@ -206,7 +240,36 @@ Docs/
 
 ---
 
-### 5. 🏛️ Architecture/ - 架构设计
+### 5. 🎯 Features/ - 功能文档
+
+**用途**: 存放各功能模块的分析、设计、实现和优化文档
+
+**子目录结构**:
+- `Search/` - 搜索功能相关文档
+- `UI/` - UI/工具栏相关文档
+- `Theme/` - 主题系统相关文档
+- `Preview/` - 预览渲染相关文档
+- `Mermaid/` - Mermaid 图表相关文档
+- `Editor/` - 编辑器功能相关文档
+
+**命名规范**:
+- `{FEATURE}_{TYPE}_{QUALIFIER}.md` - 功能文档
+- `{FEATURE}_ANALYSIS.md` - 功能分析
+- `{FEATURE}_DESIGN.md` - 功能设计
+- `{FEATURE}_IMPLEMENTATION.md` - 实现文档
+- `{FEATURE}_FIX.md` - 修复文档
+
+**当前文档**:
+- **Search/**: `FTS5_USAGE_ANALYSIS.md`, `SEARCH_OPTIMIZATION_PLAN.md`, `SEARCH_ISSUE_DIAGNOSIS.md`, `NOTE_LIST_SEARCH_ANALYSIS.md`, `EDITOR_SEARCH_ANALYSIS.md`
+- **UI/**: `NOTE_LIST_TOOLBAR_DESIGN.md`, `STATUS_BAR_DESIGN_EVALUATION.md`, `STATUS_BAR_IMPLEMENTATION_SUMMARY.md`, `UI_IMPROVEMENTS.md`
+- **Theme/**: `THEME_SYSTEM_ACCEPTANCE_TEST.md`, `THEME_TROUBLESHOOTING.md`, `THEME_SYSTEM_FIX.md`
+- **Preview/**: `PREVIEW_RENDERING_ENGINE_TECHNICAL_SUMMARY.md`, `PREVIEW_RENDERING_IMPLEMENTATION_SUMMARY.md`, `PREVIEW_RENDERING_TEST_CASES.md`, `PREVIEW_TEST_EXAMPLE.md`, `TOC_ANCHOR_LINK_ANALYSIS.md`
+- **Mermaid/**: `MERMAID_TEST.md`, `MERMAID_DEBUG_GUIDE.md`, `REVERT_MERMAID_V2.md`, `BUGFIX_TOC_MERMAID.md`
+- **Editor/**: `EDITOR_SETTINGS_SIMPLIFICATION_20251116.md`
+
+---
+
+### 6. 🏛️ Architecture/ - 架构设计
 
 **用途**: 存放系统架构、设计决策、技术选型等文档
 
@@ -216,15 +279,15 @@ Docs/
 - `TECH_STACK.md` - 技术栈
 - `ADR_{NUMBER}_{TITLE}.md` - 架构决策记录 (Architecture Decision Record)
 
-**建议文档**:
+**当前文档**:
 - `SYSTEM_ARCHITECTURE.md` - 整体架构说明
-- `TCA_ARCHITECTURE.md` - TCA 架构应用
-- `DATABASE_DESIGN.md` - 数据库设计
-- `MODULE_STRUCTURE.md` - 模块结构
+- `NOTE_STATE_UPDATE_ANALYSIS.md` - 笔记状态更新分析
+- `SIDEBAR_COUNT_TCA_FIX.md` - 侧边栏计数 TCA 修复
+- `SIDEBAR_COUNT_FIX.md` - 侧边栏计数修复
 
 ---
 
-### 6. 🔌 API/ - API 文档
+### 7. 🔌 API/ - API 文档
 
 **用途**: 存放 API 接口文档、服务接口说明
 
@@ -240,7 +303,7 @@ Docs/
 
 ---
 
-### 7. 💻 Development/ - 开发文档
+### 8. 💻 Development/ - 开发文档
 
 **用途**: 存放开发流程、编码规范、工作流程等
 
@@ -250,15 +313,17 @@ Docs/
 - `CONTRIBUTING.md` - 贡献指南
 - `TESTING_STRATEGY.md` - 测试策略
 
-**建议文档**:
+**当前文档**:
 - `SWIFT_STYLE_GUIDE.md` - Swift 编码风格
 - `GIT_WORKFLOW.md` - Git 工作流
-- `CODE_REVIEW_CHECKLIST.md` - 代码审查清单
-- `TESTING_GUIDE.md` - 测试指南
+- `XCODE_DEBUG_GUIDE.md` - Xcode 调试指南
+- `XCODE_DEVELOPMENT_WORKFLOW.md` - Xcode 开发工作流
+- `DEBUG_MONITORING_GUIDE.md` - 调试监控指南
+- `DEBUG_TOOLS_SUMMARY.md` - 调试工具总结
 
 ---
 
-### 8. 📋 PRD/ - 产品需求
+### 9. 📋 PRD/ - 产品需求
 
 **用途**: 存放产品需求文档、功能规格说明
 
@@ -268,14 +333,15 @@ Docs/
 - `ROADMAP.md` - 产品路线图
 - `USER_STORIES.md` - 用户故事
 
-**建议文档**:
-- `FEATURE_LIST.md` - 功能清单
-- `UI_UX_SPEC.md` - UI/UX 规格
-- `MVP_REQUIREMENTS.md` - MVP 需求
+**当前文档**:
+- `NOTA4_PRD.md` - 产品需求文档
+- `INDEPENDENT_TOOLBAR_PRD.md` - 独立工具栏 PRD
+- `TOOLBAR_EXTENSION_PRD.md` - 工具栏扩展 PRD
+- `NOTE_LIST_TOOLBAR_DESIGN.md` - 笔记列表工具栏设计（已移至 Features/UI/）
 
 ---
 
-### 9. 🔄 Process/ - 开发过程
+### 10. 🔄 Process/ - 开发过程
 
 **用途**: 存放开发过程中的决策、迭代记录、会议纪要
 
@@ -433,6 +499,7 @@ Docs/
 3. 💻 [开发指南](./Development/) - 开始开发
 
 ### 日常开发
+- 🎯 [功能文档](./Features/) - 功能模块文档
 - 📖 [开发指南](./Guides/) - 查找操作指南
 - ⚙️ [配置设置](./Setup/) - 环境配置
 - 🔌 [API 文档](./API/) - 接口参考
@@ -461,10 +528,11 @@ Docs/
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
 | v1.0.0 | 2025-11-16 | 初始版本，建立文档分类体系 |
+| v1.1.0 | 2025-11-17 | 添加 Features/ 目录，重新组织功能文档 |
 
 ---
 
 **维护者**: Nota4 开发团队  
-**最后审查**: 2025-11-16 09:09:20  
+**最后审查**: 2025-11-17 14:34:57  
 **状态**: ✅ 活跃维护中
 

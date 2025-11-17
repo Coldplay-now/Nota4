@@ -133,6 +133,7 @@ struct NoteListFeature {
         case toggleSearchPanel  // 切换搜索面板显示/隐藏
         case closeSearchPanel   // 关闭搜索面板并清除搜索
         case createNote
+        case selectNoteAfterCreate(String) // 创建笔记后选中它
         case updateNoteInList(Note) // 直接更新列表中的笔记
         case requestPermanentDelete(Set<String>)
         case confirmPermanentDelete
@@ -194,8 +195,20 @@ struct NoteListFeature {
                 return .none
                 
             case .deleteNotes(let ids):
+                print("🗑️ [DELETE] Deleting notes: \(ids)")
+                // 如果删除的笔记中包含当前选中的笔记，清除选中状态
+                if let selectedId = state.selectedNoteId, ids.contains(selectedId) {
+                    state.selectedNoteId = nil
+                    state.selectedNoteIds.removeAll()
+                } else {
+                    // 从选中列表中移除已删除的笔记
+                    state.selectedNoteIds = state.selectedNoteIds.subtracting(ids)
+                }
+                
                 return .run { send in
+                    print("🗑️ [DELETE] Calling noteRepository.deleteNotes...")
                     try await noteRepository.deleteNotes(ids)
+                    print("✅ [DELETE] Notes deleted successfully, reloading list...")
                     await send(.loadNotes)
                 }
                 
@@ -311,6 +324,11 @@ struct NoteListFeature {
                 
             case .createNote:
                 // 由 AppFeature 处理，转发给 editor
+                return .none
+                
+            case .selectNoteAfterCreate(let noteId):
+                // 创建笔记后选中它（由 NoteListView 处理）
+                state.selectedNoteId = noteId
                 return .none
                 
             case .updateNoteInList(let updatedNote):

@@ -285,7 +285,9 @@ struct EditorFeature {
                 
             case .binding(\.title):
                 print("⚪ [BINDING] Title changed: '\(state.title)'")
-                // 不再自动保存，避免干扰输入
+                // 标题编辑时不自动保存，保证用户输入的连续性和完整性
+                // 只有在用户手动切换焦点时（通过 onFocusChange）才触发保存
+                // 这样可以避免输入过程中触发列表更新和卡片移动
                 return .none
                 
             case .binding:

@@ -194,18 +194,18 @@ struct AppFeature {
                 return .none
                 
             // 编辑器保存完成 → 立即更新列表中的笔记（实时预览）
+            // 注意：只使用 updateNoteInList 进行乐观更新，不重新加载列表
+            // 这样可以避免列表重新排序导致的焦点丢失问题
             case .editor(.saveCompleted):
                 if let updatedNote = state.editor.note {
                     return .concatenate(
                         .send(.noteList(.updateNoteInList(updatedNote))),
-                        .send(.noteList(.loadNotes)),
+                        // 移除 .loadNotes，避免重新排序导致焦点丢失
+                        // 只在必要时（如排序规则改变）才重新加载
                         .send(.sidebar(.loadCounts))
                     )
                 }
-                return .concatenate(
-                    .send(.noteList(.loadNotes)),
-                    .send(.sidebar(.loadCounts))
-                )
+                return .send(.sidebar(.loadCounts))
                 
             // 笔记列表加载完成 → 不再更新侧边栏统计
             // （因为 notes 是过滤后的，不能用来计算全局计数）
@@ -213,11 +213,17 @@ struct AppFeature {
                 print("📊 [APP] Notes loaded (filtered), total: \(notes.count)")
                 return .none
                 
-            // 编辑器创建笔记完成 → 刷新笔记列表和侧边栏计数
-            case .editor(.noteCreated(.success)):
+            // 编辑器创建笔记完成 → 刷新笔记列表和侧边栏计数，并选中新创建的笔记
+            case .editor(.noteCreated(.success(let note))):
                 return .concatenate(
                     .send(.noteList(.loadNotes)),
-                    .send(.sidebar(.loadCounts))
+                    .send(.sidebar(.loadCounts)),
+                    // 等待列表加载完成后选中新创建的笔记
+                    .run { send in
+                        // 给列表一点时间加载
+                        try await Task.sleep(for: .milliseconds(100))
+                        await send(.noteList(.selectNoteAfterCreate(note.noteId)))
+                    }
                 )
                 
             // 编辑器星标切换完成 → 更新笔记列表和侧边栏计数
@@ -259,8 +265,17 @@ struct AppFeature {
             case .noteList(.toggleStar):
                 return .send(.sidebar(.loadCounts))
                 
-            // 笔记列表删除笔记 → 更新侧边栏计数（列表会重新加载）
-            case .noteList(.deleteNotes):
+            // 笔记列表删除笔记 → 更新侧边栏计数，如果删除的是当前编辑的笔记则清空编辑器
+            case .noteList(.deleteNotes(let ids)):
+                // 如果删除的笔记中包含当前编辑的笔记，清空编辑器
+                if let currentNoteId = state.editor.selectedNoteId, ids.contains(currentNoteId) {
+                    state.editor.note = nil
+                    state.editor.selectedNoteId = nil
+                    state.editor.content = ""
+                    state.editor.title = ""
+                    state.editor.lastSavedContent = ""
+                    state.editor.lastSavedTitle = ""
+                }
                 return .send(.sidebar(.loadCounts))
                 
             // 笔记列表切换置顶 → 更新侧边栏计数（列表会重新加载）

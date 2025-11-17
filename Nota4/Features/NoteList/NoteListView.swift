@@ -59,6 +59,22 @@ struct NoteListView: View {
                     store.send(.notesSelected(newValue))
                 }
             }
+            .onChange(of: store.selectedNoteId) { _, newNoteId in
+                // 当 selectedNoteId 改变时（例如创建笔记后），更新 selectedNotes
+                if let noteId = newNoteId {
+                    selectedNotes = [noteId]
+                } else if newNoteId == nil && !selectedNotes.isEmpty {
+                    // 如果 selectedNoteId 被清除（例如删除后），也清除 selectedNotes
+                    selectedNotes = []
+                }
+            }
+            .onChange(of: store.selectedNoteIds) { _, newIds in
+                // 同步 store.selectedNoteIds 到 selectedNotes（用于批量选择）
+                if newIds.isEmpty && !selectedNotes.isEmpty {
+                    // 如果 selectedNoteIds 被清除（例如删除后），也清除 selectedNotes
+                    selectedNotes = []
+                }
+            }
             .overlay {
                 if store.isLoading {
                     ProgressView()
