@@ -606,7 +606,6 @@ struct EditorFeature {
                     created: now,
                     updated: now
                 )
-                print("🆕 [CREATE] New note id: \(noteId)")
                 
                 return .run { send in
                     try await noteRepository.createNote(newNote)

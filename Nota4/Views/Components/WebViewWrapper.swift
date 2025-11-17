@@ -10,7 +10,14 @@ struct WebViewWrapper: NSViewRepresentable {
     let baseURL: URL?  // 新增参数，用于解析相对路径
     
     func makeNSView(context: Context) -> WKWebView {
-        let webView = WKWebView()
+        // 配置 WKWebView 允许本地文件访问
+        let configuration = WKWebViewConfiguration()
+        
+        // 允许从文件 URL 访问本地文件
+        // 这对于加载本地图片资源是必需的
+        configuration.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
+        
+        let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
         return webView
     }
