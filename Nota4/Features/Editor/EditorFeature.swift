@@ -447,13 +447,22 @@ struct EditorFeature {
                 
             case .viewModeChanged(let mode):
                 let oldMode = state.viewMode
+                
+                // 如果模式没有变化，直接返回（避免重复处理）
+                if mode == oldMode {
+                    return .none
+                }
+                
                 // 立即更新状态，确保 UI 立即响应
                 state.viewMode = mode
                 
                 // 切换到预览模式时触发渲染（异步，不阻塞 UI）
                 if mode != .editOnly && oldMode == .editOnly {
-                    // 直接发送渲染任务，TCA 会异步执行，不会阻塞状态更新
-                    return .send(.preview(.render))
+                    // 取消之前的渲染任务，避免资源浪费
+                    return .merge(
+                        .cancel(id: CancelID.previewRender),
+                        .send(.preview(.render))
+                    )
                 }
                 
                 // 从预览模式切换到仅编辑
@@ -1263,16 +1272,21 @@ struct EditorFeature {
                 let noteId = state.note?.noteId
                 
                 // 如果 noteDirectory 还没有设置，先获取它再渲染
+                // 这通常不应该发生，因为 noteDirectory 应该在笔记加载时就设置好
+                // 但作为后备机制，如果为空则快速获取
                 if state.noteDirectory == nil, let noteId = noteId {
                     return .run { send in
                         do {
                             let directory = try await notaFileManager.getNoteDirectory(for: noteId)
                             await send(.noteDirectoryUpdated(directory))
+                            // 获取成功后重新触发渲染
+                            await send(.preview(.render))
                         } catch {
-                            print("❌ [RENDER] noteDirectory 获取失败: \(error.localizedDescription)")
+                            print("⚠️ [RENDER] noteDirectory 获取失败，继续渲染（某些功能可能不可用）: \(error.localizedDescription)")
+                            // 即使获取失败，也继续渲染（noteDirectory 可以为 nil）
+                            // 重新触发渲染，使用 nil 作为 noteDirectory
+                            await send(.preview(.render))
                         }
-                        // 无论成功失败，都重新触发渲染
-                        await send(.preview(.render))
                     }
                 }
                 

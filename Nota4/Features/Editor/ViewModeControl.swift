@@ -9,12 +9,20 @@ struct ViewModeControl: View {
     let store: StoreOf<EditorFeature>
     @State private var isHovered = false
     
+    // 计算属性：根据当前模式计算下一个模式
+    // 避免在按钮点击时读取旧状态
+    private var nextMode: EditorFeature.State.ViewMode {
+        store.viewMode == .editOnly ? .previewOnly : .editOnly
+    }
+    
     var body: some View {
         WithPerceptionTracking {
             Button {
-                // 立即更新状态，不等待预览渲染
-                let newMode: EditorFeature.State.ViewMode = store.viewMode == .editOnly ? .previewOnly : .editOnly
-                store.send(.viewModeChanged(newMode))
+                // 如果正在渲染，不处理点击（防止重复点击）
+                guard !store.preview.isRendering else { return }
+                
+                // 使用计算属性，避免读取旧状态
+                store.send(.viewModeChanged(nextMode))
             } label: {
                 // 图标表示"点击后会切换到什么模式"
                 // 编辑模式下显示眼睛（切换到预览），预览模式下显示笔（切换到编辑）
@@ -23,6 +31,7 @@ struct ViewModeControl: View {
                     .frame(width: 32, height: 28)
             }
             .buttonStyle(.plain)
+            .disabled(store.preview.isRendering)  // 从 Store 读取状态，符合 TCA 原则
             .background(
                 RoundedRectangle(cornerRadius: 6)
                     .fill(isHovered ? Color(nsColor: .controlAccentColor).opacity(0.15) : Color(nsColor: .controlBackgroundColor))
