@@ -11,9 +11,21 @@ struct SettingsFeature {
         var originalEditorPreferences: EditorPreferences
         var theme: ThemeState = ThemeState()
         
+        // 代码高亮主题设置
+        var codeHighlightTheme: CodeTheme = .xcode
+        var useCustomCodeHighlightTheme: Bool = false
+        
         init(editorPreferences: EditorPreferences) {
             self.editorPreferences = editorPreferences
             self.originalEditorPreferences = editorPreferences
+            
+            // 从 UserDefaults 加载用户保存的代码高亮主题设置
+            if let savedThemeRaw = UserDefaults.standard.string(forKey: "customCodeHighlightTheme"),
+               let savedTheme = CodeTheme(rawValue: savedThemeRaw) {
+                self.codeHighlightTheme = savedTheme
+            }
+            
+            self.useCustomCodeHighlightTheme = UserDefaults.standard.bool(forKey: "useCustomCodeHighlightTheme")
         }
     }
     
@@ -60,6 +72,10 @@ struct SettingsFeature {
         
         // Theme actions
         case theme(ThemeAction)
+        
+        // Code highlight theme actions
+        case codeHighlightThemeChanged(CodeTheme)
+        case useCustomCodeHighlightThemeToggled(Bool)
     }
     
     enum ThemeAction {
@@ -254,6 +270,24 @@ struct SettingsFeature {
                  .theme(.deleteTheme),
                  .theme(.cancelDelete):
                 // These are handled by the view layer
+                return .none
+            
+            // MARK: - Code Highlight Theme Actions
+            
+            case .codeHighlightThemeChanged(let theme):
+                state.codeHighlightTheme = theme
+                // 保存到 UserDefaults
+                UserDefaults.standard.set(theme.rawValue, forKey: "customCodeHighlightTheme")
+                UserDefaults.standard.synchronize()
+                print("🎨 [SETTINGS] Code highlight theme changed to: \(theme.displayName)")
+                return .none
+                
+            case .useCustomCodeHighlightThemeToggled(let enabled):
+                state.useCustomCodeHighlightTheme = enabled
+                // 保存到 UserDefaults
+                UserDefaults.standard.set(enabled, forKey: "useCustomCodeHighlightTheme")
+                UserDefaults.standard.synchronize()
+                print("🎨 [SETTINGS] Use custom code highlight theme: \(enabled)")
                 return .none
             }
         }

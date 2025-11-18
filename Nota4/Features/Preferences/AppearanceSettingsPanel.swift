@@ -90,6 +90,42 @@ struct AppearanceSettingsPanel: View {
                         }
                     }
                     
+                    Divider()
+                        .padding(.vertical, 8)
+                    
+                    // 代码高亮主题选择区域
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("代码高亮主题")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        HStack {
+                            Toggle("独立设置代码高亮主题", isOn: Binding(
+                                get: { store.useCustomCodeHighlightTheme },
+                                set: { store.send(.useCustomCodeHighlightThemeToggled($0)) }
+                            ))
+                            
+                            Spacer()
+                        }
+                        
+                        if store.useCustomCodeHighlightTheme {
+                            Picker("", selection: Binding(
+                                get: { store.codeHighlightTheme },
+                                set: { store.send(.codeHighlightThemeChanged($0)) }
+                            )) {
+                                ForEach(CodeTheme.allCases, id: \.self) { theme in
+                                    Text(theme.displayName).tag(theme)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                        } else {
+                            Text("使用预览主题的代码高亮设置")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .italic()
+                        }
+                    }
+                    
                     // 导入/导出状态提示
                     if case .importing = store.theme.importExportState {
                         HStack {

@@ -59,13 +59,25 @@ struct ThemeFonts: Codable, Equatable {
 // MARK: - Code Theme
 
 /// 代码高亮主题
-enum CodeTheme: String, Codable, Equatable {
+enum CodeTheme: String, Codable, Equatable, CaseIterable {
     case xcode = "xcode"
     case github = "github"
     case monokai = "monokai"
     case dracula = "dracula"
     case solarizedLight = "solarized-light"
     case solarizedDark = "solarized-dark"
+    
+    /// 显示名称（中文）
+    var displayName: String {
+        switch self {
+        case .xcode: return "Xcode"
+        case .github: return "GitHub"
+        case .monokai: return "Monokai"
+        case .dracula: return "Dracula"
+        case .solarizedLight: return "Solarized Light"
+        case .solarizedDark: return "Solarized Dark"
+        }
+    }
 }
 
 // MARK: - Theme Error

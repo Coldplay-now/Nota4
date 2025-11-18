@@ -823,21 +823,33 @@ actor MarkdownRenderer {
     /// - Parameter themeId: 主题 ID（nil 表示使用当前主题）
     /// - Returns: 代码高亮 CSS 样式字符串
     private func getCodeHighlightCSS(for themeId: String?) async -> String {
-        // 1. 确定要使用的主题
-        let theme: ThemeConfig
-        if let themeId = themeId {
-            let availableThemes = await themeManager.availableThemes
-            if let selectedTheme = availableThemes.first(where: { $0.id == themeId }) {
-                theme = selectedTheme
+        // 1. 检查是否使用自定义代码高亮主题
+        let useCustom = UserDefaults.standard.bool(forKey: "useCustomCodeHighlightTheme")
+        let customThemeRaw = UserDefaults.standard.string(forKey: "customCodeHighlightTheme")
+        
+        let codeTheme: CodeTheme
+        if useCustom, let customThemeRaw = customThemeRaw,
+           let customTheme = CodeTheme(rawValue: customThemeRaw) {
+            // 使用用户自定义的代码高亮主题
+            codeTheme = customTheme
+        } else {
+            // 使用预览主题的代码高亮主题
+            let theme: ThemeConfig
+            if let themeId = themeId {
+                let availableThemes = await themeManager.availableThemes
+                if let selectedTheme = availableThemes.first(where: { $0.id == themeId }) {
+                    theme = selectedTheme
+                } else {
+                    theme = await themeManager.currentTheme
+                }
             } else {
                 theme = await themeManager.currentTheme
             }
-        } else {
-            theme = await themeManager.currentTheme
+            codeTheme = theme.codeHighlightTheme
         }
         
-        // 2. 根据 codeHighlightTheme 获取颜色方案
-        let colorScheme = getColorScheme(for: theme.codeHighlightTheme)
+        // 2. 根据 codeTheme 获取颜色方案
+        let colorScheme = getColorScheme(for: codeTheme)
         
         // 3. 生成 CSS（包含浅色和深色模式）
         // 注意：Splash 生成的 HTML 结构是 <code><span class="keyword">...</span></code>
