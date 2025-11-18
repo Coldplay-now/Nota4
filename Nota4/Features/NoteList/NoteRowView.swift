@@ -23,7 +23,6 @@ struct NoteRowView: View {
                         .lineLimit(2)
                     }
                 }
-                .colorScheme(.light) // 强制使用浅色模式文字颜色
                 
                 Spacer()
             }
@@ -43,7 +42,6 @@ struct NoteRowView: View {
                     .lineLimit(3)
                 }
             }
-            .colorScheme(.light) // 强制使用浅色模式文字颜色
             .padding(.bottom, 8)
             
             // 底部信息
@@ -91,7 +89,6 @@ struct NoteRowView: View {
                 Text(note.updated, format: .relative(presentation: .named))
                     .font(.caption)
                     .foregroundStyle(Color(nsColor: .secondaryLabelColor))
-                    .colorScheme(.light) // 强制使用浅色模式文字颜色
             }
         }
         .padding(12)

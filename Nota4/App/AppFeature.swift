@@ -74,6 +74,23 @@ struct AppFeature {
                     .run { send in
                         let prefs = await PreferencesStorage.shared.load()
                         await send(.preferencesLoaded(prefs))
+                    },
+                    // 导入初始文档（首次启动）
+                    .run { send in
+                        let service = InitialDocumentsService.shared
+                        if await service.shouldImportInitialDocuments() {
+                            do {
+                                try await service.importInitialDocuments(
+                                    noteRepository: noteRepository,
+                                    notaFileManager: notaFileManager
+                                )
+                                // 导入完成后刷新笔记列表和侧边栏计数
+                                await send(.noteList(.loadNotes))
+                                await send(.sidebar(.loadCounts))
+                            } catch {
+                                print("❌ [APP] 导入初始文档失败: \(error)")
+                            }
+                        }
                     }
                 )
                 

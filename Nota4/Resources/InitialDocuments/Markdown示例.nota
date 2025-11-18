@@ -1,0 +1,380 @@
+---
+title: Markdown示例
+created: 2024-01-01T00:00:00Z
+updated: 2024-01-01T00:00:00Z
+starred: true
+pinned: true
+tags: [示例, Markdown, 教程]
+checksum: ""
+---
+
+# Markdown示例
+
+这个文档展示了 Nota4 支持的各种 Markdown 语法和扩展功能。
+
+![Nota4 Logo](icon_1024x1024.png)
+
+## 目录
+
+1. [标题层级](#1-标题层级)
+2. [文本样式](#2-文本样式)
+   2.1. [基本样式](#21-基本样式)
+   2.2. [引用文本](#22-引用文本)
+3. [列表](#3-列表)
+   3.1. [无序列表](#31-无序列表)
+   3.2. [有序列表](#32-有序列表)
+   3.3. [任务列表](#33-任务列表)
+4. [链接和图片](#4-链接和图片)
+   4.1. [链接](#41-链接)
+   4.2. [图片](#42-图片)
+5. [代码块](#5-代码块)
+   5.1. [行内代码](#51-行内代码)
+   5.2. [代码块](#52-代码块)
+6. [表格](#6-表格)
+   6.1. [基本表格](#61-基本表格)
+   6.2. [对齐表格](#62-对齐表格)
+7. [数学公式](#7-数学公式)
+   7.1. [行内公式](#71-行内公式)
+   7.2. [块级公式](#72-块级公式)
+8. [Mermaid 图表](#8-mermaid-图表)
+   8.1. [流程图](#81-流程图)
+   8.2. [时序图](#82-时序图)
+   8.3. [类图](#83-类图)
+   8.4. [甘特图](#84-甘特图)
+   8.5. [饼图](#85-饼图)
+
+---
+
+## 1. 标题层级
+
+# 一级标题
+## 二级标题
+### 三级标题
+
+**注意**：Nota4 支持最多六层标题，但建议使用不超过三层以保持文档结构清晰。
+
+## 2. 文本样式
+
+### 2.1. 基本样式
+
+**粗体文本** 或 __粗体文本__
+
+*斜体文本* 或 _斜体文本_
+
+***粗斜体文本*** 或 ___粗斜体文本___
+
+~~删除线文本~~
+
+`行内代码`
+
+### 2.2. 引用文本
+
+> 这是一个引用块
+> 
+> 可以包含多个段落
+> 
+> > 也可以嵌套引用
+
+## 3. 列表
+
+### 3.1. 无序列表
+
+- 列表项 1
+- 列表项 2
+  - 嵌套列表项 2.1
+  - 嵌套列表项 2.2
+    - 更深层嵌套 2.2.1
+- 列表项 3
+
+### 3.2. 有序列表
+
+1. 第一项
+2. 第二项
+   1. 嵌套项 2.1
+   2. 嵌套项 2.2
+3. 第三项
+
+### 3.3. 任务列表
+
+- [x] 已完成的任务
+- [x] 另一个已完成的任务
+- [ ] 待完成的任务
+- [ ] 另一个待完成的任务
+
+## 4. 链接和图片
+
+### 4.1. 链接
+
+[这是一个链接](https://www.example.com)
+
+[带标题的链接](https://www.example.com "链接标题")
+
+<https://www.example.com>
+
+**外部链接示例**：
+- [GitHub](https://github.com)
+- [Markdown 指南](https://www.markdownguide.org)
+- [Swift 文档](https://swift.org/documentation/)
+
+### 4.2. 图片
+
+![Nota4 Logo](icon_1024x1024.png)
+
+![带标题的图片](icon_1024x1024.png "Nota4 Logo")
+
+## 5. 代码块
+
+### 5.1. 行内代码
+
+使用 `console.log()` 输出日志。在 Swift 中使用 `print()` 函数。
+
+### 5.2. 代码块
+
+#### Swift 示例
+
+```swift
+// Swift 代码示例
+import Foundation
+
+struct Note {
+    let id: String
+    var title: String
+    var content: String
+    
+    func save() {
+        print("保存笔记: \(title)")
+    }
+}
+```
+
+#### JavaScript 示例
+
+```javascript
+// JavaScript 示例
+function fibonacci(n) {
+    if (n <= 1) return n;
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+console.log(fibonacci(10)); // 55
+```
+
+#### Python 示例
+
+```python
+# Python 示例
+def quick_sort(arr):
+    if len(arr) <= 1:
+        return arr
+    pivot = arr[len(arr) // 2]
+    left = [x for x in arr if x < pivot]
+    middle = [x for x in arr if x == pivot]
+    right = [x for x in arr if x > pivot]
+    return quick_sort(left) + middle + quick_sort(right)
+```
+
+#### Shell 示例
+
+```bash
+#!/bin/bash
+# Shell 脚本示例
+echo "Hello, Nota4!"
+cd ~/Documents
+ls -la
+```
+
+## 6. 表格
+
+### 6.1. 基本表格
+
+| 功能 | 快捷键 | 说明 |
+|------|--------|------|
+| 新建笔记 | ⌘N | 创建新笔记 |
+| 搜索 | ⌘F | 搜索笔记内容 |
+| 保存 | ⌘S | 手动保存当前笔记 |
+
+### 6.2. 对齐表格
+
+| 左对齐 | 居中对齐 | 右对齐 |
+|:-------|:--------:|-------:|
+| 左 | 中 | 右 |
+| 左侧内容 | 中间内容 | 右侧内容 |
+
+## 7. 数学公式
+
+### 7.1. 行内公式
+
+这是一个行内公式：$E = mc^2$，表示质能等价关系。
+
+另一个例子：$\sum_{i=1}^{n} i = \frac{n(n+1)}{2}$
+
+### 7.2. 块级公式
+
+**勾股定理**：
+
+$$a^2 + b^2 = c^2$$
+
+**二次方程求根公式**：
+
+$$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$
+
+**矩阵乘法**：
+
+$$
+\begin{bmatrix}
+a & b \\
+c & d
+\end{bmatrix}
+\begin{bmatrix}
+x \\
+y
+\end{bmatrix}
+=
+\begin{bmatrix}
+ax + by \\
+cx + dy
+\end{bmatrix}
+$$
+
+**积分公式**：
+
+$$\int_{a}^{b} f(x) \, dx = F(b) - F(a)$$
+
+其中 $F(x)$ 是 $f(x)$ 的原函数。
+
+## 8. Mermaid 图表
+
+### 8.1. 流程图
+
+```mermaid
+graph TD
+    A[开始] --> B{判断条件}
+    B -->|是| C[执行操作1]
+    B -->|否| D[执行操作2]
+    C --> E[结束]
+    D --> E
+```
+
+**复杂流程图**：
+
+```mermaid
+graph LR
+    A[用户输入] --> B{验证数据}
+    B -->|有效| C[保存到数据库]
+    B -->|无效| D[显示错误]
+    C --> E[更新界面]
+    D --> A
+    E --> F[完成]
+```
+
+### 8.2. 时序图
+
+```mermaid
+sequenceDiagram
+    participant 用户
+    participant 应用
+    participant 数据库
+    
+    用户->>应用: 创建笔记
+    应用->>应用: 生成ID
+    应用->>数据库: 保存笔记
+    数据库-->>应用: 保存成功
+    应用-->>用户: 显示笔记
+```
+
+### 8.3. 类图
+
+```mermaid
+classDiagram
+    class Note {
+        +String noteId
+        +String title
+        +String content
+        +Date created
+        +Date updated
+        +Boolean isStarred
+        +Boolean isPinned
+        +save()
+        +delete()
+    }
+    
+    class NoteRepository {
+        +createNote()
+        +fetchNote()
+        +updateNote()
+        +deleteNote()
+    }
+    
+    class NotaFileManager {
+        +createNoteFile()
+        +readNoteFile()
+        +updateNoteFile()
+        +deleteNoteFile()
+    }
+    
+    NoteRepository "1" --> "*" Note : manages
+    NoteRepository --> NotaFileManager : uses
+```
+
+### 8.4. 甘特图
+
+```mermaid
+gantt
+    title 项目开发计划
+    dateFormat  YYYY-MM-DD
+    
+    section 设计阶段
+    需求分析           :a1, 2024-01-01, 7d
+    UI设计            :a2, after a1, 5d
+    
+    section 开发阶段
+    核心功能开发       :b1, after a2, 14d
+    测试与优化        :b2, after b1, 7d
+    
+    section 发布阶段
+    打包发布          :c1, after b2, 2d
+```
+
+### 8.5. 饼图
+
+```mermaid
+pie title 时间分配
+    "编码" : 40
+    "测试" : 20
+    "文档" : 15
+    "会议" : 15
+    "其他" : 10
+```
+
+**状态分布图**：
+
+```mermaid
+pie title 笔记状态分布
+    "普通笔记" : 60
+    "星标笔记" : 25
+    "置顶笔记" : 10
+    "已删除" : 5
+```
+
+---
+
+## 总结
+
+这个文档展示了 Nota4 支持的主要 Markdown 功能：
+
+- ✅ 标题层级（最多六层）
+- ✅ 文本样式（粗体、斜体、删除线等）
+- ✅ 列表（有序、无序、任务列表）
+- ✅ 链接和图片
+- ✅ 代码块（多种语言语法高亮）
+- ✅ 表格（基本和对齐）
+- ✅ 数学公式（LaTeX 语法）
+- ✅ Mermaid 图表（流程图、时序图、类图等）
+
+更多信息请参考 [使用说明](./使用说明.nota) 文档。
+
+**参考资源**：
+- [Markdown 官方指南](https://www.markdownguide.org)
+- [Mermaid 文档](https://mermaid.js.org)
+- [LaTeX 数学公式](https://www.latex-tutorial.com)
+
