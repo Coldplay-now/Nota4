@@ -139,15 +139,44 @@ struct AppFeature {
                         let service = InitialDocumentsService.shared
                         if await service.shouldImportInitialDocuments() {
                             do {
+                                // 在导入前验证资源是否存在（可选，但有助于诊断问题）
+                                let documentNames = ["使用说明", "Markdown示例"]
+                                var missingResources: [String] = []
+                                for documentName in documentNames {
+                                    if Bundle.safeResourceURL(
+                                        name: documentName,
+                                        withExtension: "nota",
+                                        subdirectory: "Resources/InitialDocuments"
+                                    ) == nil {
+                                        missingResources.append(documentName)
+                                    }
+                                }
+                                
+                                if !missingResources.isEmpty {
+                                    print("⚠️ [APP] 初始文档资源缺失: \(missingResources.joined(separator: ", "))")
+                                    print("   [APP] 将跳过这些文档的导入，但不影响应用启动")
+                                }
+                                
                                 try await service.importInitialDocuments(
                                     noteRepository: noteRepository,
                                     notaFileManager: notaFileManager
                                 )
+                                
                                 // 导入完成后刷新笔记列表和侧边栏计数
                                 await send(.noteList(.loadNotes))
                                 await send(.sidebar(.loadCounts))
+                                
+                                if !missingResources.isEmpty {
+                                    print("✅ [APP] 初始文档导入完成（部分资源缺失，已跳过）")
+                                } else {
+                                    print("✅ [APP] 初始文档导入完成")
+                                }
                             } catch {
+                                // 错误处理：记录日志但不影响应用启动
                                 print("❌ [APP] 导入初始文档失败: \(error)")
+                                print("   [APP] 错误详情: \(error.localizedDescription)")
+                                // 注意：这里不发送错误 Action，因为初始文档导入失败不应该阻止应用启动
+                                // 如果需要在 UI 中显示错误，可以添加一个可选的错误状态
                             }
                         }
                     }

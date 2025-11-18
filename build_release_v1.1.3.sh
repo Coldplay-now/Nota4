@@ -101,8 +101,47 @@ if [ -d "Nota4/Resources" ]; then
     if [ -d "$BUNDLE_PATH/Vendor" ]; then
         echo "   ✓ Vendor 资源已复制"
         ls -lh "$BUNDLE_PATH/Vendor/" | tail -4
+        
+        # 验证关键文件存在
+        if [ -f "$BUNDLE_PATH/Vendor/mermaid.min.js" ] && [ -f "$BUNDLE_PATH/Vendor/katex.min.js" ]; then
+            echo "   ✓ Vendor 关键文件验证通过"
+        else
+            echo "   ⚠️  Vendor 关键文件缺失，请检查"
+        fi
     else
         echo "   ⚠️  Vendor 资源未找到，请检查"
+    fi
+    
+    # 验证 InitialDocuments 资源已复制（关键验证）
+    if [ -d "$BUNDLE_PATH/InitialDocuments" ]; then
+        echo "   ✓ InitialDocuments 资源已复制"
+        ls -lh "$BUNDLE_PATH/InitialDocuments/" | tail -5
+        
+        # 验证关键文件存在
+        REQUIRED_FILES=("使用说明.nota" "Markdown示例.nota")
+        MISSING_FILES=()
+        for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "$BUNDLE_PATH/InitialDocuments/$file" ]; then
+                MISSING_FILES+=("$file")
+            fi
+        done
+        
+        if [ ${#MISSING_FILES[@]} -eq 0 ]; then
+            echo "   ✓ InitialDocuments 关键文件验证通过"
+            # 验证文件大小（确保不是空文件）
+            for file in "${REQUIRED_FILES[@]}"; do
+                FILE_SIZE=$(stat -f%z "$BUNDLE_PATH/InitialDocuments/$file" 2>/dev/null || echo "0")
+                if [ "$FILE_SIZE" -lt 100 ]; then
+                    echo "   ⚠️  警告: $file 文件过小 ($FILE_SIZE 字节)，可能有问题"
+                fi
+            done
+        else
+            echo "   ❌ InitialDocuments 关键文件缺失: ${MISSING_FILES[*]}"
+            echo "   ⚠️  这会导致新用户无法看到初始文档！"
+        fi
+    else
+        echo "   ❌ InitialDocuments 资源未找到，请检查"
+        echo "   ⚠️  这会导致新用户无法看到初始文档！"
     fi
     
     # 创建 Bundle Info.plist
