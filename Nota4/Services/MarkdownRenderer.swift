@@ -565,6 +565,22 @@ actor MarkdownRenderer {
         let codeHighlightCSS = await getCodeHighlightCSS(for: options.themeId)
         let imageErrorCSS = getImageErrorCSS()
         
+        // 获取当前主题配置，用于 Mermaid 主题设置
+        let theme: ThemeConfig
+        if let themeId = options.themeId {
+            let availableThemes = await themeManager.availableThemes
+            if let selectedTheme = availableThemes.first(where: { $0.id == themeId }) {
+                theme = selectedTheme
+            } else {
+                theme = await themeManager.currentTheme
+            }
+        } else {
+            theme = await themeManager.currentTheme
+        }
+        
+        // 使用主题的 Mermaid 主题配置
+        let mermaidTheme = theme.mermaidTheme
+        
         return """
         <!DOCTYPE html>
         <html lang="zh-CN">
@@ -589,7 +605,7 @@ actor MarkdownRenderer {
                 // 初始化 Mermaid - 配置所有图表类型
                 mermaid.initialize({ 
                     startOnLoad: true,
-                    theme: 'default',
+                    theme: '\(mermaidTheme)',
                     securityLevel: 'loose',
                     flowchart: {
                         useMaxWidth: true,
