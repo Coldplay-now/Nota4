@@ -10,6 +10,7 @@ struct SidebarFeature {
         var selectedCategory: Category = .all
         var tags: [Tag] = []
         var selectedTags: Set<String> = []
+        var isNoTagsSelected: Bool = false  // 是否选择了"无标签"
         var categoryCounts: [Category: Int] = [
             .all: 0,
             .starred: 0,
@@ -58,6 +59,8 @@ struct SidebarFeature {
         case categorySelected(State.Category)
         case tagSelected(String)
         case tagToggled(String)
+        case allTagsSelected  // 选择"全部标签"
+        case noTagsSelected  // 选择"无标签"
         case loadTags
         case tagsLoaded(TaskResult<[State.Tag]>)
         case loadCounts
@@ -83,10 +86,13 @@ struct SidebarFeature {
         case .categorySelected(let category):
             state.selectedCategory = category
             state.selectedTags.removeAll() // 切换分类时清空标签选择
+            state.isNoTagsSelected = false  // 切换分类时取消"无标签"选择
             return .none
             
         case .tagSelected(let tag):
+            // 单选：只选中当前标签，清空其他选择
             state.selectedTags = [tag]
+            state.isNoTagsSelected = false  // 选择具体标签时，取消"无标签"选择
             return .none
             
         case .tagToggled(let tag):
@@ -95,6 +101,17 @@ struct SidebarFeature {
             } else {
                 state.selectedTags.insert(tag)
             }
+            state.isNoTagsSelected = false  // 选择具体标签时，取消"无标签"选择
+            return .none
+            
+        case .allTagsSelected:
+            state.selectedTags.removeAll()
+            state.isNoTagsSelected = false
+            return .none
+            
+        case .noTagsSelected:
+            state.selectedTags.removeAll()
+            state.isNoTagsSelected = true
             return .none
             
         case .loadTags:

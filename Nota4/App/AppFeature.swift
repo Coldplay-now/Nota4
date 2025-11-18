@@ -181,9 +181,30 @@ struct AppFeature {
             case .sidebar(.tagToggled):
                 if !state.sidebar.selectedTags.isEmpty {
                     state.noteList.filter = .tags(state.sidebar.selectedTags)
+                } else if state.sidebar.isNoTagsSelected {
+                    state.noteList.filter = .noTags
                 } else {
                     state.noteList.filter = .category(state.sidebar.selectedCategory)
                 }
+                return .send(.noteList(.loadNotes))
+                
+            // 侧边栏标签单选 → 更新笔记列表过滤
+            case .sidebar(.tagSelected):
+                if !state.sidebar.selectedTags.isEmpty {
+                    state.noteList.filter = .tags(state.sidebar.selectedTags)
+                } else {
+                    state.noteList.filter = .category(state.sidebar.selectedCategory)
+                }
+                return .send(.noteList(.loadNotes))
+                
+            // 侧边栏"全部标签"选择 → 更新笔记列表过滤
+            case .sidebar(.allTagsSelected):
+                state.noteList.filter = .allTags
+                return .send(.noteList(.loadNotes))
+                
+            // 侧边栏"无标签"选择 → 更新笔记列表过滤
+            case .sidebar(.noTagsSelected):
+                state.noteList.filter = .noTags
                 return .send(.noteList(.loadNotes))
                 
             // 笔记列表选中 → 加载到编辑器
@@ -269,6 +290,22 @@ struct AppFeature {
                 return .concatenate(
                     .send(.noteList(.loadNotes)),
                     .send(.sidebar(.loadCounts))
+                )
+                
+            // 编辑器标签保存完成 → 更新笔记列表、侧边栏计数和标签列表
+            case .editor(.tagsSaved):
+                if let updatedNote = state.editor.note {
+                    return .concatenate(
+                        .send(.noteList(.updateNoteInList(updatedNote))),
+                        .send(.noteList(.loadNotes)),
+                        .send(.sidebar(.loadCounts)),
+                        .send(.sidebar(.loadTags))  // 刷新侧边栏标签列表
+                    )
+                }
+                return .concatenate(
+                    .send(.noteList(.loadNotes)),
+                    .send(.sidebar(.loadCounts)),
+                    .send(.sidebar(.loadTags))  // 刷新侧边栏标签列表
                 )
                 
             // 编辑器删除笔记完成 → 更新笔记列表和侧边栏计数

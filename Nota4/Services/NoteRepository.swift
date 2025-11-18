@@ -86,6 +86,20 @@ actor NoteRepositoryImpl: NoteRepositoryProtocol {
                     .filter(noteIds.contains(Note.Columns.noteId))
                     .filter(Note.Columns.isDeleted == false)
                 
+            case .noTags:
+                // 加载没有标签的笔记（在note_tags表中不存在的noteId）
+                let noteIdsWithTags = try String.fetchAll(
+                    db,
+                    sql: "SELECT DISTINCT note_id FROM note_tags"
+                )
+                request = request
+                    .filter(!noteIdsWithTags.contains(Note.Columns.noteId))
+                    .filter(Note.Columns.isDeleted == false)
+                
+            case .allTags:
+                // 全部标签：显示所有未删除的笔记（不管有没有标签）
+                request = request.filter(Note.Columns.isDeleted == false)
+                
             case .search:
                 // 不使用 FTS5，直接返回所有未删除的笔记
                 // 搜索逻辑在 filteredNotes 计算属性中实现（支持所有字符类型，不依赖分词机制）

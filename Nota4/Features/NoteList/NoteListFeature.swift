@@ -33,6 +33,8 @@ struct NoteListFeature {
             case none
             case category(SidebarFeature.State.Category)
             case tags(Set<String>)
+            case noTags  // 无标签的笔记
+            case allTags  // 全部标签（包括有标签和无标签的所有笔记）
             case search(String)
         }
         
@@ -64,6 +66,10 @@ struct NoteListFeature {
                         }
                     case .tags(let tags):
                         return !note.tags.isDisjoint(with: tags) && !note.isDeleted
+                    case .noTags:
+                        return note.tags.isEmpty && !note.isDeleted
+                    case .allTags:
+                        return !note.isDeleted  // 显示所有未删除的笔记（不管有没有标签）
                     case .search(let keyword):
                         guard !keyword.isEmpty else {
                             return !note.isDeleted

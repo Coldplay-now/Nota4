@@ -51,6 +51,20 @@ struct NoteEditorView: View {
                             }
                             .buttonStyle(.plain)
                             
+                            // 标签按钮
+                            Button {
+                                store.send(.tagEdit(.showTagEditPanel))
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "tag")
+                                    if !note.tags.isEmpty {
+                                        Text("\(note.tags.count)")
+                                            .font(.caption2)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            
                             // 删除按钮
                             Button(role: .destructive) {
                                 store.send(.requestDeleteNote)
@@ -60,6 +74,36 @@ struct NoteEditorView: View {
                             .buttonStyle(.plain)
                         }
                         .padding()
+                        
+                        // 标签显示区域（在标题栏下方）
+                        if !note.tags.isEmpty {
+                            HStack(spacing: 6) {
+                                Text("标签:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                
+                                // 标签列表
+                                ForEach(Array(note.tags.sorted()), id: \.self) { tag in
+                                    TagChip(tag: tag, onClick: {
+                                        store.send(.tagEdit(.showTagEditPanel))
+                                    })
+                                }
+                                
+                                // 添加标签按钮
+                                Button {
+                                    store.send(.tagEdit(.showTagEditPanel))
+                                } label: {
+                                    Image(systemName: "plus.circle")
+                                        .font(.caption)
+                                }
+                                .buttonStyle(.plain)
+                                
+                                Spacer()
+                            }
+                            .padding(.horizontal)
+                            .padding(.vertical, 6)
+                            .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
+                        }
                         
                         Divider()
                         
@@ -134,6 +178,12 @@ struct NoteEditorView: View {
                 }
             } message: {
                 Text("确定要删除这篇笔记吗？此操作可以在回收站中恢复。")
+            }
+            .sheet(isPresented: Binding(
+                get: { store.tagEdit.isTagEditPanelVisible },
+                set: { if !$0 { store.send(.tagEdit(.hideTagEditPanel)) } }
+            )) {
+                TagEditPanel(store: store)
             }
             .onChange(of: store.showImagePicker) { oldValue, newValue in
                 if newValue {

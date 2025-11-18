@@ -75,6 +75,19 @@ struct EditorFeature {
         
         var search: SearchState = SearchState()
         
+        // MARK: - Tag Edit State
+        
+        struct TagEditState: Equatable {
+            var isTagEditPanelVisible: Bool = false
+            var currentTags: Set<String> = []  // 当前编辑中的标签（临时状态）
+            var newTagInput: String = ""  // 新标签输入框内容
+            var availableTags: [String] = []  // 所有现有标签（用于建议）
+            var filteredSuggestions: [String] = []  // 根据输入过滤的建议标签
+            var isLoadingTags: Bool = false  // 是否正在加载标签列表
+        }
+        
+        var tagEdit: TagEditState = TagEditState()
+        
         // 从笔记列表搜索传递过来的关键词（用于自动高亮）
         var listSearchKeywords: [String] = []
         
@@ -126,6 +139,7 @@ struct EditorFeature {
         case togglePin
         case starToggled  // 星标切换完成通知
         case pinToggled   // 置顶切换完成通知
+        case tagsSaved    // 标签保存完成通知
         case requestDeleteNote
         case confirmDeleteNote
         case noteDeleted(String)  // 笔记删除完成通知（noteId）
@@ -200,6 +214,31 @@ struct EditorFeature {
         // MARK: - Search Actions
         
         case search(SearchAction)
+        
+        // MARK: - Tag Edit Actions
+        
+        case tagEdit(TagEditAction)
+        
+        enum TagEditAction: Equatable {
+            // 面板控制
+            case showTagEditPanel
+            case hideTagEditPanel
+            
+            // 标签操作
+            case addTag(String)
+            case removeTag(String)
+            case newTagInputChanged(String)
+            
+            // 数据加载
+            case loadAvailableTags
+            case availableTagsLoaded([String])
+            case availableTagsLoadFailed
+            
+            // 保存
+            case saveTags
+            case tagsSaved(Note)
+            case tagsSaveFailed
+        }
         
         enum SearchAction: Equatable {
             case showSearchPanel
@@ -504,11 +543,167 @@ struct EditorFeature {
                     await send(.pinToggled)  // 发送完成通知
                 }
                 
+            // MARK: - Tag Edit Actions
+            case .tagEdit(.showTagEditPanel):
+                state.tagEdit.isTagEditPanelVisible = true
+                state.tagEdit.currentTags = state.note?.tags ?? []
+                state.tagEdit.newTagInput = ""
+                state.tagEdit.filteredSuggestions = []
+                return .send(.tagEdit(.loadAvailableTags))
+                
+            case .tagEdit(.hideTagEditPanel):
+                state.tagEdit.isTagEditPanelVisible = false
+                state.tagEdit.currentTags = []
+                state.tagEdit.newTagInput = ""
+                state.tagEdit.filteredSuggestions = []
+                return .none
+                
+            case .tagEdit(.addTag(let tag)):
+                // 验证标签
+                let trimmedTag = tag.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmedTag.isEmpty,
+                      trimmedTag.count <= 20 else {
+                    return .none
+                }
+                
+                // 检查是否已存在（大小写不敏感）
+                let tagExists = state.tagEdit.currentTags.contains { existingTag in
+                    existingTag.caseInsensitiveCompare(trimmedTag) == .orderedSame
+                }
+                
+                guard !tagExists else {
+                    // 标签已存在，不重复添加
+                    return .none
+                }
+                
+                state.tagEdit.currentTags.insert(trimmedTag)
+                state.tagEdit.newTagInput = ""
+                // 更新过滤建议（排除已添加的标签，大小写不敏感）
+                state.tagEdit.filteredSuggestions = state.tagEdit.availableTags
+                    .filter { suggestion in
+                        // 根据输入过滤
+                        let matchesInput = state.tagEdit.newTagInput.isEmpty || 
+                            suggestion.localizedCaseInsensitiveContains(state.tagEdit.newTagInput)
+                        
+                        // 排除已添加的标签（大小写不敏感）
+                        let notInCurrentTags = !state.tagEdit.currentTags.contains { existingTag in
+                            existingTag.caseInsensitiveCompare(suggestion) == .orderedSame
+                        }
+                        
+                        return matchesInput && notInCurrentTags
+                    }
+                return .none
+                
+            case .tagEdit(.removeTag(let tag)):
+                state.tagEdit.currentTags.remove(tag)
+                // 更新过滤建议（排除已添加的标签，大小写不敏感）
+                state.tagEdit.filteredSuggestions = state.tagEdit.availableTags
+                    .filter { suggestion in
+                        // 根据输入过滤
+                        let matchesInput = state.tagEdit.newTagInput.isEmpty || 
+                            suggestion.localizedCaseInsensitiveContains(state.tagEdit.newTagInput)
+                        
+                        // 排除已添加的标签（大小写不敏感）
+                        let notInCurrentTags = !state.tagEdit.currentTags.contains { existingTag in
+                            existingTag.caseInsensitiveCompare(suggestion) == .orderedSame
+                        }
+                        
+                        return matchesInput && notInCurrentTags
+                    }
+                return .none
+                
+            case .tagEdit(.newTagInputChanged(let input)):
+                state.tagEdit.newTagInput = input
+                // 根据输入过滤建议，排除已添加的标签（大小写不敏感）
+                state.tagEdit.filteredSuggestions = state.tagEdit.availableTags
+                    .filter { suggestion in
+                        // 根据输入过滤
+                        let matchesInput = input.isEmpty || 
+                            suggestion.localizedCaseInsensitiveContains(input)
+                        
+                        // 排除已添加的标签（大小写不敏感）
+                        let notInCurrentTags = !state.tagEdit.currentTags.contains { existingTag in
+                            existingTag.caseInsensitiveCompare(suggestion) == .orderedSame
+                        }
+                        
+                        return matchesInput && notInCurrentTags
+                    }
+                return .none
+                
+            case .tagEdit(.loadAvailableTags):
+                state.tagEdit.isLoadingTags = true
+                return .run { send in
+                    do {
+                        let tags = try await noteRepository.fetchAllTags()
+                        let tagNames = tags.map { $0.name }
+                        await send(.tagEdit(.availableTagsLoaded(tagNames)))
+                    } catch {
+                        await send(.tagEdit(.availableTagsLoadFailed))
+                    }
+                }
+                
+            case .tagEdit(.availableTagsLoaded(let tags)):
+                state.tagEdit.availableTags = tags
+                state.tagEdit.isLoadingTags = false
+                // 更新过滤建议（排除已添加的标签，大小写不敏感）
+                state.tagEdit.filteredSuggestions = tags
+                    .filter { suggestion in
+                        // 根据输入过滤
+                        let matchesInput = state.tagEdit.newTagInput.isEmpty || 
+                            suggestion.localizedCaseInsensitiveContains(state.tagEdit.newTagInput)
+                        
+                        // 排除已添加的标签（大小写不敏感）
+                        let notInCurrentTags = !state.tagEdit.currentTags.contains { existingTag in
+                            existingTag.caseInsensitiveCompare(suggestion) == .orderedSame
+                        }
+                        
+                        return matchesInput && notInCurrentTags
+                    }
+                return .none
+                
+            case .tagEdit(.availableTagsLoadFailed):
+                state.tagEdit.isLoadingTags = false
+                return .none
+                
+            case .tagEdit(.saveTags):
+                guard var note = state.note else { return .none }
+                note.tags = state.tagEdit.currentTags
+                note.updated = date.now
+                
+                return .run { [note] send in
+                    do {
+                        try await noteRepository.updateNote(note)
+                        try await notaFileManager.updateNoteFile(note)
+                        await send(.tagEdit(.tagsSaved(note)))
+                    } catch {
+                        await send(.tagEdit(.tagsSaveFailed))
+                    }
+                }
+                
+            case .tagEdit(.tagsSaved(let note)):
+                state.note = note
+                state.tagEdit.isTagEditPanelVisible = false
+                state.tagEdit.currentTags = []
+                state.tagEdit.newTagInput = ""
+                state.tagEdit.filteredSuggestions = []
+                return .concatenate(
+                    .send(.saveCompleted),
+                    .send(.tagsSaved)  // 发送标签保存完成通知
+                )
+                
+            case .tagEdit(.tagsSaveFailed):
+                // 保存失败，保持面板打开，允许重试
+                return .none
+                
             case .starToggled:
                 // 完成通知，由 AppFeature 处理
                 return .none
                 
             case .pinToggled:
+                // 完成通知，由 AppFeature 处理
+                return .none
+                
+            case .tagsSaved:
                 // 完成通知，由 AppFeature 处理
                 return .none
                 
