@@ -23,6 +23,31 @@ struct StatusBarView: View {
                         .foregroundColor(.secondary)
                 }
                 
+                // 布局模式指示器（中间）
+                Button {
+                    // 循环切换布局模式
+                    let nextMode: LayoutMode
+                    switch store.layoutMode {
+                    case .threeColumn:
+                        nextMode = .twoColumn
+                    case .twoColumn:
+                        nextMode = .oneColumn
+                    case .oneColumn:
+                        nextMode = .threeColumn
+                    }
+                    store.send(.layoutModeChanged(nextMode))
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: store.layoutMode.icon)
+                            .font(.system(size: 10))
+                        Text(store.layoutMode.rawValue)
+                            .font(.system(size: 11))
+                    }
+                    .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("点击切换布局模式")
+                
                 Spacer()
                 
                 // 右侧：编辑器信息（仅当有打开的笔记时显示）

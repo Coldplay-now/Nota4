@@ -35,51 +35,14 @@ struct Nota4App: App {
                 }
                 .keyboardShortcut("i", modifiers: [.command, .shift])
                 
-                Menu("导出笔记") {
-                    // 导出当前笔记
-                    Menu("导出当前笔记") {
-                        Button("导出为 .nota") {
-                            store.send(.exportCurrentNote(.nota))
-                        }
-                        Button("导出为 .md") {
-                            store.send(.exportCurrentNote(.markdown))
-                        }
-                        Button("导出为 .html") {
-                            store.send(.exportCurrentNote(.html))
-                        }
-                        Button("导出为 .pdf") {
-                            store.send(.exportCurrentNote(.pdf))
-                        }
-                        Button("导出为 .png") {
-                            store.send(.exportCurrentNote(.png))
-                        }
-                    }
-                    
-                    Divider()
-                    
-                    // 导出选中笔记
-                    Menu("导出选中笔记") {
-                        Button("导出为 .nota") {
-                            store.send(.exportSelectedNotes(.nota))
-                        }
-                        Button("导出为 .md") {
-                            store.send(.exportSelectedNotes(.markdown))
-                        }
-                        Button("导出为 .html") {
-                            store.send(.exportSelectedNotes(.html))
-                        }
-                        Button("导出为 .pdf") {
-                            store.send(.exportSelectedNotes(.pdf))
-                        }
-                        Button("导出为 .png") {
-                            store.send(.exportSelectedNotes(.png))
-                        }
-                    }
-                    
-                    Divider()
-                    
-                    // 传统导出对话框（用于批量导出和配置选项）
-                    Button("导出笔记...") {
+                Button("导出笔记...") {
+                    // 如果有选中的笔记，导出选中的；否则导出当前笔记或所有笔记
+                    let selectedNotes = store.noteList.notes.filter { store.noteList.selectedNoteIds.contains($0.noteId) }
+                    if !selectedNotes.isEmpty {
+                        store.send(.showExport(selectedNotes))
+                    } else if let currentNote = store.editor.note {
+                        store.send(.showExport([currentNote]))
+                    } else {
                         store.send(.showExport([]))
                     }
                 }
@@ -133,6 +96,24 @@ struct Nota4App: App {
                 }
                 .keyboardShortcut("e", modifiers: [.command, .option, .shift])
             }
+            
+            // MARK: - View Commands (Layout Mode)
+            
+            CommandMenu("视图") {
+                Menu("布局模式") {
+                    Button("一栏（仅编辑）") {
+                        store.send(.layoutModeChanged(.oneColumn))
+                    }
+                    
+                    Button("两栏（列表 + 编辑）") {
+                        store.send(.layoutModeChanged(.twoColumn))
+                    }
+                    
+                    Button("三栏（分类 + 列表 + 编辑）") {
+                        store.send(.layoutModeChanged(.threeColumn))
+                    }
+                }
+            }
         }
     }
 }
@@ -147,23 +128,32 @@ struct AppView: View {
                 // 主内容区域
             NavigationSplitView(
                 columnVisibility: Binding(
-                    get: { store.columnVisibility },
-                    set: { store.send(.columnVisibilityChanged($0)) }
+                    get: { 
+                        // 返回当前布局模式对应的 columnVisibility
+                        store.layoutMode.columnVisibility
+                    },
+                    set: { newVisibility in
+                        // 当用户手动拖拽调整布局时，同步更新状态
+                        // 只有当新的 visibility 与当前 layoutMode 的 columnVisibility 不同时，才认为是用户手动调整
+                        if newVisibility != store.layoutMode.columnVisibility {
+                            store.send(.columnVisibilityChanged(newVisibility))
+                        }
+                    }
                 )
             ) {
-                // 侧边栏
+                // 侧边栏（所有模式都需要，NavigationSplitView 会自动控制显示/隐藏）
                 SidebarView(
                     store: store.scope(state: \.sidebar, action: \.sidebar)
                 )
                 .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 250)
             } content: {
-                // 笔记列表
+                // 笔记列表（所有模式都需要，NavigationSplitView 会自动控制显示/隐藏）
                 NoteListView(
                     store: store.scope(state: \.noteList, action: \.noteList)
                 )
-                    .navigationSplitViewColumnWidth(min: 280, ideal: 280, max: 500)
+                .navigationSplitViewColumnWidth(min: 280, ideal: 280, max: 500)
             } detail: {
-                // 编辑器
+                // 编辑器（所有模式都显示）
                 NoteEditorView(
                     store: store.scope(state: \.editor, action: \.editor)
                 )

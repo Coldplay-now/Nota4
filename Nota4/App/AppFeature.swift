@@ -1,6 +1,50 @@
 import ComposableArchitecture
 import SwiftUI
 
+// MARK: - Layout Mode
+
+enum LayoutMode: String, Equatable, CaseIterable {
+    case threeColumn = "三栏"
+    case twoColumn = "两栏"
+    case oneColumn = "一栏"
+    
+    var icon: String {
+        switch self {
+        case .threeColumn: return "rectangle.split.3x1"
+        case .twoColumn: return "rectangle.split.2x1"
+        case .oneColumn: return "rectangle"
+        }
+    }
+    
+    var description: String {
+        switch self {
+        case .threeColumn: return "分类 + 列表 + 编辑"
+        case .twoColumn: return "列表 + 编辑"
+        case .oneColumn: return "仅编辑"
+        }
+    }
+    
+    // 转换为 NavigationSplitViewVisibility
+    var columnVisibility: NavigationSplitViewVisibility {
+        switch self {
+        case .threeColumn: return .all
+        case .twoColumn: return .doubleColumn
+        case .oneColumn: return .detailOnly
+        }
+    }
+    
+    // 从 NavigationSplitViewVisibility 创建
+    static func from(_ visibility: NavigationSplitViewVisibility) -> LayoutMode {
+        switch visibility {
+        case .all: return .threeColumn
+        case .doubleColumn: return .twoColumn
+        case .detailOnly: return .oneColumn
+        case .automatic: return .threeColumn  // 默认三栏
+        default: return .threeColumn
+        }
+    }
+}
+
 // MARK: - App State
 
 @Reducer
@@ -13,10 +57,18 @@ struct AppFeature {
         var importFeature: ImportFeature.State?
         var exportFeature: ExportFeature.State?
         @Presents var settingsFeature: SettingsFeature.State?
-        var columnVisibility: NavigationSplitViewVisibility = .all
+        var layoutMode: LayoutMode = .threeColumn  // 新增布局模式状态
+        var columnVisibility: NavigationSplitViewVisibility = .all  // 保留，用于同步
         var preferences = EditorPreferences()
         
-        init() {}
+        init() {
+            // 从 UserDefaults 加载保存的布局模式
+            if let savedMode = UserDefaults.standard.string(forKey: "layoutMode"),
+               let mode = LayoutMode(rawValue: savedMode) {
+                self.layoutMode = mode
+                self.columnVisibility = mode.columnVisibility
+            }
+        }
     }
     
     // MARK: - App Action
@@ -29,6 +81,7 @@ struct AppFeature {
         case exportFeature(ExportFeature.Action)
         case settingsFeature(PresentationAction<SettingsFeature.Action>)
         case onAppear
+        case layoutModeChanged(LayoutMode)  // 新增布局模式切换 Action
         case columnVisibilityChanged(NavigationSplitViewVisibility)
         case showImport
         case dismissImport
@@ -115,8 +168,34 @@ struct AppFeature {
                     .send(.editor(.applyPreferences(prefs)))
                 )
                 
+            case .layoutModeChanged(let mode):
+                // 更新布局模式
+                state.layoutMode = mode
+                state.columnVisibility = mode.columnVisibility
+                
+                // 保存到 UserDefaults
+                UserDefaults.standard.set(mode.rawValue, forKey: "layoutMode")
+                
+                return .none
+                
             case .columnVisibilityChanged(let visibility):
+                // 同步 columnVisibility 变化到 layoutMode
+                // 当用户手动拖拽调整布局时，同步更新 layoutMode
+                // 但如果新的 visibility 与当前 layoutMode 的 columnVisibility 相同，说明是程序设置的，不需要更新
+                let expectedVisibility = state.layoutMode.columnVisibility
+                if visibility == expectedVisibility {
+                    // 这是程序设置导致的，只需要同步 columnVisibility，不需要更新 layoutMode
+                    state.columnVisibility = visibility
+                    return .none
+                }
+                
+                // 这是用户手动拖拽导致的，需要更新 layoutMode
                 state.columnVisibility = visibility
+                state.layoutMode = LayoutMode.from(visibility)
+                
+                // 保存到 UserDefaults
+                UserDefaults.standard.set(state.layoutMode.rawValue, forKey: "layoutMode")
+                
                 return .none
                 
             case .showImport:
