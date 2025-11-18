@@ -153,6 +153,9 @@ struct EditorFeature {
         case selectionChanged(NSRange)
         case focusChanged(Bool)
         
+        // 新增：导出 Actions（转发到 AppFeature）
+        case exportCurrentNote(ExportFeature.ExportFormat)
+        
         // MARK: - Preview Actions
         
         case preview(PreviewAction)
@@ -1226,6 +1229,10 @@ struct EditorFeature {
                 if !isFocused {
                     return .send(.manualSave)
                 }
+                return .none
+                
+            case .exportCurrentNote:
+                // 导出 action 由 AppFeature 处理，这里不做任何操作
                 return .none
             
             // MARK: - Preview Action Handlers

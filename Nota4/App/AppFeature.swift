@@ -38,6 +38,12 @@ struct AppFeature {
         case dismissSettings
         case preferencesLoaded(EditorPreferences)
         case preferencesUpdated(EditorPreferences)
+        
+        // 新增：导出 Actions
+        case exportCurrentNote(ExportFeature.ExportFormat)
+        case exportNote(Note, ExportFeature.ExportFormat)
+        case exportSelectedNotes(ExportFeature.ExportFormat)
+        case exportNotes([Note], ExportFeature.ExportFormat)
     }
     
     // MARK: - App Environment (Dependencies)
@@ -139,6 +145,7 @@ struct AppFeature {
                 return .none
                 
             case .showExport(let notes):
+                // showExport 现在只用于传统导出对话框，格式由用户选择
                 state.exportFeature = ExportFeature.State(notesToExport: notes)
                 return .none
                 
@@ -148,6 +155,113 @@ struct AppFeature {
                 
             case .exportFeature:
                 return .none
+                
+            // MARK: - Export Actions
+            
+            case .exportCurrentNote(let format):
+                // 导出当前正在编辑的笔记
+                guard let note = state.editor.note else {
+                    return .none
+                }
+                return .send(.exportNote(note, format))
+                
+            case .exportNote(let note, let format):
+                // 单文件导出：显示保存对话框
+                return .run { send in
+                    await MainActor.run {
+                        let defaultName = FileDialogHelpers.defaultFileName(for: note, format: format)
+                        let fileExtension = FileDialogHelpers.fileExtension(for: format)
+                        
+                        FileDialogHelpers.showSavePanel(
+                            defaultName: defaultName,
+                            allowedFileTypes: [fileExtension]
+                        ) { url in
+                            guard let url = url else { return }
+                            
+                            // 创建导出状态并触发导出
+                            Task { @MainActor in
+                                // 发送导出 action（格式会在 exportToFile 中处理）
+                                send(.showExport([note]))
+                                
+                                // 等待 ExportFeature 初始化后触发导出
+                                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1秒
+                                
+                                // 更新格式
+                                send(.exportFeature(.binding(.set(\.exportFormat, format))))
+                                
+                                // 再等待一下确保格式已更新
+                                try? await Task.sleep(nanoseconds: 50_000_000) // 0.05秒
+                                send(.exportFeature(.exportToFile(url, format)))
+                            }
+                        }
+                    }
+                }
+                
+            case .exportSelectedNotes(let format):
+                // 导出选中的笔记（批量）
+                let selectedNoteIds = state.noteList.selectedNoteIds
+                guard !selectedNoteIds.isEmpty else {
+                    return .none
+                }
+                
+                // 从列表中获取选中的笔记
+                let selectedNotes = state.noteList.notes.filter { selectedNoteIds.contains($0.noteId) }
+                return .send(.exportNotes(selectedNotes, format))
+                
+            case .exportNotes(let notes, let format):
+                // 批量导出：显示目录选择对话框
+                guard !notes.isEmpty else {
+                    return .none
+                }
+                
+                if notes.count == 1 {
+                    // 单文件导出
+                    return .send(.exportNote(notes[0], format))
+                } else {
+                    // 批量导出：显示目录选择对话框
+                    return .run { send in
+                        await MainActor.run {
+                            FileDialogHelpers.showDirectoryPanel { url in
+                                guard let url = url else { return }
+                                
+                                // 创建导出状态并触发导出
+                                Task { @MainActor in
+                                    // 将 Services.ExportFormat 转换为 ExportFeature.ExportFormat
+                                    let exportFeatureFormat: ExportFeature.ExportFormat
+                                    switch format {
+                                    case .nota:
+                                        exportFeatureFormat = .nota
+                                    case .markdown:
+                                        exportFeatureFormat = .markdown
+                                    case .html:
+                                        exportFeatureFormat = .html
+                                    case .pdf:
+                                        exportFeatureFormat = .pdf
+                                    case .png:
+                                        exportFeatureFormat = .png
+                                    }
+                                    
+                                    // 创建导出状态并设置格式
+                                    var exportState = ExportFeature.State(notesToExport: notes, exportFormat: exportFeatureFormat)
+                                    exportState.exportMode = .multiple
+                                    
+                                    // 设置导出状态（使用带格式的初始化）
+                                    send(.showExport(notes))
+                                    
+                                    // 等待 ExportFeature 初始化后设置格式并触发导出
+                                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1秒
+                                    
+                                    // 更新格式
+                                    send(.exportFeature(.binding(.set(\.exportFormat, exportFeatureFormat))))
+                                    
+                                    // 再等待一下确保格式已更新
+                                    try? await Task.sleep(nanoseconds: 50_000_000) // 0.05秒
+                                    send(.exportFeature(.exportToDirectory(url)))
+                                }
+                            }
+                        }
+                    }
+                }
                 
             case .showSettings:
                 state.settingsFeature = SettingsFeature.State(editorPreferences: state.preferences)
@@ -359,6 +473,17 @@ struct AppFeature {
             // 笔记列表请求创建 → 转发给编辑器
             case .noteList(.createNote):
                 return .send(.editor(.createNote))
+                
+            // 笔记列表导出 → 转发到 AppFeature 导出 actions
+            case .noteList(.exportNote(let note, let format)):
+                return .send(.exportNote(note, format))
+                
+            case .noteList(.exportNotes(let notes, let format)):
+                return .send(.exportNotes(notes, format))
+                
+            // 编辑器导出 → 转发到 AppFeature 导出 actions
+            case .editor(.exportCurrentNote(let format)):
+                return .send(.exportCurrentNote(format))
                 
             default:
                 return .none

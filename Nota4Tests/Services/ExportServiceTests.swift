@@ -125,6 +125,54 @@ final class ExportServiceTests: XCTestCase {
         }
     }
     
+    // MARK: - Export HTML File Tests
+    
+    func testExportAsHTMLSuccess() async throws {
+        // Given
+        let note = Note(noteId: "test-id", title: "Test Note", content: "# Test\n\nContent")
+        let testURL = URL(fileURLWithPath: "/test/note.html")
+        let options = HTMLExportOptions()
+        
+        // When
+        try await exportService.exportAsHTML(note: note, to: testURL, options: options)
+        
+        // Then
+        let notesCount = await exportService.exportedNotes.count
+        XCTAssertEqual(notesCount, 1)
+    }
+    
+    // MARK: - Export PDF File Tests
+    
+    func testExportAsPDFSuccess() async throws {
+        // Given
+        let note = Note(noteId: "test-id", title: "Test Note", content: "# Test\n\nContent")
+        let testURL = URL(fileURLWithPath: "/test/note.pdf")
+        let options = PDFExportOptions()
+        
+        // When
+        try await exportService.exportAsPDF(note: note, to: testURL, options: options)
+        
+        // Then
+        let notesCount = await exportService.exportedNotes.count
+        XCTAssertEqual(notesCount, 1)
+    }
+    
+    // MARK: - Export PNG File Tests
+    
+    func testExportAsPNGSuccess() async throws {
+        // Given
+        let note = Note(noteId: "test-id", title: "Test Note", content: "# Test\n\nContent")
+        let testURL = URL(fileURLWithPath: "/test/note.png")
+        let options = PNGExportOptions()
+        
+        // When
+        try await exportService.exportAsPNG(note: note, to: testURL, options: options)
+        
+        // Then
+        let notesCount = await exportService.exportedNotes.count
+        XCTAssertEqual(notesCount, 1)
+    }
+    
     // MARK: - Error Handling Tests
     
     func testExportServiceErrors() {

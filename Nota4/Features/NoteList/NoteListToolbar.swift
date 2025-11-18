@@ -41,6 +41,41 @@ struct NoteListToolbar: View {
                 // 排序菜单
                 SortMenuButton(store: store)
                 
+                // 导出按钮（仅在多选时显示）
+                if store.selectedNoteIds.count > 1 {
+                    Divider()
+                        .frame(height: 16)
+                    
+                    Menu {
+                        Button("导出为 .nota") {
+                            let notesToExport = store.notes.filter { store.selectedNoteIds.contains($0.noteId) }
+                            store.send(.exportNotes(notesToExport, .nota))
+                        }
+                        Button("导出为 .md") {
+                            let notesToExport = store.notes.filter { store.selectedNoteIds.contains($0.noteId) }
+                            store.send(.exportNotes(notesToExport, .markdown))
+                        }
+                        Button("导出为 .html") {
+                            let notesToExport = store.notes.filter { store.selectedNoteIds.contains($0.noteId) }
+                            store.send(.exportNotes(notesToExport, .html))
+                        }
+                        Button("导出为 .pdf") {
+                            let notesToExport = store.notes.filter { store.selectedNoteIds.contains($0.noteId) }
+                            store.send(.exportNotes(notesToExport, .pdf))
+                        }
+                        Button("导出为 .png") {
+                            let notesToExport = store.notes.filter { store.selectedNoteIds.contains($0.noteId) }
+                            store.send(.exportNotes(notesToExport, .png))
+                        }
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 16, weight: .regular))
+                            .frame(width: 32, height: 32)
+                    }
+                    .buttonStyle(.plain)
+                    .help("导出选中笔记")
+                }
+                
                 Spacer()
             }
             .padding(.horizontal, 16)

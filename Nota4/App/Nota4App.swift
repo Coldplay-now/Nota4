@@ -35,9 +35,53 @@ struct Nota4App: App {
                 }
                 .keyboardShortcut("i", modifiers: [.command, .shift])
                 
-                Button("导出笔记...") {
-                    // 导出当前选中的笔记或所有笔记
-                    store.send(.showExport([]))
+                Menu("导出笔记") {
+                    // 导出当前笔记
+                    Menu("导出当前笔记") {
+                        Button("导出为 .nota") {
+                            store.send(.exportCurrentNote(.nota))
+                        }
+                        Button("导出为 .md") {
+                            store.send(.exportCurrentNote(.markdown))
+                        }
+                        Button("导出为 .html") {
+                            store.send(.exportCurrentNote(.html))
+                        }
+                        Button("导出为 .pdf") {
+                            store.send(.exportCurrentNote(.pdf))
+                        }
+                        Button("导出为 .png") {
+                            store.send(.exportCurrentNote(.png))
+                        }
+                    }
+                    
+                    Divider()
+                    
+                    // 导出选中笔记
+                    Menu("导出选中笔记") {
+                        Button("导出为 .nota") {
+                            store.send(.exportSelectedNotes(.nota))
+                        }
+                        Button("导出为 .md") {
+                            store.send(.exportSelectedNotes(.markdown))
+                        }
+                        Button("导出为 .html") {
+                            store.send(.exportSelectedNotes(.html))
+                        }
+                        Button("导出为 .pdf") {
+                            store.send(.exportSelectedNotes(.pdf))
+                        }
+                        Button("导出为 .png") {
+                            store.send(.exportSelectedNotes(.png))
+                        }
+                    }
+                    
+                    Divider()
+                    
+                    // 传统导出对话框（用于批量导出和配置选项）
+                    Button("导出笔记...") {
+                        store.send(.showExport([]))
+                    }
                 }
                 .keyboardShortcut("e", modifiers: [.command, .shift])
             }

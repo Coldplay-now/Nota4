@@ -188,6 +188,35 @@ struct MoreMenu: View {
                     .keyboardShortcut("p", modifiers: [.command, .shift])
                     .disabled(store.note == nil)
                 }
+                
+                Divider()
+                
+                Section("导出") {
+                    Button("导出为 .nota") {
+                        store.send(.exportCurrentNote(.nota))
+                    }
+                    .disabled(store.note == nil)
+                    
+                    Button("导出为 .md") {
+                        store.send(.exportCurrentNote(.markdown))
+                    }
+                    .disabled(store.note == nil)
+                    
+                    Button("导出为 .html") {
+                        store.send(.exportCurrentNote(.html))
+                    }
+                    .disabled(store.note == nil)
+                    
+                    Button("导出为 .pdf") {
+                        store.send(.exportCurrentNote(.pdf))
+                    }
+                    .disabled(store.note == nil)
+                    
+                    Button("导出为 .png") {
+                        store.send(.exportCurrentNote(.png))
+                    }
+                    .disabled(store.note == nil)
+                }
             } label: {
                 Label("更多", systemImage: "ellipsis.circle")
                     .labelStyle(.iconOnly)

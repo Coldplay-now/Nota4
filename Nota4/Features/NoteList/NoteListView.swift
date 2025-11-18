@@ -261,6 +261,54 @@ struct NoteListView: View {
                     
                     Divider()
                     
+                    // 导出菜单
+                    if isBatchSelection {
+                        // 批量导出
+                        Menu("批量导出为...") {
+                            Button(".nota") {
+                                let notesToExport = store.notes.filter { store.selectedNoteIds.contains($0.noteId) }
+                                store.send(.exportNotes(notesToExport, .nota))
+                            }
+                            Button(".md") {
+                                let notesToExport = store.notes.filter { store.selectedNoteIds.contains($0.noteId) }
+                                store.send(.exportNotes(notesToExport, .markdown))
+                            }
+                            Button(".html") {
+                                let notesToExport = store.notes.filter { store.selectedNoteIds.contains($0.noteId) }
+                                store.send(.exportNotes(notesToExport, .html))
+                            }
+                            Button(".pdf") {
+                                let notesToExport = store.notes.filter { store.selectedNoteIds.contains($0.noteId) }
+                                store.send(.exportNotes(notesToExport, .pdf))
+                            }
+                            Button(".png") {
+                                let notesToExport = store.notes.filter { store.selectedNoteIds.contains($0.noteId) }
+                                store.send(.exportNotes(notesToExport, .png))
+                            }
+                        }
+                    } else {
+                        // 单个笔记导出
+                        Menu("导出为...") {
+                            Button(".nota") {
+                                store.send(.exportNote(note, .nota))
+                            }
+                            Button(".md") {
+                                store.send(.exportNote(note, .markdown))
+                            }
+                            Button(".html") {
+                                store.send(.exportNote(note, .html))
+                            }
+                            Button(".pdf") {
+                                store.send(.exportNote(note, .pdf))
+                            }
+                            Button(".png") {
+                                store.send(.exportNote(note, .png))
+                            }
+                        }
+                    }
+                    
+                    Divider()
+                    
                     Button("删除", role: .destructive) {
                         if isBatchSelection {
                             store.send(.deleteNotes(selectedNotes))

@@ -147,6 +147,10 @@ struct NoteListFeature {
         case requestPermanentDelete(Set<String>)
         case confirmPermanentDelete
         case cancelPermanentDelete
+        
+        // 新增：导出 Actions（转发到 AppFeature）
+        case exportNote(Note, ExportFeature.ExportFormat)
+        case exportNotes([Note], ExportFeature.ExportFormat)
     }
     
     // MARK: - Dependencies
@@ -369,6 +373,10 @@ struct NoteListFeature {
                 } else {
                     print("⚠️ [LIST] Note not found in list")
                 }
+                return .none
+                
+            case .exportNote, .exportNotes:
+                // 导出 actions 由 AppFeature 处理，这里不做任何操作
                 return .none
             }
         }
