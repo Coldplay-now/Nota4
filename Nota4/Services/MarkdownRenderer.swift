@@ -562,6 +562,7 @@ actor MarkdownRenderer {
         options: RenderOptions
     ) async -> String {
         let css = await getCSS(for: options.themeId)
+        let codeHighlightCSS = await getCodeHighlightCSS(for: options.themeId)
         let imageErrorCSS = getImageErrorCSS()
         
         return """
@@ -572,6 +573,7 @@ actor MarkdownRenderer {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Preview</title>
             \(css)
+            \(codeHighlightCSS)
             \(imageErrorCSS)
             \(getMermaidScript())
             \(getKaTeXScript())
@@ -815,6 +817,315 @@ actor MarkdownRenderer {
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
         <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
         """
+    }
+    
+    /// 获取代码高亮 CSS 样式
+    /// - Parameter themeId: 主题 ID（nil 表示使用当前主题）
+    /// - Returns: 代码高亮 CSS 样式字符串
+    private func getCodeHighlightCSS(for themeId: String?) async -> String {
+        // 1. 确定要使用的主题
+        let theme: ThemeConfig
+        if let themeId = themeId {
+            let availableThemes = await themeManager.availableThemes
+            if let selectedTheme = availableThemes.first(where: { $0.id == themeId }) {
+                theme = selectedTheme
+            } else {
+                theme = await themeManager.currentTheme
+            }
+        } else {
+            theme = await themeManager.currentTheme
+        }
+        
+        // 2. 根据 codeHighlightTheme 获取颜色方案
+        let colorScheme = getColorScheme(for: theme.codeHighlightTheme)
+        
+        // 3. 生成 CSS（包含浅色和深色模式）
+        // 注意：Splash 生成的 HTML 结构是 <code><span class="keyword">...</span></code>
+        // 选择器需要匹配 .code-block code .keyword 或 .code-block code span.keyword
+        return """
+        <style>
+        /* Splash 代码高亮样式 - 浅色模式（默认） */
+        .code-block code .keyword,
+        .code-block code span.keyword {
+            color: \(colorScheme.light.keyword) !important;
+            font-weight: 600;
+        }
+        
+        .code-block code .string,
+        .code-block code span.string {
+            color: \(colorScheme.light.string) !important;
+        }
+        
+        .code-block code .number,
+        .code-block code span.number {
+            color: \(colorScheme.light.number) !important;
+        }
+        
+        .code-block code .comment,
+        .code-block code span.comment {
+            color: \(colorScheme.light.comment) !important;
+            font-style: italic;
+        }
+        
+        .code-block code .call,
+        .code-block code span.call {
+            color: \(colorScheme.light.call) !important;
+        }
+        
+        .code-block code .type,
+        .code-block code span.type {
+            color: \(colorScheme.light.type) !important;
+        }
+        
+        .code-block code .property,
+        .code-block code span.property {
+            color: \(colorScheme.light.property) !important;
+        }
+        
+        .code-block code .dotAccess,
+        .code-block code span.dotAccess {
+            color: \(colorScheme.light.dotAccess) !important;
+        }
+        
+        .code-block code .preprocessing,
+        .code-block code span.preprocessing {
+            color: \(colorScheme.light.preprocessing) !important;
+        }
+        
+        /* Splash 代码高亮样式 - 深色模式 */
+        @media (prefers-color-scheme: dark) {
+            .code-block code .keyword,
+            .code-block code span.keyword {
+                color: \(colorScheme.dark.keyword) !important;
+                font-weight: 600;
+            }
+            
+            .code-block code .string,
+            .code-block code span.string {
+                color: \(colorScheme.dark.string) !important;
+            }
+            
+            .code-block code .number,
+            .code-block code span.number {
+                color: \(colorScheme.dark.number) !important;
+            }
+            
+            .code-block code .comment,
+            .code-block code span.comment {
+                color: \(colorScheme.dark.comment) !important;
+                font-style: italic;
+            }
+            
+            .code-block code .call,
+            .code-block code span.call {
+                color: \(colorScheme.dark.call) !important;
+            }
+            
+            .code-block code .type,
+            .code-block code span.type {
+                color: \(colorScheme.dark.type) !important;
+            }
+            
+            .code-block code .property,
+            .code-block code span.property {
+                color: \(colorScheme.dark.property) !important;
+            }
+            
+            .code-block code .dotAccess,
+            .code-block code span.dotAccess {
+                color: \(colorScheme.dark.dotAccess) !important;
+            }
+            
+            .code-block code .preprocessing,
+            .code-block code span.preprocessing {
+                color: \(colorScheme.dark.preprocessing) !important;
+            }
+        }
+        </style>
+        """
+    }
+    
+    // MARK: - Code Highlight Color Schemes
+    
+    /// 代码高亮颜色方案
+    private struct CodeHighlightColors {
+        let keyword: String
+        let string: String
+        let number: String
+        let comment: String
+        let call: String
+        let type: String
+        let property: String
+        let dotAccess: String
+        let preprocessing: String
+    }
+    
+    /// 颜色方案（包含浅色和深色）
+    private struct ColorScheme {
+        let light: CodeHighlightColors
+        let dark: CodeHighlightColors
+    }
+    
+    /// 根据 CodeTheme 获取颜色方案
+    private func getColorScheme(for codeTheme: CodeTheme) -> ColorScheme {
+        switch codeTheme {
+        case .xcode:
+            return ColorScheme(
+                light: CodeHighlightColors(
+                    keyword: "#AA0D91",    // 紫色
+                    string: "#0080FF",     // 蓝色
+                    number: "#1C00CF",     // 深蓝
+                    comment: "#007400",     // 绿色
+                    call: "#643820",       // 棕色
+                    type: "#643820",        // 棕色
+                    property: "#643820",     // 棕色
+                    dotAccess: "#643820",   // 棕色
+                    preprocessing: "#643820" // 棕色
+                ),
+                dark: CodeHighlightColors(
+                    keyword: "#FF7AB2",     // 粉红
+                    string: "#FC6A5D",      // 橙红
+                    number: "#D0BF69",     // 黄色
+                    comment: "#6A9955",     // 绿色
+                    call: "#4EC9B0",       // 青色
+                    type: "#4EC9B0",       // 青色
+                    property: "#4EC9B0",   // 青色
+                    dotAccess: "#4EC9B0",  // 青色
+                    preprocessing: "#4EC9B0" // 青色
+                )
+            )
+            
+        case .github:
+            return ColorScheme(
+                light: CodeHighlightColors(
+                    keyword: "#D73A49",    // 红色
+                    string: "#032F62",      // 深蓝
+                    number: "#005CC5",      // 蓝色
+                    comment: "#6A737D",      // 灰色
+                    call: "#6F42C1",        // 紫色
+                    type: "#6F42C1",        // 紫色
+                    property: "#005CC5",     // 蓝色
+                    dotAccess: "#6F42C1",    // 紫色
+                    preprocessing: "#6A737D" // 灰色
+                ),
+                dark: CodeHighlightColors(
+                    keyword: "#FF79C6",     // 粉红
+                    string: "#98D982",      // 绿色
+                    number: "#BD93F9",      // 紫色
+                    comment: "#6272A4",      // 蓝灰
+                    call: "#50FA7B",        // 绿色
+                    type: "#8BE9FD",        // 青色
+                    property: "#50FA7B",     // 绿色
+                    dotAccess: "#8BE9FD",    // 青色
+                    preprocessing: "#6272A4" // 蓝灰
+                )
+            )
+            
+        case .monokai:
+            // Monokai 主要是深色主题，浅色模式使用类似 Dracula 的配色
+            return ColorScheme(
+                light: CodeHighlightColors(
+                    keyword: "#A626A4",     // 紫色
+                    string: "#50A14F",      // 绿色
+                    number: "#986801",      // 黄色
+                    comment: "#A0A1A7",      // 灰色
+                    call: "#4078F2",        // 蓝色
+                    type: "#E45649",        // 红色
+                    property: "#4078F2",     // 蓝色
+                    dotAccess: "#4078F2",   // 蓝色
+                    preprocessing: "#A0A1A7" // 灰色
+                ),
+                dark: CodeHighlightColors(
+                    keyword: "#F92672",     // 粉红
+                    string: "#E6DB74",      // 黄色
+                    number: "#AE81FF",      // 紫色
+                    comment: "#75715E",      // 灰绿
+                    call: "#66D9EF",        // 青色
+                    type: "#A6E22E",        // 绿色
+                    property: "#66D9EF",     // 青色
+                    dotAccess: "#66D9EF",   // 青色
+                    preprocessing: "#75715E" // 灰绿
+                )
+            )
+            
+        case .dracula:
+            return ColorScheme(
+                light: CodeHighlightColors(
+                    keyword: "#A626A4",     // 紫色
+                    string: "#50A14F",      // 绿色
+                    number: "#986801",      // 黄色
+                    comment: "#A0A1A7",      // 灰色
+                    call: "#4078F2",        // 蓝色
+                    type: "#E45649",        // 红色
+                    property: "#4078F2",     // 蓝色
+                    dotAccess: "#4078F2",   // 蓝色
+                    preprocessing: "#A0A1A7" // 灰色
+                ),
+                dark: CodeHighlightColors(
+                    keyword: "#FF79C6",     // 粉红
+                    string: "#F1FA8C",      // 黄色
+                    number: "#BD93F9",      // 紫色
+                    comment: "#6272A4",      // 蓝灰
+                    call: "#50FA7B",        // 绿色
+                    type: "#8BE9FD",        // 青色
+                    property: "#50FA7B",     // 绿色
+                    dotAccess: "#8BE9FD",    // 青色
+                    preprocessing: "#6272A4" // 蓝灰
+                )
+            )
+            
+        case .solarizedLight:
+            return ColorScheme(
+                light: CodeHighlightColors(
+                    keyword: "#859900",      // 绿色
+                    string: "#2AA198",       // 青色
+                    number: "#D33682",      // 品红
+                    comment: "#93A1A1",      // 浅灰
+                    call: "#268BD2",        // 蓝色
+                    type: "#B58900",        // 黄色
+                    property: "#268BD2",     // 蓝色
+                    dotAccess: "#268BD2",    // 蓝色
+                    preprocessing: "#93A1A1" // 浅灰
+                ),
+                dark: CodeHighlightColors(
+                    keyword: "#859900",     // 绿色
+                    string: "#2AA198",       // 青色
+                    number: "#D33682",       // 品红
+                    comment: "#586E75",      // 深灰
+                    call: "#268BD2",        // 蓝色
+                    type: "#B58900",        // 黄色
+                    property: "#268BD2",     // 蓝色
+                    dotAccess: "#268BD2",    // 蓝色
+                    preprocessing: "#586E75" // 深灰
+                )
+            )
+            
+        case .solarizedDark:
+            return ColorScheme(
+                light: CodeHighlightColors(
+                    keyword: "#859900",     // 绿色
+                    string: "#2AA198",       // 青色
+                    number: "#D33682",      // 品红
+                    comment: "#586E75",      // 深灰
+                    call: "#268BD2",        // 蓝色
+                    type: "#B58900",        // 黄色
+                    property: "#268BD2",     // 蓝色
+                    dotAccess: "#268BD2",    // 蓝色
+                    preprocessing: "#586E75" // 深灰
+                ),
+                dark: CodeHighlightColors(
+                    keyword: "#859900",      // 绿色
+                    string: "#2AA198",       // 青色
+                    number: "#D33682",       // 品红
+                    comment: "#586E75",       // 深灰
+                    call: "#268BD2",        // 蓝色
+                    type: "#B58900",         // 黄色
+                    property: "#268BD2",     // 蓝色
+                    dotAccess: "#268BD2",    // 蓝色
+                    preprocessing: "#586E75" // 深灰
+                )
+            )
+        }
     }
     
     /// 获取无效图片的 CSS 样式
