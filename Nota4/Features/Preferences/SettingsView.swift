@@ -99,7 +99,7 @@ private struct EditorSettingsPanel: View {
     @Bindable var store: StoreOf<SettingsFeature>
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: .leading, spacing: 16) {
             // 标题
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
@@ -112,38 +112,36 @@ private struct EditorSettingsPanel: View {
                 }
                 Spacer()
             }
-            .padding(.horizontal, 32)
-            .padding(.top, 32)
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
             
             Divider()
             
             // 字体设置
-            SettingSection(title: "字体", icon: "textformat") {
+            CompactSettingSection {
                 FontSettingsView(store: store)
             }
             
             Divider()
             
-            // 排版设置
-            SettingSection(title: "排版", icon: "text.alignleft") {
-                TypographySettingsView(store: store)
-            }
-            
-            Divider()
-            
-            // 布局设置
-            SettingSection(title: "布局", icon: "sidebar.left") {
-                LayoutSettingsView(store: store)
+            // 排版和布局设置（合并）
+            CompactSettingSection {
+                Text("排版布局")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                    .padding(.bottom, 4)
+                
+                TypographyAndLayoutSettingsView(store: store)
             }
             
             Divider()
             
             // 配置管理
-            SettingSection(title: "配置管理", icon: "gearshape") {
+            CompactSettingSection {
                 ConfigManagementView(store: store)
             }
             
-            Spacer(minLength: 32)
+            Spacer(minLength: 24)
         }
     }
 }
@@ -168,6 +166,20 @@ private struct SettingSection<Content: View>: View {
     }
 }
 
+// MARK: - Compact Setting Section (无标题版本)
+
+private struct CompactSettingSection<Content: View>: View {
+    @ViewBuilder let content: Content
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            content
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 12)
+    }
+}
+
 // MARK: - Font Settings
 
 private struct FontSettingsView: View {
@@ -176,17 +188,16 @@ private struct FontSettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // 正文字体
-            HStack {
+            HStack(alignment: .center, spacing: 12) {
                 Text("正文字体")
-                    .frame(width: 100, alignment: .leading)
-                    .foregroundStyle(.secondary)
+                    .frame(width: 80, alignment: .leading)
+                    .font(.subheadline)
                 
-                Picker("", selection: $store.editorPreferences.bodyFontName) {
-                    ForEach(EditorPreferences.systemFonts, id: \.self) { font in
-                        Text(font).tag(font)
-                    }
-                }
-                .frame(width: 180)
+                FontPickerView(
+                    selectedFont: $store.editorPreferences.bodyFontName,
+                    fonts: EditorPreferences.allSystemFonts
+                )
+                .frame(width: 180, alignment: .leading)
                 
                 Stepper("\(Int(store.editorPreferences.bodyFontSize)) pt",
                        value: $store.editorPreferences.bodyFontSize,
@@ -196,17 +207,16 @@ private struct FontSettingsView: View {
             }
             
             // 标题字体
-            HStack {
+            HStack(alignment: .center, spacing: 12) {
                 Text("标题字体")
-                    .frame(width: 100, alignment: .leading)
-                    .foregroundStyle(.secondary)
+                    .frame(width: 80, alignment: .leading)
+                    .font(.subheadline)
                 
-                Picker("", selection: $store.editorPreferences.titleFontName) {
-                    ForEach(EditorPreferences.systemFonts, id: \.self) { font in
-                        Text(font).tag(font)
-                    }
-                }
-                .frame(width: 180)
+                FontPickerView(
+                    selectedFont: $store.editorPreferences.titleFontName,
+                    fonts: EditorPreferences.allSystemFonts
+                )
+                .frame(width: 180, alignment: .leading)
                 
                 Stepper("\(Int(store.editorPreferences.titleFontSize)) pt",
                        value: $store.editorPreferences.titleFontSize,
@@ -216,17 +226,16 @@ private struct FontSettingsView: View {
             }
             
             // 代码字体
-            HStack {
+            HStack(alignment: .center, spacing: 12) {
                 Text("代码字体")
-                    .frame(width: 100, alignment: .leading)
-                    .foregroundStyle(.secondary)
+                    .frame(width: 80, alignment: .leading)
+                    .font(.subheadline)
                 
-                Picker("", selection: $store.editorPreferences.codeFontName) {
-                    ForEach(EditorPreferences.monospacedFonts, id: \.self) { font in
-                        Text(font).tag(font)
-                    }
-                }
-                .frame(width: 180)
+                FontPickerView(
+                    selectedFont: $store.editorPreferences.codeFontName,
+                    fonts: EditorPreferences.allMonospacedFonts
+                )
+                .frame(width: 180, alignment: .leading)
                 
                 Stepper("\(Int(store.editorPreferences.codeFontSize)) pt",
                        value: $store.editorPreferences.codeFontSize,
@@ -238,17 +247,18 @@ private struct FontSettingsView: View {
     }
 }
 
-// MARK: - Typography Settings
+// MARK: - Typography and Layout Settings (合并)
 
-private struct TypographySettingsView: View {
+private struct TypographyAndLayoutSettingsView: View {
     @Bindable var store: StoreOf<SettingsFeature>
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            // 排版设置
             SliderRow(
                 title: "行间距",
                 value: $store.editorPreferences.lineSpacing,
-                range: 4...12,
+                range: 4...50,
                 unit: "pt",
                 step: 1
             )
@@ -256,33 +266,30 @@ private struct TypographySettingsView: View {
             SliderRow(
                 title: "段落间距",
                 value: $store.editorPreferences.paragraphSpacing,
-                range: 0.5...2.0,
+                range: 0.5...6.0,
                 unit: "em",
                 step: 0.1
             )
             
-            SliderRow(
-                title: "最大行宽",
-                value: $store.editorPreferences.maxWidth,
-                range: 600...1200,
-                unit: "pt",
-                step: 50
-            )
-        }
-    }
-}
-
-// MARK: - Layout Settings
-
-private struct LayoutSettingsView: View {
-    @Bindable var store: StoreOf<SettingsFeature>
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                SliderRow(
+                    title: "最大行宽",
+                    value: $store.editorPreferences.maxWidth,
+                    range: 600...1200,
+                    unit: "pt",
+                    step: 50
+                )
+                Text("预览模式下的最大行宽，编辑模式会根据编辑区域宽度自动适应")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.leading, 0)  // 左对齐，不再需要特殊对齐
+            }
+            
+            // 布局设置
             SliderRow(
                 title: "左右边距",
                 value: $store.editorPreferences.horizontalPadding,
-                range: 16...48,
+                range: 16...80,
                 unit: "pt",
                 step: 4
             )
@@ -290,25 +297,24 @@ private struct LayoutSettingsView: View {
             SliderRow(
                 title: "上下边距",
                 value: $store.editorPreferences.verticalPadding,
-                range: 12...32,
+                range: 12...100,
                 unit: "pt",
                 step: 4
             )
             
-            HStack {
-                Text("对齐方式")
-                    .frame(width: 100, alignment: .leading)
-                    .foregroundStyle(.secondary)
-                
+            // 对齐方式
+            HStack(spacing: 12) {
                 Picker("", selection: $store.editorPreferences.alignment) {
                     ForEach(EditorPreferences.Alignment.allCases, id: \.self) { alignment in
                         Text(alignment.rawValue).tag(alignment)
                     }
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 200)
+                .frame(width: 200, alignment: .leading)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -438,22 +444,22 @@ private struct SliderRow: View {
     let step: CGFloat
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(title)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(String(format: "%.1f %@", value, unit))
-                    .monospacedDigit()
-                    .foregroundStyle(.primary)
-                    .fontWeight(.medium)
-            }
+        HStack(alignment: .center, spacing: 12) {
+            // 移除灰色标题文字，只显示数值和滑块
+            Text(String(format: "%.1f %@", value, unit))
+                .monospacedDigit()
+                .foregroundStyle(.primary)
+                .fontWeight(.medium)
+                .font(.subheadline)
+                .frame(width: 80, alignment: .trailing)
             
             Slider(value: $value, in: range, step: step) {
                 Text(title)
             }
             .accentColor(.accentColor)
+            .frame(maxWidth: 400)  // 适度缩短滑块宽度，最大值不变
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
