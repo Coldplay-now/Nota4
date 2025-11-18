@@ -127,7 +127,6 @@ struct SettingsFeature {
                 return .none
                 
             case .resetToDefaults:
-                print("⚙️ [SETTINGS] Reset to defaults")
                 state.editorPreferences = EditorPreferences()
                 return .none
                 
@@ -140,11 +139,9 @@ struct SettingsFeature {
                 return .none
                 
             case .apply:
-                print("⚙️ [SETTINGS] Applying settings")
                 return .none
                 
             case .cancel:
-                print("⚙️ [SETTINGS] Canceling, restoring original settings")
                 state.editorPreferences = state.originalEditorPreferences
                 return .send(.dismiss)
                 
@@ -181,7 +178,6 @@ struct SettingsFeature {
             
             case .theme(.syncCurrentTheme(let themeId)):
                 state.theme.currentThemeId = themeId
-                print("🔄 [THEME] Synced current theme: \(themeId)")
                 return .none
             
             case .theme(.selectTheme(let themeId)):
@@ -279,7 +275,6 @@ struct SettingsFeature {
                 // 保存到 UserDefaults
                 UserDefaults.standard.set(theme.rawValue, forKey: "customCodeHighlightTheme")
                 UserDefaults.standard.synchronize()
-                print("🎨 [SETTINGS] Code highlight theme changed to: \(theme.displayName)")
                 return .none
                 
             case .useCustomCodeHighlightThemeToggled(let enabled):
@@ -287,7 +282,6 @@ struct SettingsFeature {
                 // 保存到 UserDefaults
                 UserDefaults.standard.set(enabled, forKey: "useCustomCodeHighlightTheme")
                 UserDefaults.standard.synchronize()
-                print("🎨 [SETTINGS] Use custom code highlight theme: \(enabled)")
                 return .none
             }
         }

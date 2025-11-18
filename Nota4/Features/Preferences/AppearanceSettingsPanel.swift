@@ -11,166 +11,184 @@ struct AppearanceSettingsPanel: View {
     
     var body: some View {
         WithPerceptionTracking {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // 标题
+            VStack(alignment: .leading, spacing: 20) {
+                // 标题
+                HStack {
                     Text("预览主题")
                         .font(.headline)
-                    
-                    // 内置主题
-                    if !store.theme.builtInThemes.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("内置主题")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            
-                            LazyVGrid(columns: [
-                                GridItem(.flexible()),
-                                GridItem(.flexible())
-                            ], spacing: 12) {
-                                ForEach(store.theme.builtInThemes) { theme in
-                                    ThemeCard(
-                                        theme: theme,
-                                        isSelected: theme.id == store.theme.currentThemeId,
-                                        onSelect: {
-                                            store.send(.theme(.selectTheme(theme.id)))
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    
-                    Divider()
-                        .padding(.vertical, 8)
-                    
-                    // 自定义主题
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                
+                // 内置主题
+                if !store.theme.builtInThemes.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("自定义主题")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            
-                            Spacer()
-                            
-                            Button {
-                                importTheme()
-                            } label: {
-                                Label("导入", systemImage: "square.and.arrow.down")
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.small)
-                        }
+                        Text("内置主题")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 20)
                         
-                        if store.theme.customThemes.isEmpty {
-                            ContentUnavailableView(
-                                "暂无自定义主题",
-                                systemImage: "paintbrush",
-                                description: Text("点击【导入】按钮添加自定义主题")
-                            )
-                            .frame(height: 150)
-                        } else {
-                            VStack(spacing: 8) {
-                                ForEach(store.theme.customThemes) { theme in
-                                    CustomThemeRow(
-                                        theme: theme,
-                                        isSelected: theme.id == store.theme.currentThemeId,
-                                        onSelect: {
-                                            store.send(.theme(.selectTheme(theme.id)))
-                                        },
-                                        onExport: {
-                                            exportTheme(themeId: theme.id, themeName: theme.displayName)
-                                        },
-                                        onDelete: {
-                                            store.send(.theme(.confirmDelete(theme.id)))
-                                        }
-                                    )
-                                }
+                        // 使用自适应网格布局
+                        LazyVGrid(columns: [
+                            GridItem(.flexible(minimum: 200), spacing: 12),
+                            GridItem(.flexible(minimum: 200), spacing: 12)
+                        ], spacing: 12) {
+                            ForEach(store.theme.builtInThemes) { theme in
+                                ThemeCard(
+                                    theme: theme,
+                                    isSelected: theme.id == store.theme.currentThemeId,
+                                    onSelect: {
+                                        store.send(.theme(.selectTheme(theme.id)))
+                                    }
+                                )
                             }
                         }
+                        .padding(.horizontal, 20)
                     }
+                }
                     
-                    Divider()
-                        .padding(.vertical, 8)
-                    
-                    // 代码高亮主题选择区域
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("代码高亮主题")
+                Divider()
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 20)
+                
+                // 自定义主题
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("自定义主题")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                         
-                        HStack {
-                            Toggle("独立设置代码高亮主题", isOn: Binding(
-                                get: { store.useCustomCodeHighlightTheme },
-                                set: { store.send(.useCustomCodeHighlightThemeToggled($0)) }
-                            ))
-                            
-                            Spacer()
-                        }
+                        Spacer()
                         
-                        if store.useCustomCodeHighlightTheme {
-                            Picker("", selection: Binding(
-                                get: { store.codeHighlightTheme },
-                                set: { store.send(.codeHighlightThemeChanged($0)) }
-                            )) {
-                                ForEach(CodeTheme.allCases, id: \.self) { theme in
-                                    Text(theme.displayName).tag(theme)
-                                }
+                        Button {
+                            importTheme()
+                        } label: {
+                            Label("导入", systemImage: "square.and.arrow.down")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                    }
+                    .padding(.horizontal, 20)
+                    
+                    if store.theme.customThemes.isEmpty {
+                        ContentUnavailableView(
+                            "暂无自定义主题",
+                            systemImage: "paintbrush",
+                            description: Text("点击【导入】按钮添加自定义主题")
+                        )
+                        .frame(height: 150)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 20)
+                    } else {
+                        VStack(spacing: 8) {
+                            ForEach(store.theme.customThemes) { theme in
+                                CustomThemeRow(
+                                    theme: theme,
+                                    isSelected: theme.id == store.theme.currentThemeId,
+                                    onSelect: {
+                                        store.send(.theme(.selectTheme(theme.id)))
+                                    },
+                                    onExport: {
+                                        exportTheme(themeId: theme.id, themeName: theme.displayName)
+                                    },
+                                    onDelete: {
+                                        store.send(.theme(.confirmDelete(theme.id)))
+                                    }
+                                )
                             }
-                            .pickerStyle(.segmented)
-                        } else {
-                            Text("使用预览主题的代码高亮设置")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .italic()
                         }
-                    }
-                    
-                    // 导入/导出状态提示
-                    if case .importing = store.theme.importExportState {
-                        HStack {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                            Text("正在导入主题...")
-                                .font(.caption)
-                        }
-                        .padding()
-                        .background(Color.secondary.opacity(0.1))
-                        .cornerRadius(8)
-                    }
-                    
-                    if case .success = store.theme.importExportState {
-                        HStack {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                            Text("操作成功")
-                                .font(.caption)
-                        }
-                        .padding()
-                        .background(Color.green.opacity(0.1))
-                        .cornerRadius(8)
-                    }
-                    
-                    // 错误提示
-                    if let error = store.theme.errorMessage {
-                        HStack {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(.orange)
-                            Text(error)
-                                .font(.caption)
-                            Spacer()
-                            Button("关闭") {
-                                store.send(.theme(.dismissError))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding()
-                        .background(Color.orange.opacity(0.1))
-                        .cornerRadius(8)
+                        .padding(.horizontal, 20)
                     }
                 }
-                .padding()
+                
+                Divider()
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 20)
+                
+                // 代码高亮主题选择区域
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("代码高亮主题")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    HStack {
+                        Toggle("独立设置代码高亮主题", isOn: Binding(
+                            get: { store.useCustomCodeHighlightTheme },
+                            set: { store.send(.useCustomCodeHighlightThemeToggled($0)) }
+                        ))
+                        
+                        Spacer()
+                    }
+                    
+                    if store.useCustomCodeHighlightTheme {
+                        Picker("", selection: Binding(
+                            get: { store.codeHighlightTheme },
+                            set: { store.send(.codeHighlightThemeChanged($0)) }
+                        )) {
+                            ForEach(CodeTheme.allCases, id: \.self) { theme in
+                                Text(theme.displayName).tag(theme)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    } else {
+                        Text("使用预览主题的代码高亮设置")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .italic()
+                    }
+                }
+                .padding(.horizontal, 20)
+                
+                // 导入/导出状态提示
+                if case .importing = store.theme.importExportState {
+                    HStack {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                        Text("正在导入主题...")
+                            .font(.caption)
+                    }
+                    .padding()
+                    .background(Color.secondary.opacity(0.1))
+                    .cornerRadius(8)
+                    .padding(.horizontal, 20)
+                }
+                
+                if case .success = store.theme.importExportState {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                        Text("操作成功")
+                            .font(.caption)
+                    }
+                    .padding()
+                    .background(Color.green.opacity(0.1))
+                    .cornerRadius(8)
+                    .padding(.horizontal, 20)
+                }
+                
+                // 错误提示
+                if let error = store.theme.errorMessage {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text(error)
+                            .font(.caption)
+                        Spacer()
+                        Button("关闭") {
+                            store.send(.theme(.dismissError))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding()
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(8)
+                    .padding(.horizontal, 20)
+                }
+                
+                Spacer(minLength: 20)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .onAppear {
                 store.send(.theme(.onAppear))
             }
@@ -270,6 +288,7 @@ private struct ThemeCard: View {
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
             )
+            .fixedSize(horizontal: false, vertical: true)
         }
         .buttonStyle(.plain)
     }

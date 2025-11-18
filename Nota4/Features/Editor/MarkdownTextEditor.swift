@@ -415,7 +415,6 @@ struct MarkdownTextEditor: NSViewRepresentable {
                 return
             }
             
-            print("🔍 [SEARCH] 更新高亮: \(matches.count) 个匹配项, 当前索引: \(currentIndex)")
             
             // 清除之前的高亮
             clearSearchHighlights()

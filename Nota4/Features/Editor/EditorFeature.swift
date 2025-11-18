@@ -1136,7 +1136,6 @@ struct EditorFeature {
                     
                     // 生成相对路径
                     let relativePath = "assets/\(fileName)"
-                    print("✅ [INSERT] 图片插入成功: \(relativePath)")
                     
                     await send(.imageInserted(imageId: imageId, relativePath: relativePath))
                 } catch: { error, send in
@@ -1282,7 +1281,6 @@ struct EditorFeature {
                             // 获取成功后重新触发渲染
                             await send(.preview(.render))
                         } catch {
-                            print("⚠️ [RENDER] noteDirectory 获取失败，继续渲染（某些功能可能不可用）: \(error.localizedDescription)")
                             // 即使获取失败，也继续渲染（noteDirectory 可以为 nil）
                             // 重新触发渲染，使用 nil 作为 noteDirectory
                             await send(.preview(.render))
@@ -1448,7 +1446,6 @@ struct EditorFeature {
                 return .none
                 
             case .search(.updateMatches(let matches)):
-                print("🔍 [SEARCH] 更新匹配项: \(matches.count) 个")
                 state.search.matches = matches
                 if matches.isEmpty {
                     state.search.currentMatchIndex = -1
@@ -1457,7 +1454,6 @@ struct EditorFeature {
                     state.search.currentMatchIndex = 0
                 }
                 let currentIndex = state.search.currentMatchIndex
-                print("🔍 [SEARCH] 当前匹配索引: \(currentIndex)")
                 // 状态更新会自动触发 MarkdownTextEditor 的 updateNSView
                 // 通过 searchMatches 和 currentSearchIndex 参数传递
                 return .none
@@ -1562,7 +1558,6 @@ struct EditorFeature {
                 // 更新搜索高亮状态
                 state.search.matches = matches
                 state.search.currentMatchIndex = currentIndex
-                print("🔍 [HIGHLIGHT] 更新高亮: \(matches.count) 个匹配项, 当前索引: \(currentIndex)")
                 // 状态更新会触发 MarkdownTextEditor 的 updateNSView，从而更新高亮
                 return .none
                 

@@ -208,7 +208,6 @@ struct NoteListFeature {
                 return .none
                 
             case .deleteNotes(let ids):
-                print("🗑️ [DELETE] Deleting notes: \(ids)")
                 // 如果删除的笔记中包含当前选中的笔记，清除选中状态
                 if let selectedId = state.selectedNoteId, ids.contains(selectedId) {
                     state.selectedNoteId = nil
@@ -219,9 +218,7 @@ struct NoteListFeature {
                 }
                 
                 return .run { send in
-                    print("🗑️ [DELETE] Calling noteRepository.deleteNotes...")
                     try await noteRepository.deleteNotes(ids)
-                    print("✅ [DELETE] Notes deleted successfully, reloading list...")
                     await send(.loadNotes)
                     await send(.deleteNotesCompleted)  // 发送完成通知
                 }
@@ -361,15 +358,10 @@ struct NoteListFeature {
                 return .none
                 
             case .updateNoteInList(let updatedNote):
-                print("📋 [LIST] Updating note in list: \(updatedNote.noteId)")
-                print("📋 [LIST] Title: '\(updatedNote.title)'")
-                print("📋 [LIST] Content preview: '\(updatedNote.preview.prefix(50))...'")
                 
                 // 直接更新列表中的笔记，实现实时预览
                 if let index = state.notes.firstIndex(where: { $0.noteId == updatedNote.noteId }) {
-                    print("📋 [LIST] Found note at index \(index), updating...")
                     state.notes[index] = updatedNote
-                    print("✅ [LIST] Note updated successfully")
                 } else {
                     print("⚠️ [LIST] Note not found in list")
                 }

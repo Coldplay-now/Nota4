@@ -43,7 +43,6 @@ struct MarkdownPreview: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: .themeDidChange)) { notification in
                 if let theme = notification.object as? ThemeConfig {
-                    print("🎨 [PREVIEW] Theme changed notification received: \(theme.displayName)")
                     store.send(.preview(.themeChanged(theme.id)))
                 }
             }

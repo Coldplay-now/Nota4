@@ -24,13 +24,10 @@ actor ThemeManager {
             themesDirectory = URL(fileURLWithPath: resourcePath)
                 .appendingPathComponent("Themes")
             
-            print("📁 [THEME] Themes directory: \(themesDirectory?.path ?? "nil")")
             if let themesDir = themesDirectory {
                 let exists = FileManager.default.fileExists(atPath: themesDir.path)
-                print("📁 [THEME] Directory exists: \(exists)")
                 if exists {
                     let files = (try? FileManager.default.contentsOfDirectory(atPath: themesDir.path)) ?? []
-                    print("📁 [THEME] Files: \(files)")
                 }
             }
         } else {
@@ -84,13 +81,11 @@ actor ThemeManager {
         
         availableThemes = themes
         
-        print("📚 [THEME] Loaded \(themes.count) themes")
     }
     
     /// 恢复主题（内部使用，不发送通知）
     private func restoreTheme(_ theme: ThemeConfig) {
         currentTheme = theme
-        print("🎨 [THEME] Restored: \(theme.displayName)")
     }
     
     /// 切换主题
@@ -112,7 +107,6 @@ actor ThemeManager {
             )
         }
         
-        print("🎨 [THEME] Switched to: \(theme.displayName)")
     }
     
     /// 导入自定义主题
@@ -136,7 +130,6 @@ actor ThemeManager {
         // 4. 添加到可用主题列表
         availableThemes.append(theme)
         
-        print("✅ [THEME] Imported: \(theme.displayName)")
         
         return theme
     }
@@ -162,7 +155,6 @@ actor ThemeManager {
         // 打包主题
         try FileManager.default.copyItem(at: themeDir, to: destinationURL)
         
-        print("📤 [THEME] Exported: \(theme.displayName)")
     }
     
     /// 删除用户主题
@@ -188,7 +180,6 @@ actor ThemeManager {
             try await switchTheme(to: "builtin-light")
         }
         
-        print("🗑️ [THEME] Deleted: \(theme.displayName)")
     }
     
     /// 获取主题的 CSS 内容

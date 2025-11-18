@@ -814,25 +814,70 @@ actor MarkdownRenderer {
         // 2. 尝试加载主题 CSS
         do {
             let css = try await themeManager.getCSS(for: theme)
-            print("✅ [RENDER] Using theme: \(theme.displayName)")
             return "<style>\(css)</style>"
         } catch {
-            print("⚠️ [RENDER] Failed to load theme CSS, using fallback: \(error)")
             return "<style>\(CSSStyles.fallback)</style>"
         }
     }
     
     private func getMermaidScript() -> String {
-        return """
-        <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
-        """
+        // 尝试从本地资源加载，如果失败则使用 CDN（降级方案）
+        if let mermaidURL = getVendorResourceURL(filename: "mermaid.min.js"),
+           let mermaidContent = try? String(contentsOf: mermaidURL, encoding: .utf8) {
+            // 使用内联脚本（本地资源）
+            return """
+            <script>
+            \(mermaidContent)
+            </script>
+            """
+        } else {
+            // 降级到 CDN（开发时或资源未找到时）
+            return """
+            <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+            """
+        }
     }
     
     private func getKaTeXScript() -> String {
-        return """
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-        <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-        """
+        // 尝试从本地资源加载，如果失败则使用 CDN（降级方案）
+        var katexCSS = ""
+        var katexJS = ""
+        
+        if let katexCSSURL = getVendorResourceURL(filename: "katex.min.css"),
+           let cssContent = try? String(contentsOf: katexCSSURL, encoding: .utf8) {
+            katexCSS = "<style>\(cssContent)</style>"
+        } else {
+            katexCSS = """
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+            """
+        }
+        
+        if let katexJSURL = getVendorResourceURL(filename: "katex.min.js"),
+           let jsContent = try? String(contentsOf: katexJSURL, encoding: .utf8) {
+            katexJS = """
+            <script>
+            \(jsContent)
+            </script>
+            """
+        } else {
+            katexJS = """
+            <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+            """
+        }
+        
+        return katexCSS + "\n" + katexJS
+    }
+    
+    /// 获取 Vendor 资源文件的 URL
+    /// - Parameter filename: 文件名（如 "mermaid.min.js"）
+    /// - Returns: 资源文件的 URL，如果找不到则返回 nil
+    private func getVendorResourceURL(filename: String) -> URL? {
+        // 使用安全的资源访问方式
+        return Bundle.safeResourceURL(
+            name: filename,
+            withExtension: nil,
+            subdirectory: "Resources/Vendor"
+        )
     }
     
     /// 获取代码高亮 CSS 样式
@@ -1280,7 +1325,6 @@ actor MarkdownRenderer {
                 let newImgTag = "<img\(beforeSrc)src=\"\(srcPath)\"\(afterSrc) data-broken=\"true\">"
                 let fullRange = Range(match.range, in: result)!
                 result.replaceSubrange(fullRange, with: newImgTag)
-                print("⚠️ [IMAGE] 图片文件不存在: \(srcPath)")
             }
         }
         

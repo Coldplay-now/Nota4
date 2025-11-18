@@ -154,12 +154,10 @@ struct AppFeature {
                 )
                 
             case .preferencesLoaded(let prefs):
-                print("📐 [APP] Preferences loaded")
                 state.preferences = prefs
                 return .send(.editor(.applyPreferences(prefs)))
                 
             case .preferencesUpdated(let prefs):
-                print("📐 [APP] Preferences updated")
                 state.preferences = prefs
                 return .merge(
                     .run { _ in
@@ -441,7 +439,6 @@ struct AppFeature {
             // 笔记列表加载完成 → 不再更新侧边栏统计
             // （因为 notes 是过滤后的，不能用来计算全局计数）
             case .noteList(.notesLoaded(.success(let notes))):
-                print("📊 [APP] Notes loaded (filtered), total: \(notes.count)")
                 return .none
                 
             // 编辑器创建笔记完成 → 刷新笔记列表和侧边栏计数，并选中新创建的笔记

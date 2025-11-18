@@ -8,16 +8,19 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        HSplitView {
-            // 左侧分类列表
-            SettingsSidebarView(store: store)
-                .frame(minWidth: 200, maxWidth: 250)
-            
-            // 右侧设置面板
-            SettingsDetailView(store: store)
-                .frame(minWidth: 500, maxWidth: .infinity)
+        GeometryReader { geometry in
+            HSplitView {
+                // 左侧分类列表
+                SettingsSidebarView(store: store)
+                    .frame(minWidth: 200, idealWidth: 220, maxWidth: 280)
+                
+                // 右侧设置面板
+                SettingsDetailView(store: store)
+                    .frame(minWidth: 500, idealWidth: 600, maxWidth: .infinity)
+            }
+            .frame(width: min(geometry.size.width, 900), height: min(geometry.size.height, 700))
         }
-        .frame(width: 800, height: 600)
+        .frame(minWidth: 700, idealWidth: 900, minHeight: 500, idealHeight: 700)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("取消") {
@@ -84,6 +87,7 @@ private struct SettingsDetailView: View {
                     AppearanceSettingsPanel(store: store)
                 }
             }
+            .frame(maxWidth: .infinity)
         }
         .background(Color(nsColor: .controlBackgroundColor))
     }

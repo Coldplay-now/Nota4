@@ -23,11 +23,9 @@ actor InitialDocumentsService {
         notaFileManager: NotaFileManagerProtocol
     ) async throws {
         guard shouldImportInitialDocuments() else {
-            print("⏭️ [INITIAL] 初始文档已导入过，跳过")
             return
         }
         
-        print("📚 [INITIAL] 开始导入初始文档...")
         
         let documentNames = [
             "使用说明",
@@ -37,14 +35,13 @@ actor InitialDocumentsService {
         for documentName in documentNames {
             do {
                 // 从资源包中读取文档
-                // 在 SPM 项目中，使用 Bundle.module 访问资源文件
-                guard let documentURL = Bundle.module.url(
-                    forResource: documentName,
+                // 使用安全的资源访问方式，支持 SPM 开发和打包后的应用
+                guard let documentURL = Bundle.safeResourceURL(
+                    name: documentName,
                     withExtension: "nota",
                     subdirectory: "Resources/InitialDocuments"
                 ) else {
                     print("⚠️ [INITIAL] 找不到资源文件: \(documentName).nota")
-                    print("📁 [INITIAL] 尝试的路径: Resources/InitialDocuments/\(documentName).nota")
                     continue
                 }
                 
@@ -97,7 +94,6 @@ actor InitialDocumentsService {
                 // 保存到文件系统
                 try await notaFileManager.createNoteFile(note)
                 
-                print("✅ [INITIAL] 成功导入: \(title)")
                 
             } catch {
                 print("❌ [INITIAL] 导入 \(documentName) 失败: \(error)")
@@ -108,7 +104,6 @@ actor InitialDocumentsService {
         userDefaults.set(true, forKey: hasImportedKey)
         userDefaults.synchronize()
         
-        print("🎉 [INITIAL] 初始文档导入完成！")
     }
     
     /// 解析 .nota 文件内容

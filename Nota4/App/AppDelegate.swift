@@ -5,17 +5,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var store: StoreOf<AppFeature>?
     
     func applicationWillTerminate(_ notification: Notification) {
-        print("🔴 [EXIT] ========================================")
-        print("🔴 [EXIT] Application is terminating...")
-        print("🔴 [EXIT] ========================================")
+        // Debug: App terminating
+        // Debug: App terminating
+        // Debug: App terminating
         
         // 应用退出前同步保存
         guard let store = store else { 
-            print("🔴 [EXIT] ERROR: Store is nil!")
+            // Debug: App terminating
             return 
         }
         
-        print("🔴 [EXIT] Triggering save before exit...")
+        // Debug: App terminating
         
         // 使用同步方式保存
         let task = Task {
@@ -30,8 +30,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let elapsed = Date().timeIntervalSince(startTime)
         
-        print("🔴 [EXIT] Save wait completed in \(String(format: "%.2f", elapsed))s")
-        print("🔴 [EXIT] ========================================")
+        // Debug: App terminating
+        // Debug: App terminating
     }
 }
 

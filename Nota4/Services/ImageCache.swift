@@ -27,7 +27,6 @@ actor ImageCache {
         
         self.diskCacheDir = cacheDir
         
-        print("📷 [IMAGE CACHE] Initialized at: \(cacheDir.path)")
     }
     
     // MARK: - Public Methods
@@ -36,7 +35,6 @@ actor ImageCache {
     func image(for url: URL) async throws -> NSImage {
         // 1. 检查内存缓存
         if let cached = memoryCache[url] {
-            print("📷 [IMAGE] Memory cache hit: \(url.lastPathComponent)")
             return cached
         }
         
@@ -46,14 +44,12 @@ actor ImageCache {
         
         if FileManager.default.fileExists(atPath: diskPath.path),
            let image = NSImage(contentsOf: diskPath) {
-            print("📷 [IMAGE] Disk cache hit: \(url.lastPathComponent)")
             // 存入内存缓存
             await cacheInMemory(url: url, image: image)
             return image
         }
         
         // 3. 下载图片
-        print("📷 [IMAGE] Downloading: \(url.absoluteString)")
         let (data, _) = try await URLSession.shared.data(from: url)
         
         guard let image = NSImage(data: data) else {
@@ -64,7 +60,6 @@ actor ImageCache {
         await cacheInMemory(url: url, image: image)
         try? data.write(to: diskPath)
         
-        print("📷 [IMAGE] Downloaded and cached: \(url.lastPathComponent)")
         
         return image
     }
@@ -89,7 +84,6 @@ actor ImageCache {
             at: diskCacheDir,
             withIntermediateDirectories: true
         )
-        print("🧹 [IMAGE CACHE] Cache cleared")
     }
     
     /// 获取缓存大小

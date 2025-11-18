@@ -262,7 +262,6 @@ private actor ImportServiceContainer {
         do {
             let service = try await ImportServiceImpl.live()
             _service = service
-            print("✅ [IMPORT] ImportService initialized successfully")
             return service
         } catch {
             print("❌ [IMPORT] Failed to initialize ImportService: \(error), using mock")
