@@ -73,13 +73,65 @@ actor MarkdownRenderer {
     
     // MARK: - Private Methods
     
+    /// 保护 Markdown 代码块（```...```），避免其中的特殊字符被误处理
+    /// - Parameter markdown: 原始 Markdown 文本
+    /// - Returns: (保护后的文本, 占位符映射字典)
+    private func protectCodeBlocks(in markdown: String) -> (String, [String: String]) {
+        var protected = markdown
+        var placeholders: [String: String] = [:]
+        var counter = 0
+        
+        // 匹配代码块：```...```（非贪婪，允许跨行）
+        // 排除已提取的 Mermaid 占位符
+        let pattern = "```[\\s\\S]*?```"
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            return (protected, placeholders)
+        }
+        
+        let matches = regex.matches(
+            in: protected,
+            range: NSRange(protected.startIndex..., in: protected)
+        )
+        
+        // 从后往前替换，避免索引失效
+        for match in matches.reversed() {
+            if let range = Range(match.range, in: protected) {
+                let codeBlock = String(protected[range])
+                let placeholder = "CODEBLOCK_PLACEHOLDER_\(counter)"
+                placeholders[placeholder] = codeBlock
+                protected.replaceSubrange(range, with: placeholder)
+                counter += 1
+            }
+        }
+        
+        return (protected, placeholders)
+    }
+    
+    /// 恢复代码块占位符为原始代码块
+    /// - Parameters:
+    ///   - text: 包含占位符的文本
+    ///   - placeholders: 占位符映射字典
+    /// - Returns: 恢复后的文本
+    private func restoreCodeBlocks(in text: String, using placeholders: [String: String]) -> String {
+        var restored = text
+        
+        // 按照 key 的长度排序，先恢复长的占位符（避免部分匹配问题）
+        let sortedPlaceholders = placeholders.sorted { $0.key.count > $1.key.count }
+        
+        for (placeholder, original) in sortedPlaceholders {
+            restored = restored.replacingOccurrences(of: placeholder, with: original)
+        }
+        
+        return restored
+    }
+    
     /// 预处理 Markdown（提取特殊块）
     private func preprocess(_ markdown: String) -> PreprocessedMarkdown {
         var result = markdown
         var mermaidCharts: [String] = []
         var mathFormulas: [MathFormula] = []
         
-        // 提取 Mermaid 代码块
+        // 1. 提取 Mermaid 代码块（保持现有逻辑）
         let mermaidPattern = "```mermaid\\n([\\s\\S]*?)```"
         if let regex = try? NSRegularExpression(pattern: mermaidPattern) {
             let matches = regex.matches(
@@ -102,7 +154,11 @@ actor MarkdownRenderer {
             }
         }
         
-        // 提取数学公式（块公式 $$...$$）
+        // 2. 保护所有剩余代码块（避免其中的 $ 符号被误识别为数学公式）
+        let (protectedMarkdown, codeBlockPlaceholders) = protectCodeBlocks(in: result)
+        result = protectedMarkdown
+        
+        // 3. 提取数学公式（块公式 $$...$$）
         let blockMathPattern = "\\$\\$([\\s\\S]*?)\\$\\$"
         if let regex = try? NSRegularExpression(pattern: blockMathPattern) {
             let matches = regex.matches(
@@ -124,7 +180,7 @@ actor MarkdownRenderer {
             }
         }
         
-        // 提取行内公式（$...$）
+        // 4. 提取行内公式（$...$）
         let inlineMathPattern = "\\$([^$\\n]+?)\\$"
         if let regex = try? NSRegularExpression(pattern: inlineMathPattern) {
             let matches = regex.matches(
@@ -145,6 +201,9 @@ actor MarkdownRenderer {
                 }
             }
         }
+        
+        // 5. 恢复代码块占位符（准备进行 Markdown 解析）
+        result = restoreCodeBlocks(in: result, using: codeBlockPlaceholders)
         
         return PreprocessedMarkdown(
             markdown: result,
