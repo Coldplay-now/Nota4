@@ -179,10 +179,19 @@ struct MarkdownTextEditor: NSViewRepresentable {
         
         deinit {
             NotificationCenter.default.removeObserver(self)
+            
+            // 清理未完成的 undo group（防止崩溃）
+            if let textView = textView, let undoManager = textView.undoManager {
+                // 检查是否有未结束的 undo group
+                while undoManager.groupingLevel > 0 {
+                    undoManager.endUndoGrouping()
+                }
+            }
         }
         
         @objc func handleReplaceNotification(_ notification: Notification) {
             guard let textView = textView,
+                  textView.window != nil,  // 确保 textView 仍然在视图层次中
                   let userInfo = notification.userInfo,
                   let range = userInfo["range"] as? NSRange,
                   let replacement = userInfo["replacement"] as? String,
@@ -237,18 +246,19 @@ struct MarkdownTextEditor: NSViewRepresentable {
             if isGrouped && isLast {
                 undoManager.endUndoGrouping()
                 // 对于全部替换，在所有替换完成后才重置标记
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    self.isReplacing = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                    self?.isReplacing = false
                 }
             } else if !isGrouped {
                 // 单个替换，在替换完成后重置标记
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                    self.isReplacing = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+                    self?.isReplacing = false
                 }
             }
             
             // 通知父组件内容已改变（通过 textDidChange 会自动触发，但这里也手动更新以确保同步）
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self, let textView = self.textView else { return }
                 self.parent.text = textView.string
             }
         }
