@@ -35,40 +35,41 @@ struct SidebarView: View {
                 }
                 
                 // 标签
-                Section("标签") {
-                    // 全部标签选项
-                    HStack {
-                        Label {
-                            Text("全部标签")
-                        } icon: {
-                            Image(systemName: "tag.fill")
-                        }
-                        Spacer()
-                        if store.selectedTags.isEmpty && !store.isNoTagsSelected {
-                            Image(systemName: "checkmark")
-                                .foregroundColor(.accentColor)
-                                .font(.caption)
-                        }
-                    }
-                    .contentShape(Rectangle())
-                    .background(
-                        Group {
+                Section {
+                    if store.isTagsSectionExpanded {
+                        // 全部标签选项
+                        HStack {
+                            Label {
+                                Text("全部标签")
+                            } icon: {
+                                Image(systemName: "tag.fill")
+                            }
+                            Spacer()
                             if store.selectedTags.isEmpty && !store.isNoTagsSelected {
-                                Color.accentColor.opacity(0.15)
-                            } else if hoveredAllTags {
-                                Color.accentColor.opacity(0.08)
-                            } else {
-                                Color.clear
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.accentColor)
+                                    .font(.caption)
                             }
                         }
-                    )
-                    .cornerRadius(4)
-                    .onTapGesture {
-                        store.send(.allTagsSelected)
-                    }
-                    .onHover { isHovering in
-                        hoveredAllTags = isHovering
-                    }
+                        .contentShape(Rectangle())
+                        .background(
+                            Group {
+                                if store.selectedTags.isEmpty && !store.isNoTagsSelected {
+                                    Color.accentColor.opacity(0.15)
+                                } else if hoveredAllTags {
+                                    Color.accentColor.opacity(0.08)
+                                } else {
+                                    Color.clear
+                                }
+                            }
+                        )
+                        .cornerRadius(4)
+                        .onTapGesture {
+                            store.send(.allTagsSelected)
+                        }
+                        .onHover { isHovering in
+                            hoveredAllTags = isHovering
+                        }
                     
                     // 无标签选项
                     HStack {
@@ -83,26 +84,26 @@ struct SidebarView: View {
                                 .foregroundColor(.accentColor)
                                 .font(.caption)
                         }
-                    }
-                    .contentShape(Rectangle())
-                    .background(
-                        Group {
-                            if store.isNoTagsSelected {
-                                Color.accentColor.opacity(0.15)
-                            } else if hoveredNoTags {
-                                Color.accentColor.opacity(0.08)
-                            } else {
-                                Color.clear
-                            }
                         }
-                    )
-                    .cornerRadius(4)
-                    .onTapGesture {
-                        store.send(.noTagsSelected)
-                    }
-                    .onHover { isHovering in
-                        hoveredNoTags = isHovering
-                    }
+                        .contentShape(Rectangle())
+                        .background(
+                            Group {
+                                if store.isNoTagsSelected {
+                                    Color.accentColor.opacity(0.15)
+                                } else if hoveredNoTags {
+                                    Color.accentColor.opacity(0.08)
+                                } else {
+                                    Color.clear
+                                }
+                            }
+                        )
+                        .cornerRadius(4)
+                        .onTapGesture {
+                            store.send(.noTagsSelected)
+                        }
+                        .onHover { isHovering in
+                            hoveredNoTags = isHovering
+                        }
                     
                     // 标签列表
                     if !store.tags.isEmpty {
@@ -156,6 +157,20 @@ struct SidebarView: View {
                                 hoveredTag = isHovering ? tag.name : nil
                             }
                         }
+                    }
+                    }
+                } header: {
+                    HStack(spacing: 4) {
+                        Text("标签")
+                        Button {
+                            store.send(.toggleTagsSection)
+                        } label: {
+                            Image(systemName: store.isTagsSectionExpanded ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        Spacer()
                     }
                 }
             }

@@ -11,6 +11,7 @@ struct SidebarFeature {
         var tags: [Tag] = []
         var selectedTags: Set<String> = []
         var isNoTagsSelected: Bool = false  // 是否选择了"无标签"
+        var isTagsSectionExpanded: Bool = true  // 标签区域是否展开
         var categoryCounts: [Category: Int] = [
             .all: 0,
             .starred: 0,
@@ -61,6 +62,7 @@ struct SidebarFeature {
         case tagToggled(String)
         case allTagsSelected  // 选择"全部标签"
         case noTagsSelected  // 选择"无标签"
+        case toggleTagsSection  // 切换标签区域展开/折叠
         case loadTags
         case tagsLoaded(TaskResult<[State.Tag]>)
         case loadCounts
@@ -112,6 +114,10 @@ struct SidebarFeature {
         case .noTagsSelected:
             state.selectedTags.removeAll()
             state.isNoTagsSelected = true
+            return .none
+            
+        case .toggleTagsSection:
+            state.isTagsSectionExpanded.toggle()
             return .none
             
         case .loadTags:
