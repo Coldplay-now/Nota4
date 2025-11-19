@@ -140,6 +140,11 @@ struct MoreMenu: View {
                             store.send(.insertCodeBlock)
                         }
                         .keyboardShortcut("k", modifiers: [.command, .shift])
+                        
+                        Button("跨行代码块", systemImage: "curlybraces.square") {
+                            store.send(.insertCodeBlockWithLanguage)
+                        }
+                        .keyboardShortcut("k", modifiers: [.command, .option])
                     }
                     
                     Divider()

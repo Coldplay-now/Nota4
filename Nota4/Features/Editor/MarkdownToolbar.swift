@@ -125,45 +125,71 @@ struct FormatButtonGroup: View {
     
     var body: some View {
         WithPerceptionTracking {
-        ControlGroup {
-            ToolbarButton(
-                title: "加粗",
-                icon: "bold",
-                    shortcut: "⌘B",
-                    isActive: store.isBoldActive,
-                    isEnabled: store.isToolbarEnabled
-            ) {
-                store.send(.formatBold)
-            }
-            
-            ToolbarButton(
-                title: "斜体",
-                icon: "italic",
-                    shortcut: "⌘I",
-                    isActive: store.isItalicActive,
-                    isEnabled: store.isToolbarEnabled
-            ) {
-                store.send(.formatItalic)
-            }
-            
-            ToolbarButton(
-                title: "行内代码",
-                icon: "chevron.left.forwardslash.chevron.right",
-                    shortcut: "⌘E",
-                    isActive: store.isInlineCodeActive,
-                    isEnabled: store.isToolbarEnabled
-            ) {
-                store.send(.formatInlineCode)
-            }
+            HStack(spacing: 4) {
+                // 第一组：文本格式
+                ControlGroup {
+                    ToolbarButton(
+                        title: "加粗",
+                        icon: "bold",
+                        shortcut: "⌘B",
+                        isActive: store.isBoldActive,
+                        isEnabled: store.isToolbarEnabled
+                    ) {
+                        store.send(.formatBold)
+                    }
+                    
+                    ToolbarButton(
+                        title: "斜体",
+                        icon: "italic",
+                        shortcut: "⌘I",
+                        isActive: store.isItalicActive,
+                        isEnabled: store.isToolbarEnabled
+                    ) {
+                        store.send(.formatItalic)
+                    }
+                    
+                    ToolbarButton(
+                        title: "删除线",
+                        icon: "strikethrough",
+                        shortcut: "⌘⇧X",
+                        isActive: store.isStrikethroughActive,
+                        isEnabled: store.isToolbarEnabled
+                    ) {
+                        store.send(.formatStrikethrough)
+                    }
+                }
                 
-                ToolbarButton(
-                    title: "删除线",
-                    icon: "strikethrough",
-                    shortcut: "⌘⇧X",
-                    isActive: store.isStrikethroughActive,
-                    isEnabled: store.isToolbarEnabled
-                ) {
-                    store.send(.formatStrikethrough)
+                // 第二组：代码相关
+                ControlGroup {
+                    ToolbarButton(
+                        title: "代码块",
+                        icon: "curlybraces",
+                        shortcut: "⇧⌘K",
+                        isActive: false,
+                        isEnabled: store.isToolbarEnabled
+                    ) {
+                        store.send(.insertCodeBlock)
+                    }
+                    
+                    ToolbarButton(
+                        title: "跨行代码块",
+                        icon: "curlybraces.square",
+                        shortcut: "⌘⌥K",
+                        isActive: false,
+                        isEnabled: store.isToolbarEnabled
+                    ) {
+                        store.send(.insertCodeBlockWithLanguage)
+                    }
+                    
+                    ToolbarButton(
+                        title: "行内代码",
+                        icon: "chevron.left.forwardslash.chevron.right",
+                        shortcut: "⌘E",
+                        isActive: store.isInlineCodeActive,
+                        isEnabled: store.isToolbarEnabled
+                    ) {
+                        store.send(.formatInlineCode)
+                    }
                 }
             }
         }
@@ -309,37 +335,34 @@ struct InsertButtonGroup: View {
     
     var body: some View {
         WithPerceptionTracking {
-        ControlGroup {
-            ToolbarButton(
-                title: "链接",
-                icon: "link",
-                    shortcut: "⌘K",
-                    isActive: false,
-                    isEnabled: store.isToolbarEnabled
-            ) {
-                store.send(.insertLink)
+            ControlGroup {
+                linkButton
+                imageButton
             }
-            
-            ToolbarButton(
-                title: "代码块",
-                icon: "curlybraces",
-                    shortcut: "⇧⌘K",
-                    isActive: false,
-                    isEnabled: store.isToolbarEnabled
-            ) {
-                store.send(.insertCodeBlock)
-            }
-                
-                ToolbarButton(
-                    title: "插入图片",
-                    icon: "photo",
-                    shortcut: "⌘⇧I",
-                    isActive: false,
-                    isEnabled: store.isToolbarEnabled
-                ) {
-                    store.send(.showImagePicker)
-                }
-            }
+        }
+    }
+    
+    private var linkButton: some View {
+        ToolbarButton(
+            title: "链接",
+            icon: "link",
+            shortcut: "⌘K",
+            isActive: false,
+            isEnabled: store.isToolbarEnabled
+        ) {
+            store.send(.insertLink)
+        }
+    }
+    
+    private var imageButton: some View {
+        ToolbarButton(
+            title: "插入图片",
+            icon: "photo",
+            shortcut: "⌘⇧I",
+            isActive: false,
+            isEnabled: store.isToolbarEnabled
+        ) {
+            store.send(.showImagePicker)
         }
     }
 }

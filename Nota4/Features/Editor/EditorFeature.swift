@@ -195,6 +195,7 @@ struct EditorFeature {
         case insertTaskList
         case insertLink
         case insertCodeBlock
+        case insertCodeBlockWithLanguage  // 插入带语言标识的跨行代码块
         case insertTable(columns: Int, rows: Int)
         case insertBlockquote
         case insertHorizontalRule
@@ -1014,6 +1015,17 @@ struct EditorFeature {
                 let result = MarkdownFormatter.insertCodeBlock(
                     text: state.content,
                     selection: state.selectionRange
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .insertCodeBlockWithLanguage:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.insertCodeBlockWithLanguage(
+                    text: state.content,
+                    selection: state.selectionRange,
+                    language: "swift"  // 默认使用 swift，可以根据需要扩展为可配置
                 )
                 state.content = result.newText
                 state.selectionRange = result.newSelection

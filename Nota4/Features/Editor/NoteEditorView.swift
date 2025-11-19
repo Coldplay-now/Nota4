@@ -10,6 +10,8 @@ struct NoteEditorView: View {
         HighlightedTitleField(
             text: $store.title,
             searchKeywords: store.listSearchKeywords,
+            fontName: nil,
+            fontSize: 18,
             onFocusChange: { isFocused in
                 if !isFocused {
                     store.send(.manualSave)

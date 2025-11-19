@@ -76,6 +76,11 @@ struct EditorContextMenu: View {
             }
             .keyboardShortcut("k", modifiers: [.command, .shift])
             
+            Button("跨行代码块", systemImage: "curlybraces.square") {
+                store.send(.insertCodeBlockWithLanguage)
+            }
+            .keyboardShortcut("k", modifiers: [.command, .option])
+            
             Divider()
             
             // MARK: - 笔记操作
