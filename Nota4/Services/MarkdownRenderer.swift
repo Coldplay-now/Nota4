@@ -32,12 +32,13 @@ actor MarkdownRenderer {
         // 3.5. 处理图片路径（验证和转换）
         html = processImagePaths(in: html, noteDirectory: options.noteDirectory)
         
-        // 4. 生成 TOC 和标题映射（从原始 Markdown，在添加 ID 之前）
+        // 4. 生成 TOC 和标题映射（从预处理后的 Markdown，确保与 HTML 生成使用相同的源）
         //    这样可以使用映射来确保 ID 一致性
         let shouldGenerateTOC = hasTOCMarker || options.includeTOC
         let tocResult: (toc: String?, headingMap: [String: String])
         if shouldGenerateTOC {
-            let result = generateTOC(from: markdown)
+            // 关键修复：使用预处理后的 markdown，与 parser.html() 使用相同的源
+            let result = generateTOC(from: preprocessed.markdown)
             tocResult = (result.toc, result.headingMap)
         } else {
             tocResult = (nil, [:])
@@ -447,11 +448,22 @@ actor MarkdownRenderer {
                         continue
                     }
                     
-                    // 使用统一的 ID 生成函数
-                    let id = generateHeadingID(from: title)
+                    // 清理 Markdown 格式，使其与 HTML 提取的纯文本一致
+                    // 这是最小侵入性的修复：只移除常见的 Markdown 格式标记
+                    let cleanTitle = title
+                        .replacingOccurrences(of: "**", with: "")  // 移除加粗
+                        .replacingOccurrences(of: "*", with: "")   // 移除斜体
+                        .replacingOccurrences(of: "`", with: "")   // 移除代码
+                        .replacingOccurrences(of: "~~", with: "")  // 移除删除线
+                        .replacingOccurrences(of: "\\[([^\\]]+)\\]\\([^)]+\\)", with: "$1", options: .regularExpression)  // [text](url) -> text
+                        .replacingOccurrences(of: "!\\[([^\\]]*)\\]\\([^)]+\\)", with: "", options: .regularExpression)  // 移除图片
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
                     
-                    // 记录映射关系（键为原始标题文本，值为生成的 ID）
-                    headingMap[title] = id
+                    // 使用统一的 ID 生成函数
+                    let id = generateHeadingID(from: cleanTitle)
+                    
+                    // 记录映射关系（键为清理后的标题文本，值为生成的 ID）
+                    headingMap[cleanTitle] = id
                 
                 // 处理层级变化
                 if level > currentLevel {
@@ -464,7 +476,7 @@ actor MarkdownRenderer {
                     }
                 }
                 
-                toc += "<li><a href=\"#\(id)\">\(escapeHTML(title))</a></li>\n"
+                toc += "<li><a href=\"#\(id)\">\(escapeHTML(cleanTitle))</a></li>\n"
                 currentLevel = level
             }
             }
