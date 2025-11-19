@@ -176,15 +176,6 @@ struct SidebarView: View {
             }
             .listStyle(.sidebar)
             .navigationTitle("Nota4")
-            .toolbar {
-                ToolbarItem(placement: .automatic) {
-                    Button {
-                        // 新建笔记
-                    } label: {
-                        Label("新建", systemImage: "plus")
-                    }
-                }
-            }
             .onAppear {
                 store.send(.loadTags)
                 store.send(.loadCounts)

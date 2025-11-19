@@ -1,7 +1,8 @@
 # Nota4 文档中心
 
-> 📚 **最后更新**: 2025-11-17 14:34:57  
-> 🏗️ **项目**: Nota4 - 基于 SwiftUI 4.0 + TCA 1.11 的现代化 macOS Markdown 笔记应用
+> 📚 **最后更新**: 2025-11-19 08:26:02  
+> 🏗️ **项目**: Nota4 - 基于 SwiftUI 4.0 + TCA 1.11 的现代化 macOS Markdown 笔记应用  
+> 📦 **当前版本**: v1.1.1
 
 ---
 
@@ -13,11 +14,13 @@ Docs/
 │
 ├── Features/                    # 🎯 功能文档
 │   ├── Search/                  # 搜索功能
-│   ├── UI/                      # UI/工具栏
+│   ├── UI/                      # UI/工具栏/布局
 │   ├── Theme/                   # 主题系统
 │   ├── Preview/                 # 预览渲染
 │   ├── Mermaid/                 # Mermaid 图表
-│   └── Editor/                  # 编辑器功能
+│   ├── Editor/                  # 编辑器功能
+│   ├── Export/                  # 导出功能
+│   └── Tags/                    # 标签系统
 │
 ├── Reports/                     # 📊 总结报告
 │   ├── PHASE1_COMPLETION_SUMMARY.md
@@ -47,12 +50,14 @@ Docs/
 │
 ├── Architecture/                # 🏛️ 架构设计
 │   ├── SYSTEM_ARCHITECTURE.md
+│   ├── SYSTEM_ARCHITECTURE_SPEC.md
 │   ├── NOTE_STATE_UPDATE_ANALYSIS.md
 │   ├── SIDEBAR_COUNT_TCA_FIX.md
 │   └── SIDEBAR_COUNT_FIX.md
 │
 ├── API/                         # 🔌 API 文档
-│   └── (API 接口文档)
+│   ├── API_REFERENCE.md
+│   └── FILE_FORMAT_SPEC.md
 │
 ├── Development/                 # 💻 开发文档
 │   ├── GIT_WORKFLOW.md
@@ -63,7 +68,8 @@ Docs/
 │   └── DEBUG_TOOLS_SUMMARY.md
 │
 ├── PRD/                         # 📋 产品需求
-│   └── (产品需求文档)
+│   ├── NOTA4_PRD.md
+│   └── (其他功能 PRD)
 │
 └── Process/                     # 🔄 开发过程
     ├── DECISIONS/               # 决策记录
@@ -118,6 +124,15 @@ Docs/
 - `WINDOW_NOT_SHOWING_FIX.md` - 窗口显示修复
 - `FINAL_IMPLEMENTATION_REPORT.md` - 最终实现报告
 - `DOCUMENTATION_ORGANIZATION_SUMMARY.md` - 文档组织总结
+- `CRASH_ANALYSIS_NSUNDOMANAGER.md` - NSUndoManager 崩溃分析
+- `RELEASE_V1.1_SUMMARY.md` - v1.1 版本发布总结
+- `RELEASE_V1.1.1_SUMMARY.md` - v1.1.1 版本发布总结
+- `CODE_QUALITY_FIXES_SUMMARY.md` - 代码质量修复总结
+- `IMAGE_RENDERING_*` - 图片渲染相关分析报告（多个文件）
+- `TITLE_EDIT_FOCUS_*` - 标题编辑焦点问题分析（多个文件）
+- `EDITOR_CONTEXT_MENU_ANALYSIS.md` - 编辑器上下文菜单分析
+- `PIN_FEATURE_ANALYSIS.md` - 置顶功能分析
+- `DELETE_COUNT_UPDATE_ISSUE_ANALYSIS.md` - 删除计数更新问题分析
 
 ---
 
@@ -246,11 +261,13 @@ Docs/
 
 **子目录结构**:
 - `Search/` - 搜索功能相关文档
-- `UI/` - UI/工具栏相关文档
+- `UI/` - UI/工具栏/布局相关文档
 - `Theme/` - 主题系统相关文档
 - `Preview/` - 预览渲染相关文档
 - `Mermaid/` - Mermaid 图表相关文档
 - `Editor/` - 编辑器功能相关文档
+- `Export/` - 导出功能相关文档
+- `Tags/` - 标签系统相关文档
 
 **命名规范**:
 - `{FEATURE}_{TYPE}_{QUALIFIER}.md` - 功能文档
@@ -261,11 +278,18 @@ Docs/
 
 **当前文档**:
 - **Search/**: `FTS5_USAGE_ANALYSIS.md`, `SEARCH_OPTIMIZATION_PLAN.md`, `SEARCH_ISSUE_DIAGNOSIS.md`, `NOTE_LIST_SEARCH_ANALYSIS.md`, `EDITOR_SEARCH_ANALYSIS.md`
-- **UI/**: `NOTE_LIST_TOOLBAR_DESIGN.md`, `STATUS_BAR_DESIGN_EVALUATION.md`, `STATUS_BAR_IMPLEMENTATION_SUMMARY.md`, `UI_IMPROVEMENTS.md`
-- **Theme/**: `THEME_SYSTEM_ACCEPTANCE_TEST.md`, `THEME_TROUBLESHOOTING.md`, `THEME_SYSTEM_FIX.md`
-- **Preview/**: `PREVIEW_RENDERING_ENGINE_TECHNICAL_SUMMARY.md`, `PREVIEW_RENDERING_IMPLEMENTATION_SUMMARY.md`, `PREVIEW_RENDERING_TEST_CASES.md`, `PREVIEW_TEST_EXAMPLE.md`, `TOC_ANCHOR_LINK_ANALYSIS.md`
+- **UI/**: 
+  - 布局相关: `LAYOUT_OPTIMIZATION_PLAN.md`, `THREE_COLUMN_LAYOUT_ANALYSIS.md`, `LAYOUT_SETTINGS_VALIDATION.md`, `MAX_WIDTH_DESIGN_ANALYSIS.md`, `SCROLLBAR_POSITION_ANALYSIS.md`, `LAYOUT_MODE_SWITCH_DESIGN.md`
+  - UI组件: `NOTE_LIST_TOOLBAR_DESIGN.md`, `STATUS_BAR_DESIGN_EVALUATION.md`, `STATUS_BAR_IMPLEMENTATION_SUMMARY.md`, `UI_IMPROVEMENTS.md`, `ANALYSIS_SELECTED_CARD_BACKGROUND.md`
+- **Theme/**: 
+  - 主题系统: `THEME_SYSTEM_ACCEPTANCE_TEST.md`, `THEME_TROUBLESHOOTING.md`, `THEME_SYSTEM_FIX.md`, `THEME_OPTIMIZATION_IMPLEMENTATION.md`, `ANALYSIS_MACOS_THEME_INTEGRATION.md`
+  - 代码高亮: `CODE_HIGHLIGHT_THEME_SELECTION_ANALYSIS.md`, `INK_SPLASH_HIGHLIGHTJS_COMPARISON.md`
+  - Mermaid主题: `MERMAID_DARK_THEME_VISIBILITY_ANALYSIS.md`
+- **Preview/**: `PREVIEW_RENDERING_ENGINE_TECHNICAL_SUMMARY.md`, `PREVIEW_RENDERING_IMPLEMENTATION_SUMMARY.md`, `PREVIEW_RENDERING_TEST_CASES.md`, `PREVIEW_TEST_EXAMPLE.md`, `TOC_ANCHOR_LINK_ANALYSIS.md`, `MARKDOWN_CODE_BLOCK_MATH_RENDERING_ANALYSIS.md`
 - **Mermaid/**: `MERMAID_TEST.md`, `MERMAID_DEBUG_GUIDE.md`, `REVERT_MERMAID_V2.md`, `BUGFIX_TOC_MERMAID.md`
-- **Editor/**: `EDITOR_SETTINGS_SIMPLIFICATION_20251116.md`
+- **Editor/**: `EDITOR_SETTINGS_SIMPLIFICATION_20251116.md`, `VIEW_MODE_TOGGLE_ISSUE_ANALYSIS.md`
+- **Export/**: `EXPORT_HTML_PDF_PNG_ANALYSIS.md`
+- **Tags/**: `TAG_SYSTEM_DOCUMENTATION.md`
 
 ---
 
@@ -280,26 +304,38 @@ Docs/
 - `ADR_{NUMBER}_{TITLE}.md` - 架构决策记录 (Architecture Decision Record)
 
 **当前文档**:
-- `SYSTEM_ARCHITECTURE.md` - 整体架构说明
+- `SYSTEM_ARCHITECTURE.md` - 系统架构文档（主文档）
+- `SYSTEM_ARCHITECTURE_SPEC.md` - 系统架构设计规范（Spec）
 - `NOTE_STATE_UPDATE_ANALYSIS.md` - 笔记状态更新分析
 - `SIDEBAR_COUNT_TCA_FIX.md` - 侧边栏计数 TCA 修复
 - `SIDEBAR_COUNT_FIX.md` - 侧边栏计数修复
+- `TCA_COMPLIANCE_ANALYSIS_LAYOUT_PREFERENCES.md` - TCA 合规性分析（布局偏好）
+- `TCA_UNDO_REDO_OPTIMIZATION_ANALYSIS.md` - TCA 撤销重做优化分析
+- `BUNDLE_MODULE_SAFETY_ANALYSIS.md` - Bundle 模块安全分析
+- `BUNDLE_MODULE_SAFETY_IMPLEMENTATION.md` - Bundle 模块安全实现
 
 ---
 
 ### 7. 🔌 API/ - API 文档
 
-**用途**: 存放 API 接口文档、服务接口说明
+**用途**: 存放 API 接口文档、服务接口说明、文件格式规范
 
 **命名规范**:
 - `{SERVICE}_API.md` - 服务 API
 - `API_REFERENCE.md` - API 参考
-- `ENDPOINTS.md` - 端点列表
+- `FILE_FORMAT_SPEC.md` - 文件格式规范
 
-**建议文档**:
-- `SERVICES_API.md` - 服务层 API
-- `DATABASE_API.md` - 数据库接口
+**当前文档**:
+- `API_REFERENCE.md` - API 参考文档（数据结构和接口）
+  - 数据结构：Note, EditorPreferences, ThemeConfig, ExportOptions
+  - 服务接口：NoteRepository, NotaFileManager, ImportService, ExportService, ImageManager, ThemeManager
+  - 错误处理和使用示例
 - `FILE_FORMAT_SPEC.md` - 文件格式规范 (.nota)
+  - .nota 文件格式规范
+  - YAML Front Matter 元数据规范
+  - Markdown 内容规范
+  - 解析和生成规则
+  - 兼容性说明
 
 ---
 
@@ -320,6 +356,7 @@ Docs/
 - `XCODE_DEVELOPMENT_WORKFLOW.md` - Xcode 开发工作流
 - `DEBUG_MONITORING_GUIDE.md` - 调试监控指南
 - `DEBUG_TOOLS_SUMMARY.md` - 调试工具总结
+- `BRANCH_STRATEGY_ANALYSIS.md` - 分支策略分析
 
 ---
 
@@ -334,7 +371,17 @@ Docs/
 - `USER_STORIES.md` - 用户故事
 
 **当前文档**:
-- `NOTA4_PRD.md` - 产品需求文档
+- `NOTA4_PRD.md` - 产品需求文档（主文档，v1.1.1）
+  - 产品概述和愿景
+  - 核心功能清单（v1.1.1 已实现功能）
+  - 开发路线图
+  - 竞品分析和成功指标
+- `EDITOR_PREFERENCES_PRD.md` - 编辑器偏好设置 PRD
+- `EDITOR_TOOLBAR_PRD.md` - 编辑器格式工具栏 PRD
+- `IMPORT_EXPORT_ENHANCEMENT_PRD.md` - 导入导出功能完善 PRD
+- `PREVIEW_RENDERING_ENHANCEMENT_PRD.md` - Markdown 预览渲染增强 PRD
+- `EDITOR_CONTEXT_MENU_PRD.md` - 编辑器右键菜单 PRD
+- `NOTE_LIST_VISUAL_OPTIMIZATION_PRD.md` - 笔记列表视觉优化 PRD
 - `INDEPENDENT_TOOLBAR_PRD.md` - 独立工具栏 PRD
 - `TOOLBAR_EXTENSION_PRD.md` - 工具栏扩展 PRD
 - `NOTE_LIST_TOOLBAR_DESIGN.md` - 笔记列表工具栏设计（已移至 Features/UI/）
@@ -529,10 +576,12 @@ Docs/
 |------|------|---------|
 | v1.0.0 | 2025-11-16 | 初始版本，建立文档分类体系 |
 | v1.1.0 | 2025-11-17 | 添加 Features/ 目录，重新组织功能文档 |
+| v1.2.0 | 2025-11-19 | 文档归类优化，将根目录文档移动到对应子目录，新增 Export/ 和 Tags/ 子目录 |
+| v1.3.0 | 2025-11-19 | 更新 PRD 至 v1.1.1，创建系统架构设计 Spec 和 API 文档 |
 
 ---
 
 **维护者**: Nota4 开发团队  
-**最后审查**: 2025-11-17 14:34:57  
+**最后审查**: 2025-11-19 08:26:02  
 **状态**: ✅ 活跃维护中
 

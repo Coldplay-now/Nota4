@@ -16,6 +16,24 @@ struct RenderOptions: Equatable {
     /// 笔记目录，用于解析相对路径（如图片路径）
     var noteDirectory: URL? = nil
     
+    /// 左右边距（pt 单位）
+    var horizontalPadding: CGFloat? = nil
+    
+    /// 上下边距（pt 单位）
+    var verticalPadding: CGFloat? = nil
+    
+    /// 对齐方式（"center" 或 "left"）
+    var alignment: String? = nil
+    
+    /// 最大行宽（pt 单位）
+    var maxWidth: CGFloat? = nil
+    
+    /// 行间距（pt 单位）
+    var lineSpacing: CGFloat? = nil
+    
+    /// 段落间距（em 单位）
+    var paragraphSpacing: CGFloat? = nil
+    
     static let `default` = RenderOptions()
 }
 

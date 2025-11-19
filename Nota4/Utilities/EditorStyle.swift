@@ -12,6 +12,8 @@ struct EditorStyle: Equatable {
     let paragraphSpacing: CGFloat
     let alignment: Alignment
     let fontName: String?  // 具体字体名称
+    let titleFontName: String?  // 标题字体名称
+    let titleFontSize: CGFloat  // 标题字号
     
     /// 完整初始化方法
     init(
@@ -24,7 +26,9 @@ struct EditorStyle: Equatable {
         fontWeight: Font.Weight,
         paragraphSpacing: CGFloat,
         alignment: Alignment,
-        fontName: String? = nil
+        fontName: String? = nil,
+        titleFontName: String? = nil,
+        titleFontSize: CGFloat = 28
     ) {
         self.fontSize = fontSize
         self.lineSpacing = lineSpacing
@@ -36,6 +40,8 @@ struct EditorStyle: Equatable {
         self.paragraphSpacing = paragraphSpacing
         self.alignment = alignment
         self.fontName = fontName
+        self.titleFontName = titleFontName
+        self.titleFontSize = titleFontSize
     }
     
     /// 默认舒适型
@@ -48,7 +54,9 @@ struct EditorStyle: Equatable {
         fontDesign: .default,
         fontWeight: .regular,
         paragraphSpacing: 0.8,
-        alignment: .center
+        alignment: .center,
+        titleFontName: nil,
+        titleFontSize: 28
     )
     
     /// 从 EditorPreferences 创建样式
@@ -63,6 +71,10 @@ struct EditorStyle: Equatable {
         
         // 使用实际字体名称（如果不是 "System"）
         self.fontName = preferences.bodyFontName != "System" ? preferences.bodyFontName : nil
+        
+        // 标题字体设置
+        self.titleFontName = preferences.titleFontName != "System" ? preferences.titleFontName : nil
+        self.titleFontSize = preferences.titleFontSize
         
         // 根据字体名称映射 fontDesign（作为后备）
         if preferences.bodyFontName.contains("Menlo") || 

@@ -836,6 +836,17 @@ struct EditorFeature {
                 
             case .applyPreferences(let prefs):
                 state.editorStyle = EditorStyle(from: prefs)
+                // 更新预览渲染选项，应用所有布局设置
+                state.preview.renderOptions.horizontalPadding = prefs.horizontalPadding
+                state.preview.renderOptions.verticalPadding = prefs.verticalPadding
+                state.preview.renderOptions.alignment = prefs.alignment == .center ? "center" : "left"
+                state.preview.renderOptions.maxWidth = prefs.maxWidth
+                state.preview.renderOptions.lineSpacing = prefs.lineSpacing
+                state.preview.renderOptions.paragraphSpacing = prefs.paragraphSpacing
+                // 如果当前在预览模式，重新渲染以应用新设置
+                if state.viewMode != .editOnly {
+                    return .send(.preview(.render))
+                }
                 return .none
                 
             // MARK: - Context Menu Action Handlers

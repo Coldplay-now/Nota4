@@ -5,6 +5,8 @@ import AppKit
 struct HighlightedTitleField: NSViewRepresentable {
     @Binding var text: String
     var searchKeywords: [String]
+    var fontName: String?
+    var fontSize: CGFloat
     var onFocusChange: (Bool) -> Void
     @Binding var isFocused: Bool
     
@@ -14,7 +16,14 @@ struct HighlightedTitleField: NSViewRepresentable {
         textField.isSelectable = true
         textField.isBordered = false
         textField.drawsBackground = false
-        textField.font = NSFont.systemFont(ofSize: 28, weight: .bold)
+        
+        // 使用传入的字体设置
+        if let fontName = fontName, let font = NSFont(name: fontName, size: fontSize) {
+            textField.font = font
+        } else {
+            textField.font = NSFont.systemFont(ofSize: fontSize, weight: .bold)
+        }
+        
         textField.textColor = .labelColor
         textField.placeholderString = "标题"
         textField.delegate = context.coordinator
@@ -45,11 +54,25 @@ struct HighlightedTitleField: NSViewRepresentable {
             textField.stringValue = text
         }
         
+        // 更新字体（如果字体设置已改变）
+        if let fontName = fontName, let font = NSFont(name: fontName, size: fontSize) {
+            if textField.font != font {
+                textField.font = font
+            }
+        } else {
+            let systemFont = NSFont.systemFont(ofSize: fontSize, weight: .bold)
+            if textField.font != systemFont {
+                textField.font = systemFont
+            }
+        }
+        
         // 更新高亮（即使文本相同，关键词可能已变化）
         context.coordinator.updateHighlights(
             text: text,
             keywords: searchKeywords,
-            textField: textField
+            textField: textField,
+            fontName: fontName,
+            fontSize: fontSize
         )
         
         // 只有在用户没有在编辑时，才根据 isFocused 绑定来设置焦点
@@ -91,10 +114,24 @@ struct HighlightedTitleField: NSViewRepresentable {
             parent.onFocusChange(false)
         }
         
-        func updateHighlights(text: String, keywords: [String], textField: NSTextField) {
+        func updateHighlights(text: String, keywords: [String], textField: NSTextField, fontName: String?, fontSize: CGFloat) {
             guard !keywords.isEmpty else {
                 // 没有关键词，清除高亮
                 let attributedString = NSMutableAttributedString(string: text)
+                
+                // 使用传入的字体设置
+                let font: NSFont
+                if let fontName = fontName, let customFont = NSFont(name: fontName, size: fontSize) {
+                    font = customFont
+                } else {
+                    font = NSFont.systemFont(ofSize: fontSize, weight: .bold)
+                }
+                
+                attributedString.addAttribute(
+                    .font,
+                    value: font,
+                    range: NSRange(location: 0, length: text.count)
+                )
                 attributedString.addAttribute(
                     .foregroundColor,
                     value: NSColor.labelColor,
@@ -143,10 +180,18 @@ struct HighlightedTitleField: NSViewRepresentable {
                 }
             }
             
+            // 使用传入的字体设置
+            let font: NSFont
+            if let fontName = fontName, let customFont = NSFont(name: fontName, size: fontSize) {
+                font = customFont
+            } else {
+                font = NSFont.systemFont(ofSize: fontSize, weight: .bold)
+            }
+            
             // 设置字体
             attributedString.addAttribute(
                 .font,
-                value: NSFont.systemFont(ofSize: 28, weight: .bold),
+                value: font,
                 range: NSRange(location: 0, length: text.count)
             )
             

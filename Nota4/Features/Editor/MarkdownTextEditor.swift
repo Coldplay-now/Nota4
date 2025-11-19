@@ -12,6 +12,8 @@ struct MarkdownTextEditor: NSViewRepresentable {
     let paragraphSpacing: CGFloat
     let horizontalPadding: CGFloat
     let verticalPadding: CGFloat
+    let maxWidth: CGFloat  // 新增：最大行宽
+    let alignment: Alignment  // 新增：对齐方式
     let onSelectionChange: (NSRange) -> Void
     let onFocusChange: (Bool) -> Void
     
@@ -19,8 +21,22 @@ struct MarkdownTextEditor: NSViewRepresentable {
     var searchMatches: [NSRange] = []
     var currentSearchIndex: Int = -1
     
+    // 对齐方式
+    enum Alignment {
+        case leading
+        case center
+    }
+    
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSTextView.scrollableTextView()
+        
+        // 配置滚动条样式：始终显示在右边框
+        scrollView.hasVerticalScroller = true
+        scrollView.hasHorizontalScroller = false  // 初始不显示，根据内容宽度动态控制
+        scrollView.horizontalScrollElasticity = .automatic  // 允许水平滚动
+        scrollView.scrollerStyle = .overlay  // 使用覆盖样式，滚动条始终在右边框
+        scrollView.autohidesScrollers = false  // 始终显示滚动条（可选，根据需求调整）
+        
         let textView = scrollView.documentView as! NSTextView
         
         // 配置 TextView
@@ -41,13 +57,23 @@ struct MarkdownTextEditor: NSViewRepresentable {
         textView.isContinuousSpellCheckingEnabled = false
         
         // 设置文本容器（使用传入的 padding 值）
-        textView.textContainer?.lineFragmentPadding = horizontalPadding
+        // 编辑模式：根据实际编辑区域宽度自动适应，不使用固定的 maxWidth
+        if let textContainer = textView.textContainer {
+            textContainer.lineFragmentPadding = horizontalPadding
+            textContainer.widthTracksTextView = true  // 启用自动宽度跟踪，让文本容器跟随 TextView 宽度
+        }
         textView.textContainerInset = NSSize(width: 0, height: verticalPadding)
         
-        // 设置段落样式
+        // 设置段落样式（包含行间距、段落间距和对齐方式）
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineSpacing = lineSpacing
         paragraphStyle.paragraphSpacing = paragraphSpacing
+        switch alignment {
+        case .center:
+            paragraphStyle.alignment = .center
+        case .leading:
+            paragraphStyle.alignment = .left
+        }
         textView.defaultParagraphStyle = paragraphStyle
         
         // 将段落样式应用到初始文本
@@ -76,6 +102,20 @@ struct MarkdownTextEditor: NSViewRepresentable {
                            textView.defaultParagraphStyle?.lineSpacing != lineSpacing ||
                            textView.defaultParagraphStyle?.paragraphSpacing != paragraphSpacing
         
+        // 检查对齐方式是否改变（需要单独检查，因为可能只改变对齐方式）
+        let currentAlignment: Alignment = {
+            if let paragraphStyle = textView.defaultParagraphStyle {
+                switch paragraphStyle.alignment {
+                case .center:
+                    return .center
+                default:
+                    return .leading
+                }
+            }
+            return .leading
+        }()
+        let alignmentChanged = currentAlignment != alignment
+        
         // 更新文本（只在从外部改变时，不在用户输入时）
         // 注意：如果正在执行替换操作，不要更新 textView.string，否则会清除 undo stack
         if textView.string != text && !context.coordinator.isReplacing {
@@ -93,6 +133,12 @@ struct MarkdownTextEditor: NSViewRepresentable {
                 let paragraphStyle = NSMutableParagraphStyle()
                 paragraphStyle.lineSpacing = lineSpacing
                 paragraphStyle.paragraphSpacing = paragraphSpacing
+                switch alignment {
+                case .center:
+                    paragraphStyle.alignment = .center
+                case .leading:
+                    paragraphStyle.alignment = .left
+                }
                 
                 let fullRange = NSRange(location: 0, length: textStorage.length)
                 textStorage.addAttribute(.paragraphStyle, value: paragraphStyle, range: fullRange)
@@ -115,6 +161,64 @@ struct MarkdownTextEditor: NSViewRepresentable {
             }
         }
         
+        // 编辑模式：文本容器宽度自动适应编辑区域宽度
+        // 不需要使用固定的 maxWidth，让文本充分利用可用空间
+        if let textContainer = textView.textContainer {
+            // 检查并更新左右边距（如果改变）
+            if textContainer.lineFragmentPadding != horizontalPadding {
+                textContainer.lineFragmentPadding = horizontalPadding
+            }
+            
+            // 检查并更新上下边距（如果改变）
+            if textView.textContainerInset.height != verticalPadding {
+                textView.textContainerInset = NSSize(width: 0, height: verticalPadding)
+            }
+            
+            // 确保启用自动宽度跟踪（这样文本容器会自动跟随 TextView 的宽度）
+            if !textContainer.widthTracksTextView {
+                textContainer.widthTracksTextView = true
+            }
+            
+            // 当 widthTracksTextView = true 时，NSTextView 会自动管理文本容器的宽度
+            // 我们只需要确保高度设置正确
+            if textContainer.containerSize.height != .greatestFiniteMagnitude {
+                textContainer.containerSize = NSSize(width: textContainer.containerSize.width, height: .greatestFiniteMagnitude)
+            }
+            
+            // 根据内容宽度和容器宽度决定是否显示水平滚动条
+            // 如果内容宽度超过容器宽度，启用水平滚动条
+            if let layoutManager = textView.layoutManager {
+                let usedRect = layoutManager.usedRect(for: textContainer)
+                // 考虑左右边距
+                let totalContentWidth = usedRect.width + horizontalPadding * 2
+                let containerWidth = textContainer.containerSize.width
+                
+                // 如果内容宽度超过容器宽度，启用水平滚动条
+                scrollView.hasHorizontalScroller = totalContentWidth > containerWidth
+                scrollView.horizontalScrollElasticity = .automatic
+            }
+        }
+        
+        // 更新对齐方式（如果改变）
+        if alignmentChanged {
+            let paragraphStyle = NSMutableParagraphStyle()
+            paragraphStyle.lineSpacing = lineSpacing
+            paragraphStyle.paragraphSpacing = paragraphSpacing
+            switch alignment {
+            case .center:
+                paragraphStyle.alignment = .center
+            case .leading:
+                paragraphStyle.alignment = .left
+            }
+            textView.defaultParagraphStyle = paragraphStyle
+            
+            // 将新对齐方式应用到已有文本
+            if let textStorage = textView.textStorage, textStorage.length > 0 {
+                let fullRange = NSRange(location: 0, length: textStorage.length)
+                textStorage.addAttribute(.paragraphStyle, value: paragraphStyle, range: fullRange)
+            }
+        }
+        
         // 只在样式改变时更新样式和应用到全文
         if stylesChanged {
             textView.font = font
@@ -124,6 +228,12 @@ struct MarkdownTextEditor: NSViewRepresentable {
             let paragraphStyle = NSMutableParagraphStyle()
             paragraphStyle.lineSpacing = lineSpacing
             paragraphStyle.paragraphSpacing = paragraphSpacing
+            switch alignment {
+            case .center:
+                paragraphStyle.alignment = .center
+            case .leading:
+                paragraphStyle.alignment = .left
+            }
             textView.defaultParagraphStyle = paragraphStyle
             
             // 将新样式应用到已有文本

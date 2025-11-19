@@ -67,16 +67,16 @@ struct ExportView: View {
                 VStack(spacing: 0) {
                     // 标题区域（固定）
                     VStack(spacing: 12) {
-                        Image(systemName: "square.and.arrow.up")
+                    Image(systemName: "square.and.arrow.up")
                             .font(.system(size: 50))
-                            .foregroundColor(.accentColor)
-                        
-                        Text("导出笔记")
+                        .foregroundColor(.accentColor)
+                    
+                    Text("导出笔记")
                             .font(.title2)
-                        
-                        Text("导出 \(store.notesToExport.count) 篇笔记")
+                    
+                    Text("导出 \(store.notesToExport.count) 篇笔记")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                        .foregroundColor(.secondary)
                     }
                     .padding(.top, 20)
                     .padding(.bottom, 16)
@@ -86,32 +86,32 @@ struct ExportView: View {
                     // 可滚动的内容区域
                     ScrollView {
                         VStack(spacing: 16) {
-                            // 导出格式选择
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text("导出格式")
-                                    .font(.headline)
-                                
-                                Picker("", selection: Binding(
-                                    get: { store.exportFormat },
-                                    set: { store.send(.binding(.set(\.exportFormat, $0))) }
-                                )) {
-                                    Text(".nota (保留所有元数据)").tag(ExportFeature.ExportFormat.nota)
-                                    Text(".md (Markdown)").tag(ExportFeature.ExportFormat.markdown)
+                    // 导出格式选择
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("导出格式")
+                            .font(.headline)
+                        
+                        Picker("", selection: Binding(
+                            get: { store.exportFormat },
+                            set: { store.send(.binding(.set(\.exportFormat, $0))) }
+                        )) {
+                            Text(".nota (保留所有元数据)").tag(ExportFeature.ExportFormat.nota)
+                            Text(".md (Markdown)").tag(ExportFeature.ExportFormat.markdown)
                                     Text(".html (HTML 网页)").tag(ExportFeature.ExportFormat.html)
                                     Text(".pdf (PDF 文档)").tag(ExportFeature.ExportFormat.pdf)
                                     Text(".png (PNG 图片)").tag(ExportFeature.ExportFormat.png)
-                                }
-                                .pickerStyle(.radioGroup)
-                                
-                                if store.exportFormat == .markdown {
-                                    Toggle(
-                                        "包含元数据 (YAML Front Matter)",
-                                        isOn: Binding(
-                                            get: { store.includeMetadata },
-                                            set: { store.send(.binding(.set(\.includeMetadata, $0))) }
-                                        )
-                                    )
-                                }
+                        }
+                        .pickerStyle(.radioGroup)
+                        
+                        if store.exportFormat == .markdown {
+                            Toggle(
+                                "包含元数据 (YAML Front Matter)",
+                                isOn: Binding(
+                                    get: { store.includeMetadata },
+                                    set: { store.send(.binding(.set(\.includeMetadata, $0))) }
+                                )
+                            )
+                        }
                                 
                                 if store.exportFormat == .html {
                                     VStack(alignment: .leading, spacing: 8) {
@@ -231,10 +231,10 @@ struct ExportView: View {
                                         }
                                     }
                                 }
-                            }
-                            .padding()
-                            .background(Color.secondary.opacity(0.1))
-                            .cornerRadius(8)
+                    }
+                    .padding()
+                    .background(Color.secondary.opacity(0.1))
+                    .cornerRadius(8)
                         }
                         .padding(.horizontal, 20)
                         .padding(.vertical, 16)
@@ -250,15 +250,15 @@ struct ExportView: View {
                         .buttonStyle(.bordered)
                         
                         Spacer()
-                        
-                        Button {
-                            selectExportDirectory()
-                        } label: {
-                            Label("选择导出位置", systemImage: "folder")
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
+                    
+                    Button {
+                        selectExportDirectory()
+                    } label: {
+                        Label("选择导出位置", systemImage: "folder")
                     }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 16)
                     .background(Color(nsColor: .controlBackgroundColor))

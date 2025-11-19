@@ -581,6 +581,40 @@ actor MarkdownRenderer {
         // 使用主题的 Mermaid 主题配置
         let mermaidTheme = theme.mermaidTheme
         
+        // 应用所有布局设置
+        let horizontalPadding = options.horizontalPadding ?? 24.0
+        let verticalPadding = options.verticalPadding ?? 20.0
+        let alignment = options.alignment ?? "center"
+        let textAlign = alignment == "center" ? "center" : "left"
+        let maxWidth = options.maxWidth ?? 800.0  // 默认 800pt
+        let lineSpacing = options.lineSpacing ?? 6.0
+        let paragraphSpacing = options.paragraphSpacing ?? 0.8
+        
+        // 计算行高（line-height）：行间距是绝对值（pt），需要转换为相对值
+        // 假设基础字体大小为 17pt（与 EditorPreferences 默认值一致）
+        let baseFontSize: CGFloat = 17.0
+        let lineHeight = 1.0 + (lineSpacing / baseFontSize)
+        
+        let containerStyle = """
+            max-width: \(maxWidth)pt;
+            margin: 0 auto;
+            padding: \(verticalPadding)pt \(horizontalPadding)pt;
+        """
+        let contentStyle = """
+            text-align: \(textAlign);
+            line-height: \(lineHeight);
+        """
+        
+        // 段落间距样式（通过内联样式或添加到 CSS）
+        let paragraphSpacingStyle = """
+            p {
+                margin-bottom: \(paragraphSpacing)em;
+            }
+            p:last-child {
+                margin-bottom: 0;
+            }
+        """
+        
         return """
         <!DOCTYPE html>
         <html lang="zh-CN">
@@ -591,13 +625,16 @@ actor MarkdownRenderer {
             \(css)
             \(codeHighlightCSS)
             \(imageErrorCSS)
+            <style>
+                \(paragraphSpacingStyle)
+            </style>
             \(getMermaidScript())
             \(getKaTeXScript())
         </head>
         <body>
-            <div class="container">
+            <div class="container" style="\(containerStyle)">
                 \(toc ?? "")
-                <article class="content">
+                <article class="content" style="\(contentStyle)">
                 \(content)
                 </article>
             </div>

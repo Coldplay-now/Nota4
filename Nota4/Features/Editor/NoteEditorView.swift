@@ -10,6 +10,8 @@ struct NoteEditorView: View {
         HighlightedTitleField(
             text: $store.title,
             searchKeywords: store.listSearchKeywords,
+            fontName: store.editorStyle.titleFontName,
+            fontSize: store.editorStyle.titleFontSize,
             onFocusChange: { isFocused in
                 if !isFocused {
                     store.send(.manualSave)
@@ -20,6 +22,68 @@ struct NoteEditorView: View {
                 set: { isTitleFocused = $0 }
             )
         )
+    }
+    
+    private var editorContentArea: some View {
+        HStack(spacing: 0) {
+            // 左对齐时不需要左侧 Spacer
+            if store.editorStyle.alignment == .center {
+                Spacer()
+            }
+            
+            Group {
+                if store.viewMode == .editOnly {
+                    editorView
+                } else {
+                    previewView
+                }
+            }
+            
+            // 右对齐时不需要右侧 Spacer，居中时需要
+            if store.editorStyle.alignment == .center {
+                Spacer()
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var editorView: some View {
+        MarkdownTextEditor(
+            text: $store.content,
+            selection: $store.selectionRange,
+            font: NSFont(
+                name: store.editorStyle.fontName ?? "System",
+                size: store.editorStyle.fontSize
+            ) ?? NSFont.systemFont(ofSize: store.editorStyle.fontSize),
+            textColor: .labelColor,
+            backgroundColor: .textBackgroundColor,
+            lineSpacing: store.editorStyle.lineSpacing,
+            paragraphSpacing: store.editorStyle.paragraphSpacing,
+            horizontalPadding: store.editorStyle.horizontalPadding,
+            verticalPadding: store.editorStyle.verticalPadding,
+            maxWidth: store.editorStyle.maxWidth,
+            alignment: store.editorStyle.alignment == .center ? .center : .leading,
+            onSelectionChange: { range in
+                store.send(.selectionChanged(range))
+            },
+            onFocusChange: { isFocused in
+                store.send(.focusChanged(isFocused))
+            },
+            searchMatches: store.search.matches,
+            currentSearchIndex: store.search.currentMatchIndex
+        )
+        // 不再限制 MarkdownTextEditor 的宽度，让它占满可用空间
+        // 内容宽度限制在 NSTextView 的 textContainer 中设置
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contextMenu {
+            EditorContextMenu(store: store)
+        }
+    }
+    
+    private var previewView: some View {
+        MarkdownPreview(store: store)
+            // 预览模式：WebViewWrapper 占满空间，内容宽度在 HTML/CSS 中限制
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     var body: some View {
@@ -121,41 +185,7 @@ struct NoteEditorView: View {
                         Divider()
                         
                         // 编辑器/预览区域
-                        Group {
-                            if store.viewMode == .editOnly {
-                                MarkdownTextEditor(
-                                    text: $store.content,
-                                    selection: $store.selectionRange,
-                                    font: NSFont(
-                                        name: store.editorStyle.fontName ?? "System",
-                                        size: store.editorStyle.fontSize
-                                    ) ?? NSFont.systemFont(ofSize: store.editorStyle.fontSize),
-                                    textColor: .labelColor,
-                                    backgroundColor: .textBackgroundColor,
-                                    lineSpacing: store.editorStyle.lineSpacing,
-                                    paragraphSpacing: store.editorStyle.paragraphSpacing,
-                                    horizontalPadding: store.editorStyle.horizontalPadding,
-                                    verticalPadding: store.editorStyle.verticalPadding,
-                                    onSelectionChange: { range in
-                                        store.send(.selectionChanged(range))
-                                    },
-                                    onFocusChange: { isFocused in
-                                        store.send(.focusChanged(isFocused))
-                                    },
-                                    searchMatches: store.search.matches,
-                                    currentSearchIndex: store.search.currentMatchIndex
-                                )
-                                // 编辑模式：占满整个可用空间，不限制宽度
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .contextMenu {
-                                    EditorContextMenu(store: store)
-                                }
-                            } else {
-                                // 预览模式：占满整个可用空间
-                                MarkdownPreview(store: store)
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            }
-                        }
+                        editorContentArea
                     }
                 } else {
                     ContentUnavailableView(
