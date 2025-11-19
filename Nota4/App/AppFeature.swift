@@ -1,6 +1,34 @@
 import ComposableArchitecture
 import SwiftUI
 
+// MARK: - Column Widths
+
+struct ColumnWidths: Equatable {
+    var sidebarWidth: CGFloat? = nil      // nil 表示使用默认值
+    var listWidth: CGFloat? = nil
+    var sidebarMin: CGFloat = 180
+    var sidebarMax: CGFloat = 250
+    var listMin: CGFloat = 280
+    var listMax: CGFloat = 500
+    
+    // 为不同布局模式保存不同的宽度
+    var threeColumnWidths: (sidebar: CGFloat?, list: CGFloat?) = (nil, nil)
+    var twoColumnWidths: CGFloat? = nil  // 两栏模式只保存列表宽度
+    
+    // 手动实现 Equatable，因为元组不能自动合成
+    static func == (lhs: ColumnWidths, rhs: ColumnWidths) -> Bool {
+        return lhs.sidebarWidth == rhs.sidebarWidth &&
+               lhs.listWidth == rhs.listWidth &&
+               lhs.sidebarMin == rhs.sidebarMin &&
+               lhs.sidebarMax == rhs.sidebarMax &&
+               lhs.listMin == rhs.listMin &&
+               lhs.listMax == rhs.listMax &&
+               lhs.threeColumnWidths.sidebar == rhs.threeColumnWidths.sidebar &&
+               lhs.threeColumnWidths.list == rhs.threeColumnWidths.list &&
+               lhs.twoColumnWidths == rhs.twoColumnWidths
+    }
+}
+
 // MARK: - Layout Mode
 
 enum LayoutMode: String, Equatable, CaseIterable {
@@ -45,6 +73,44 @@ enum LayoutMode: String, Equatable, CaseIterable {
     }
 }
 
+// MARK: - App State Extension
+
+extension AppFeature.State {
+    // 计算属性：从 layoutMode 计算 columnVisibility
+    var columnVisibility: NavigationSplitViewVisibility {
+        switch layoutMode {
+        case .threeColumn: return .all
+        case .twoColumn: return .doubleColumn
+        case .oneColumn: return .detailOnly  // 虽然 macOS 上可能不生效，但保留用于兼容
+        }
+    }
+    
+    // 判断是否应该使用条件渲染（一栏模式）
+    var shouldUseConditionalRendering: Bool {
+        return layoutMode == .oneColumn
+    }
+}
+
+// MARK: - Helper Functions
+
+func loadColumnWidthsFromUserDefaults(for mode: LayoutMode, into columnWidths: inout ColumnWidths) {
+    switch mode {
+    case .threeColumn:
+        if let sidebarWidth = UserDefaults.standard.object(forKey: "columnWidths_三栏_sidebar") as? CGFloat {
+            columnWidths.threeColumnWidths.sidebar = sidebarWidth
+        }
+        if let listWidth = UserDefaults.standard.object(forKey: "columnWidths_三栏_list") as? CGFloat {
+            columnWidths.threeColumnWidths.list = listWidth
+        }
+    case .twoColumn:
+        if let listWidth = UserDefaults.standard.object(forKey: "columnWidths_两栏_list") as? CGFloat {
+            columnWidths.twoColumnWidths = listWidth
+        }
+    case .oneColumn:
+        break
+    }
+}
+
 // MARK: - App State
 
 @Reducer
@@ -57,8 +123,9 @@ struct AppFeature {
         var importFeature: ImportFeature.State?
         var exportFeature: ExportFeature.State?
         @Presents var settingsFeature: SettingsFeature.State?
-        var layoutMode: LayoutMode = .threeColumn  // 新增布局模式状态
-        var columnVisibility: NavigationSplitViewVisibility = .all  // 保留，用于同步
+        var layoutMode: LayoutMode = .threeColumn  // 布局模式（单一数据源）
+        var isLayoutTransitioning: Bool = false   // 布局切换状态标记
+        var columnWidths: ColumnWidths = ColumnWidths()  // 用户自定义宽度
         var preferences = EditorPreferences()
         
         init() {
@@ -66,7 +133,25 @@ struct AppFeature {
             if let savedMode = UserDefaults.standard.string(forKey: "layoutMode"),
                let mode = LayoutMode(rawValue: savedMode) {
                 self.layoutMode = mode
-                self.columnVisibility = mode.columnVisibility
+            }
+            
+            // 加载保存的宽度设置
+            loadColumnWidths()
+        }
+        
+        // 加载保存的宽度设置
+        mutating func loadColumnWidths() {
+            // 加载三栏模式宽度
+            if let sidebarWidth = UserDefaults.standard.object(forKey: "columnWidths_三栏_sidebar") as? CGFloat {
+                columnWidths.threeColumnWidths.sidebar = sidebarWidth
+            }
+            if let listWidth = UserDefaults.standard.object(forKey: "columnWidths_三栏_list") as? CGFloat {
+                columnWidths.threeColumnWidths.list = listWidth
+            }
+            
+            // 加载两栏模式宽度
+            if let listWidth = UserDefaults.standard.object(forKey: "columnWidths_两栏_list") as? CGFloat {
+                columnWidths.twoColumnWidths = listWidth
             }
         }
     }
@@ -81,8 +166,13 @@ struct AppFeature {
         case exportFeature(ExportFeature.Action)
         case settingsFeature(PresentationAction<SettingsFeature.Action>)
         case onAppear
-        case layoutModeChanged(LayoutMode)  // 新增布局模式切换 Action
-        case columnVisibilityChanged(NavigationSplitViewVisibility)
+        case layoutModeChanged(LayoutMode)  // 布局模式切换
+        case layoutTransitionStarted(LayoutMode)  // 布局切换开始（传入目标模式）
+        case layoutTransitionCompleted    // 布局切换完成
+        case columnVisibilityChanged(NavigationSplitViewVisibility)  // 保留，用于兼容
+        case columnWidthAdjusted(sidebar: CGFloat?, list: CGFloat?)  // 用户拖拽调整宽度
+        case saveColumnWidths(for: LayoutMode)  // 保存宽度设置
+        case resetColumnWidths(for: LayoutMode)  // 重置宽度设置
         case showImport
         case dismissImport
         case showExport([Note])
@@ -184,6 +274,7 @@ struct AppFeature {
                 
             case .preferencesLoaded(let prefs):
                 state.preferences = prefs
+                // 应用偏好设置到编辑器，这会同时更新预览的渲染选项
                 return .send(.editor(.applyPreferences(prefs)))
                 
             case .preferencesUpdated(let prefs):
@@ -196,32 +287,103 @@ struct AppFeature {
                 )
                 
             case .layoutModeChanged(let mode):
+                // 如果已经是目标模式，直接返回
+                guard mode != state.layoutMode else { return .none }
+                
+                // 保存当前布局的宽度（如果用户调整过）
+                let currentMode = state.layoutMode
+                state.isLayoutTransitioning = true
+                
+                // 保存当前布局的宽度，然后更新布局模式
+                return .concatenate(
+                    .send(.saveColumnWidths(for: currentMode)),
+                    .run { send in
+                        // 更新布局模式
+                        await send(.layoutTransitionStarted(mode))
+                    }
+                )
+                
+            case .layoutTransitionStarted(let mode):
                 // 更新布局模式
                 state.layoutMode = mode
-                state.columnVisibility = mode.columnVisibility
                 
                 // 保存到 UserDefaults
                 UserDefaults.standard.set(mode.rawValue, forKey: "layoutMode")
                 
+                // 加载新布局模式的宽度设置
+                loadColumnWidthsFromUserDefaults(for: mode, into: &state.columnWidths)
+                
+                return .run { send in
+                    // 等待布局切换动画完成
+                    try await mainQueue.sleep(for: .milliseconds(300))
+                    await send(.layoutTransitionCompleted)
+                }
+                
+            case .layoutTransitionCompleted:
+                state.isLayoutTransitioning = false
+                return .none
+                
+            case .columnWidthAdjusted(let sidebar, let list):
+                // 更新当前布局模式的宽度
+                switch state.layoutMode {
+                case .threeColumn:
+                    state.columnWidths.threeColumnWidths = (sidebar, list)
+                case .twoColumn:
+                    state.columnWidths.twoColumnWidths = list
+                case .oneColumn:
+                    // 一栏模式不需要保存宽度
+                    break
+                }
+                return .none
+                
+            case .saveColumnWidths(for: let mode):
+                // 保存到 UserDefaults
+                switch mode {
+                case .threeColumn:
+                    if let sidebar = state.columnWidths.threeColumnWidths.sidebar {
+                        UserDefaults.standard.set(sidebar, forKey: "columnWidths_三栏_sidebar")
+                    }
+                    if let list = state.columnWidths.threeColumnWidths.list {
+                        UserDefaults.standard.set(list, forKey: "columnWidths_三栏_list")
+                    }
+                case .twoColumn:
+                    if let list = state.columnWidths.twoColumnWidths {
+                        UserDefaults.standard.set(list, forKey: "columnWidths_两栏_list")
+                    }
+                case .oneColumn:
+                    // 一栏模式不需要保存宽度
+                    break
+                }
+                return .none
+                
+            case .resetColumnWidths(for: let mode):
+                // 重置为默认值
+                switch mode {
+                case .threeColumn:
+                    state.columnWidths.threeColumnWidths = (nil, nil)
+                    UserDefaults.standard.removeObject(forKey: "columnWidths_三栏_sidebar")
+                    UserDefaults.standard.removeObject(forKey: "columnWidths_三栏_list")
+                case .twoColumn:
+                    state.columnWidths.twoColumnWidths = nil
+                    UserDefaults.standard.removeObject(forKey: "columnWidths_两栏_list")
+                case .oneColumn:
+                    break
+                }
                 return .none
                 
             case .columnVisibilityChanged(let visibility):
-                // 同步 columnVisibility 变化到 layoutMode
-                // 当用户手动拖拽调整布局时，同步更新 layoutMode
-                // 但如果新的 visibility 与当前 layoutMode 的 columnVisibility 相同，说明是程序设置的，不需要更新
-                let expectedVisibility = state.layoutMode.columnVisibility
-                if visibility == expectedVisibility {
-                    // 这是程序设置导致的，只需要同步 columnVisibility，不需要更新 layoutMode
-                    state.columnVisibility = visibility
+                // 如果正在切换布局，忽略用户拖拽
+                if state.isLayoutTransitioning {
                     return .none
                 }
                 
-                // 这是用户手动拖拽导致的，需要更新 layoutMode
-                state.columnVisibility = visibility
-                state.layoutMode = LayoutMode.from(visibility)
+                // 将 visibility 转换为 layoutMode
+                let newMode = LayoutMode.from(visibility)
                 
-                // 保存到 UserDefaults
-                UserDefaults.standard.set(state.layoutMode.rawValue, forKey: "layoutMode")
+                // 如果模式改变，触发布局切换
+                if newMode != state.layoutMode {
+                    return .send(.layoutModeChanged(newMode))
+                }
                 
                 return .none
                 

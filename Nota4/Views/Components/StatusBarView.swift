@@ -24,18 +24,42 @@ struct StatusBarView: View {
                 }
                 
                 // 布局模式指示器（中间）
-                Button {
-                    // 循环切换布局模式
-                    let nextMode: LayoutMode
-                    switch store.layoutMode {
-                    case .threeColumn:
-                        nextMode = .twoColumn
-                    case .twoColumn:
-                        nextMode = .oneColumn
-                    case .oneColumn:
-                        nextMode = .threeColumn
+                Menu {
+                    Button {
+                        store.send(.layoutModeChanged(.threeColumn))
+                    } label: {
+                        Label("三栏", systemImage: "rectangle.split.3x1")
+                        if store.layoutMode == .threeColumn {
+                            Image(systemName: "checkmark")
+                        }
                     }
-                    store.send(.layoutModeChanged(nextMode))
+                    .keyboardShortcut("1", modifiers: [.command, .shift])
+                    
+                    Button {
+                        store.send(.layoutModeChanged(.twoColumn))
+                    } label: {
+                        Label("两栏", systemImage: "rectangle.split.2x1")
+                        if store.layoutMode == .twoColumn {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                    .keyboardShortcut("2", modifiers: [.command, .shift])
+                    
+                    Button {
+                        store.send(.layoutModeChanged(.oneColumn))
+                    } label: {
+                        Label("一栏", systemImage: "rectangle")
+                        if store.layoutMode == .oneColumn {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                    .keyboardShortcut("3", modifiers: [.command, .shift])
+                    
+                    Divider()
+                    
+                    Button("重置宽度") {
+                        store.send(.resetColumnWidths(for: store.layoutMode))
+                    }
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: store.layoutMode.icon)
@@ -46,7 +70,7 @@ struct StatusBarView: View {
                     .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help("点击切换布局模式")
+                .help("切换布局模式（⇧⌘1/2/3）")
                 
                 Spacer()
                 
