@@ -531,6 +531,133 @@ struct MarkdownTextEditor: NSViewRepresentable {
         func textDidEndEditing(_ notification: Notification) {
             parent.onFocusChange(false)
         }
+        
+        // MARK: - List Continuation Support
+        
+        /// 拦截命令（用于实现列表自动续行）
+        func textView(_ textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+            // 拦截回车键
+            if commandSelector == #selector(NSTextView.insertNewline(_:)) {
+                return handleEnterKey(textView: textView)
+            }
+            return false
+        }
+        
+        /// 处理回车键，实现列表自动续行
+        private func handleEnterKey(textView: NSTextView) -> Bool {
+            let text = textView.string
+            let selection = textView.selectedRange()
+            
+            // 获取当前行
+            let nsText = text as NSString
+            let lineRange = nsText.lineRange(for: selection)
+            let lineText = nsText.substring(with: lineRange).trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            // 检测列表类型
+            guard let listInfo = detectListType(line: lineText) else {
+                // 不是列表项，执行默认行为
+                return false
+            }
+            
+            // 计算新行的列表标记
+            let newListMarker: String
+            switch listInfo {
+            case .ordered(let number):
+                // 如果当前行是空列表项（只有标记没有内容），保持相同序号
+                let content = lineText.replacingOccurrences(of: #"^\d+\.\s*"#, with: "", options: .regularExpression)
+                if content.isEmpty {
+                    newListMarker = "\(number). "
+                } else {
+                    newListMarker = "\(number + 1). "
+                }
+            case .unordered:
+                // 提取当前行的标记（- 或 * 或 +）
+                if lineText.hasPrefix("- ") {
+                    newListMarker = "- "
+                } else if lineText.hasPrefix("* ") {
+                    newListMarker = "* "
+                } else if lineText.hasPrefix("+ ") {
+                    newListMarker = "+ "
+                } else {
+                    // 默认使用 "- "
+                    newListMarker = "- "
+                }
+            case .task:
+                // 提取当前行的标记
+                if lineText.hasPrefix("- [") {
+                    newListMarker = "- [ ] "
+                } else if lineText.hasPrefix("* [") {
+                    newListMarker = "* [ ] "
+                } else if lineText.hasPrefix("+ [") {
+                    newListMarker = "+ [ ] "
+                } else {
+                    // 默认使用 "- [ ] "
+                    newListMarker = "- [ ] "
+                }
+            }
+            
+            // 插入新行和列表标记
+            let insertion = "\n\(newListMarker)"
+            let insertionRange = NSRange(location: selection.location, length: 0)
+            
+            // 使用 shouldChangeText 准备 undo
+            guard textView.shouldChangeText(in: insertionRange, replacementString: insertion) else {
+                return false
+            }
+            
+            // 执行插入
+            if let textStorage = textView.textStorage {
+                textStorage.replaceCharacters(in: insertionRange, with: insertion)
+                textView.didChangeText()
+                
+                // 更新选中范围到新行的列表标记后面
+                let newSelection = NSRange(location: selection.location + insertion.count, length: 0)
+                textView.setSelectedRange(newSelection)
+                textView.scrollRangeToVisible(newSelection)
+                
+                // 通知父组件内容已改变
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.parent.text = textView.string
+                    self.parent.onSelectionChange(newSelection)
+                }
+            }
+            
+            return true
+        }
+        
+        /// 检测列表类型
+        private func detectListType(line: String) -> ListType? {
+            // 先检测任务列表（因为任务列表也以 "- " 开头，需要优先匹配）
+            // 匹配 "- [ ] " 或 "- [x] " 或 "* [ ] " 等
+            if line.hasPrefix("- [ ] ") || line.hasPrefix("- [x] ") ||
+               line.hasPrefix("* [ ] ") || line.hasPrefix("* [x] ") ||
+               line.hasPrefix("+ [ ] ") || line.hasPrefix("+ [x] ") {
+                return .task
+            }
+            
+            // 检测有序列表：匹配 "数字. " 模式
+            if let match = line.range(of: #"^\d+\.\s"#, options: .regularExpression) {
+                let numberStr = String(line[..<match.upperBound].dropLast(2))
+                if let number = Int(numberStr) {
+                    return .ordered(number: number)
+                }
+            }
+            
+            // 检测无序列表：匹配 "- " 或 "* " 或 "+ "（但不能是任务列表）
+            if line.hasPrefix("- ") || line.hasPrefix("* ") || line.hasPrefix("+ ") {
+                return .unordered
+            }
+            
+            return nil
+        }
+        
+        /// 列表类型枚举
+        private enum ListType {
+            case ordered(number: Int)
+            case unordered
+            case task
+        }
     }
 }
 
