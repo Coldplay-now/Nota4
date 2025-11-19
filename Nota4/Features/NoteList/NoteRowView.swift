@@ -45,7 +45,7 @@ struct NoteRowView: View {
             .padding(.bottom, 8)
             
             // 底部信息
-            HStack {
+            HStack(alignment: .center, spacing: 8) {
                 // 左侧：置顶图标 + 星标图标 + 标签
                 HStack(spacing: 6) {
                     // 置顶图标（移至左下角，与星标一行）
@@ -62,33 +62,41 @@ struct NoteRowView: View {
                             .foregroundColor(.yellow)
                     }
                     
-                // 标签
-                if !note.tags.isEmpty {
-                    HStack(spacing: 4) {
-                        ForEach(Array(note.tags.prefix(2)), id: \.self) { tag in
-                            Text(tag)
-                                .font(.caption2)
-                                .foregroundStyle(Color(nsColor: .labelColor))
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.accentColor.opacity(0.2))
-                                .cornerRadius(4)
+                    // 标签
+                    if !note.tags.isEmpty {
+                        HStack(spacing: 4) {
+                            ForEach(Array(note.tags.prefix(2)), id: \.self) { tag in
+                                Text(tag)
+                                    .font(.caption2)
+                                    .foregroundStyle(Color(nsColor: .labelColor))
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.accentColor.opacity(0.2))
+                                    .cornerRadius(4)
+                                    .lineLimit(1)
+                                    .fixedSize(horizontal: true, vertical: false)
+                            }
+                            if note.tags.count > 2 {
+                                Text("+\(note.tags.count - 2)")
+                                    .font(.caption2)
+                                    .foregroundStyle(Color(nsColor: .secondaryLabelColor))
+                                    .lineLimit(1)
+                                    .fixedSize(horizontal: true, vertical: false)
+                            }
                         }
-                        if note.tags.count > 2 {
-                            Text("+\(note.tags.count - 2)")
-                                .font(.caption2)
-                                .foregroundStyle(Color(nsColor: .secondaryLabelColor))
-                        }
-                        }
+                        .fixedSize(horizontal: true, vertical: false)
                     }
                 }
+                .fixedSize(horizontal: true, vertical: false)
                 
-                Spacer()
+                Spacer(minLength: 8)
                 
                 // 右侧：时间
                 Text(note.updated, format: .relative(presentation: .named))
                     .font(.caption)
                     .foregroundStyle(Color(nsColor: .secondaryLabelColor))
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
         }
         .padding(12)

@@ -164,7 +164,7 @@ struct SearchPanel: View {
                 .buttonStyle(.plain)
                 .help("关闭 (ESC)")
             }
-            .frame(maxWidth: 500, alignment: .leading)  // 限制整体宽度，左对齐
+            .frame(maxWidth: .infinity, alignment: .leading)  // 占据可用宽度，内容左对齐
             .padding(.horizontal, 16)  // 与工具栏的 padding 一致，确保左对齐
             .padding(.vertical, 8)
             .background(Color(nsColor: .controlBackgroundColor))
