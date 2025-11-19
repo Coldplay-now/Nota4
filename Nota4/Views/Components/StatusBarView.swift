@@ -45,7 +45,7 @@ struct StatusBarView: View {
                     }
                     .keyboardShortcut("2", modifiers: [.command, .shift])
                     
-                    Button {
+                Button {
                         store.send(.layoutModeChanged(.oneColumn))
                     } label: {
                         Label("一栏", systemImage: "rectangle")

@@ -11,6 +11,9 @@
 | 文档 | 描述 | 更新日期 |
 |------|------|---------|
 | [TEST_DRIVEN_OPTIMIZATION_GUIDE.md](./TEST_DRIVEN_OPTIMIZATION_GUIDE.md) | 测试驱动的优化指南 | 2025-11-16 |
+| [COMPREHENSIVE_TEST_DOCUMENT.md](./COMPREHENSIVE_TEST_DOCUMENT.md) | 综合测试文档 | 2025-11-16 |
+| [MANUAL_TEST_CHECKLIST.md](./MANUAL_TEST_CHECKLIST.md) | 手动测试清单 | 2025-11-16 |
+| [QUICK_START_TESTING.md](./QUICK_START_TESTING.md) | 快速开始测试 | 2025-11-16 |
 
 ### CI/CD
 

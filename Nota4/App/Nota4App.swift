@@ -127,7 +127,7 @@ struct Nota4App: App {
                     case .oneColumn: .threeColumn
                     }
                     store.send(.layoutModeChanged(nextMode))
-                }
+                    }
                 .keyboardShortcut("l", modifiers: [.command, .shift])
             }
         }
@@ -251,12 +251,8 @@ struct AppView: View {
                     store.send(.columnWidthAdjusted(sidebar: width, list: nil))
                 }
             }
-            .toolbar {
-                // 隐藏系统自动生成的侧边栏切换按钮
-                ToolbarItem(placement: .automatic) {
-                    EmptyView()
-                }
-            }
+            // 移除 .toolbar 修饰符，避免在 .hiddenTitleBar 模式下创建工具栏区域
+            // 工具栏区域会延伸到窗口顶部，视觉上包裹窗口控制按钮
         } content: {
             // 笔记列表（所有模式都需要，NavigationSplitView 会自动控制显示/隐藏）
             NoteListView(

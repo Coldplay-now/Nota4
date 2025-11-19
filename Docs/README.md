@@ -1,7 +1,7 @@
 # Nota4 文档中心
 
 > 📚 **最后更新**: 2025-11-19 08:26:02  
-> 🏗️ **项目**: Nota4 - 基于 SwiftUI 4.0 + TCA 1.11 的现代化 macOS Markdown 笔记应用  
+> 🏗️ **项目**: Nota4 - 基于 SwiftUI 4.0 + TCA 1.11 的现代化 macOS Markdown 笔记应用
 > 📦 **当前版本**: v1.1.1
 
 ---
