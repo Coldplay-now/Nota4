@@ -20,7 +20,19 @@ struct NoteEditorView: View {
             isFocused: Binding(
                 get: { isTitleFocused },
                 set: { isTitleFocused = $0 }
-            )
+            ),
+            onReturnKey: {
+                // 标题编辑时按回车，将焦点移到正文文首
+                isTitleFocused = false
+                store.send(.moveFocusToContentStart)
+                
+                // 通过 NotificationCenter 通知 MarkdownTextEditor 设置焦点
+                // 这样可以直接访问 textView，不需要递归查找
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("MoveFocusToContentStart"),
+                    object: nil
+                )
+            }
         )
     }
     
@@ -172,6 +184,40 @@ struct NoteEditorView: View {
                 }
             }
         }
+    }
+    
+    // MARK: - Helper Methods
+    
+    /// 递归查找视图层次结构中的 NSTextView（正文编辑器）
+    /// 排除标题输入框（NSTextField），只查找正文编辑器（NSTextView）
+    private func findTextView(in view: NSView) -> NSTextView? {
+        // 跳过 NSTextField（标题输入框）
+        if view is NSTextField {
+            return nil
+        }
+        
+        // 如果是 NSScrollView，检查其 documentView 是否是 NSTextView
+        if let scrollView = view as? NSScrollView,
+           let textView = scrollView.documentView as? NSTextView,
+           textView.isEditable {
+            return textView
+        }
+        
+        // 如果是 NSTextView，检查是否在 NSScrollView 中（正文编辑器）
+        if let textView = view as? NSTextView,
+           textView.isEditable,
+           textView.superview is NSScrollView {
+            return textView
+        }
+        
+        // 递归查找子视图
+        for subview in view.subviews {
+            if let textView = findTextView(in: subview) {
+                return textView
+            }
+        }
+        
+        return nil
     }
     
     // MARK: - File Picker Helpers

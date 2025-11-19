@@ -27,3 +27,4 @@ echo "🔍 To filter sidebar logs: tail -f $LOG_FILE | grep SIDEBAR"
 
 
 
+

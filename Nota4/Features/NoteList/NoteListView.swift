@@ -106,7 +106,11 @@ struct NoteListView: View {
                 "确认永久删除",
                 isPresented: Binding(
                     get: { store.showPermanentDeleteConfirmation },
-                    set: { _ in store.send(.cancelPermanentDelete) }
+                    set: { newValue in
+                        if !newValue {
+                            store.send(.cancelPermanentDelete)
+                        }
+                    }
                 ),
                 titleVisibility: .visible
             ) {
@@ -189,14 +193,24 @@ struct NoteListView: View {
                 Divider()
                 
                 if isTrash {
-                    Button("恢复笔记") {
-                        store.send(.restoreNotes([note.noteId]))
-                    }
-                    
-                    Divider()
-                    
-                    Button("永久删除", role: .destructive) {
-                        store.send(.requestPermanentDelete([note.noteId]))
+                    if isBatchSelection {
+                        // 批量操作
+                        Button("批量恢复") {
+                            store.send(.restoreNotes(selectedNotes))
+                        }
+                        Divider()
+                        Button("批量永久删除", role: .destructive) {
+                            store.send(.requestPermanentDelete(selectedNotes))
+                        }
+                    } else {
+                        // 单个操作
+                        Button("恢复笔记") {
+                            store.send(.restoreNotes([note.noteId]))
+                        }
+                        Divider()
+                        Button("永久删除", role: .destructive) {
+                            store.send(.requestPermanentDelete([note.noteId]))
+                        }
                     }
                 } else {
                     // 批量选择时，显示批量操作菜单

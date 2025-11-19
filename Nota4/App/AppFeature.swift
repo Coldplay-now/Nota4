@@ -217,7 +217,8 @@ struct AppFeature {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                // 应用启动时加载笔记、侧边栏计数、状态栏统计和偏好设置
+                // 应用启动时同步 filter 和侧边栏，然后加载笔记、侧边栏计数、状态栏统计和偏好设置
+                state.noteList.filter = .category(state.sidebar.selectedCategory)
                 return .merge(
                     .send(.noteList(.loadNotes)),
                     .send(.sidebar(.loadCounts)),  // 加载侧边栏计数
@@ -637,9 +638,11 @@ struct AppFeature {
             // 笔记列表加载完成 → 不再更新侧边栏统计
             // （因为 notes 是过滤后的，不能用来计算全局计数）
             case .noteList(.notesLoaded(.success(let notes))):
-                // 如果还没有选中笔记，且列表不为空，自动选择第一个（置顶优先）
+                // 只在启动时（editor.note == nil）且没有选中笔记时自动选择
+                // 避免在删除后重新加载时触发自动选择
                 if state.noteList.selectedNoteId == nil,
                    state.editor.note == nil,
+                   !notes.isEmpty,
                    let firstNote = notes.first {
                     return .send(.noteList(.noteSelected(firstNote.noteId)))
                 }

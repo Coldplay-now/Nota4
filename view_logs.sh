@@ -17,3 +17,4 @@ log stream --process Nota4 --level debug --style compact | grep -E "\[INSERT\]|\
 
 
 
+

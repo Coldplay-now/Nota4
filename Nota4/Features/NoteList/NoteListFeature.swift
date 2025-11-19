@@ -15,7 +15,7 @@ struct NoteListFeature {
         var isSearchPanelVisible: Bool = false  // 搜索面板是否可见
         var sortOrder: SortOrder = .updated
         var isLoading: Bool = false
-        var filter: Filter = .none
+        var filter: Filter = .category(.all)  // 与 SidebarFeature.selectedCategory 保持一致
         var showPermanentDeleteConfirmation: Bool = false
         var pendingPermanentDeleteIds: Set<String> = []
         
@@ -208,17 +208,27 @@ struct NoteListFeature {
                 return .none
                 
             case .deleteNotes(let ids):
-                // 如果删除的笔记中包含当前选中的笔记，清除选中状态
+                // 清理选中状态（包括单个和批量）
                 if let selectedId = state.selectedNoteId, ids.contains(selectedId) {
                     state.selectedNoteId = nil
-                    state.selectedNoteIds.removeAll()
-                } else {
-                    // 从选中列表中移除已删除的笔记
-                    state.selectedNoteIds = state.selectedNoteIds.subtracting(ids)
                 }
+                state.selectedNoteIds = state.selectedNoteIds.subtracting(ids)
                 
-                return .run { send in
+                return .run { [filter = state.filter] send in
+                    // 先移动所有文件到回收站
+                    var fileMoveErrors: [String: Error] = [:]
+                    for id in ids {
+                        do {
+                            try await notaFileManager.deleteNoteFile(noteId: id)
+                        } catch {
+                            print("❌ 文件移动失败: \(id), 错误: \(error.localizedDescription)")
+                            fileMoveErrors[id] = error
+                            // 继续执行，不中断删除流程
+                        }
+                    }
+                    // 然后更新数据库
                     try await noteRepository.deleteNotes(ids)
+                    // 使用当前的 filter 重新加载（确保已删除的笔记被正确过滤）
                     await send(.loadNotes)
                     await send(.deleteNotesCompleted)  // 发送完成通知
                 }
@@ -228,8 +238,21 @@ struct NoteListFeature {
                 return .none
                 
             case .restoreNotes(let ids):
-                return .run { send in
+                return .run { [filter = state.filter] send in
+                    // 先移动文件从回收站回到笔记目录
+                    var fileMoveErrors: [String: Error] = [:]
+                    for id in ids {
+                        do {
+                            try await notaFileManager.restoreFromTrash(noteId: id)
+                        } catch {
+                            print("❌ 文件恢复失败: \(id), 错误: \(error.localizedDescription)")
+                            fileMoveErrors[id] = error
+                            // 继续执行，不中断恢复流程
+                        }
+                    }
+                    // 然后更新数据库
                     try await noteRepository.restoreNotes(ids)
+                    // 使用当前的 filter 重新加载
                     await send(.loadNotes)
                     await send(.restoreNotesCompleted)  // 发送完成通知
                 }
@@ -247,13 +270,27 @@ struct NoteListFeature {
             case .confirmPermanentDelete:
                 // 确认永久删除
                 let ids = state.pendingPermanentDeleteIds
+                // 清理选中状态
+                if let selectedId = state.selectedNoteId, ids.contains(selectedId) {
+                    state.selectedNoteId = nil
+                }
+                state.selectedNoteIds = state.selectedNoteIds.subtracting(ids)
                 state.showPermanentDeleteConfirmation = false
                 state.pendingPermanentDeleteIds = []
-                return .run { send in
+                return .run { [filter = state.filter] send in
                     try await noteRepository.permanentlyDeleteNotes(ids)
+                    // 永久删除文件
+                    var fileDeleteErrors: [String: Error] = [:]
                     for id in ids {
-                        try await notaFileManager.deleteNoteFile(noteId: id)
+                        do {
+                            try await notaFileManager.deleteNoteFile(noteId: id)
+                        } catch {
+                            print("❌ 文件永久删除失败: \(id), 错误: \(error.localizedDescription)")
+                            fileDeleteErrors[id] = error
+                            // 继续执行，不中断删除流程
+                        }
                     }
+                    // 使用当前的 filter 重新加载
                     await send(.loadNotes)
                     await send(.permanentlyDeleteNotesCompleted)  // 发送完成通知
                 }
@@ -266,11 +303,25 @@ struct NoteListFeature {
                 
             case .permanentlyDeleteNotes(let ids):
                 // 直接永久删除（用于滑动操作等不需要确认的场景）
-                return .run { send in
+                // 清理选中状态
+                if let selectedId = state.selectedNoteId, ids.contains(selectedId) {
+                    state.selectedNoteId = nil
+                }
+                state.selectedNoteIds = state.selectedNoteIds.subtracting(ids)
+                return .run { [filter = state.filter] send in
                     try await noteRepository.permanentlyDeleteNotes(ids)
+                    // 永久删除文件
+                    var fileDeleteErrors: [String: Error] = [:]
                     for id in ids {
-                        try await notaFileManager.deleteNoteFile(noteId: id)
+                        do {
+                            try await notaFileManager.deleteNoteFile(noteId: id)
+                        } catch {
+                            print("❌ 文件永久删除失败: \(id), 错误: \(error.localizedDescription)")
+                            fileDeleteErrors[id] = error
+                            // 继续执行，不中断删除流程
+                        }
                     }
+                    // 使用当前的 filter 重新加载
                     await send(.loadNotes)
                     await send(.permanentlyDeleteNotesCompleted)  // 发送完成通知
                 }

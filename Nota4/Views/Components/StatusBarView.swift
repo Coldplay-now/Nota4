@@ -72,6 +72,21 @@ struct StatusBarView: View {
                 .buttonStyle(.plain)
                 .help("切换布局模式（⇧⌘1/2/3）")
                 
+                // 对齐方式指示器和切换控制
+                Button {
+                    store.send(.alignmentToggled)
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: store.preferences.alignment == .center ? "text.aligncenter" : "text.alignleft")
+                            .font(.system(size: 10))
+                        Text(store.preferences.alignment.rawValue)
+                            .font(.system(size: 11))
+                    }
+                    .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("切换对齐方式（点击切换）")
+                
                 Spacer()
                 
                 // 右侧：编辑器信息（仅当有打开的笔记时显示）

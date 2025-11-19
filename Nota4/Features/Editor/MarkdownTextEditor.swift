@@ -175,6 +175,13 @@ struct MarkdownTextEditor: NSViewRepresentable {
                 name: NSNotification.Name("PerformReplaceInTextView"),
                 object: nil
             )
+            // 监听焦点跳转通知（从标题框按回车时）
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(handleFocusToContentStart(_:)),
+                name: NSNotification.Name("MoveFocusToContentStart"),
+                object: nil
+            )
         }
         
         deinit {
@@ -185,6 +192,28 @@ struct MarkdownTextEditor: NSViewRepresentable {
                 // 检查是否有未结束的 undo group
                 while undoManager.groupingLevel > 0 {
                     undoManager.endUndoGrouping()
+                }
+            }
+        }
+        
+        @objc func handleFocusToContentStart(_ notification: Notification) {
+            guard let textView = textView else { return }
+            
+            // 延迟执行，确保标题框完全失去焦点
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                // 设置光标到文首
+                textView.setSelectedRange(NSRange(location: 0, length: 0))
+                textView.scrollRangeToVisible(NSRange(location: 0, length: 0))
+                
+                // 设置焦点
+                if let window = textView.window {
+                    window.makeFirstResponder(textView)
+                    
+                    // 再次确保光标在文首
+                    DispatchQueue.main.async {
+                        textView.setSelectedRange(NSRange(location: 0, length: 0))
+                        textView.scrollRangeToVisible(NSRange(location: 0, length: 0))
+                    }
                 }
             }
         }

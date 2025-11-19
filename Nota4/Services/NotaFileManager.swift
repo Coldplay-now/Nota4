@@ -345,6 +345,10 @@ actor NotaFileManagerMock: NotaFileManagerProtocol {
         print("🗑️ Mock: Deleted note file: \(noteId).nota")
     }
     
+    func restoreFromTrash(noteId: String) async throws {
+        print("♻️ Mock: Restored note file from trash: \(noteId).nota")
+    }
+    
     func getNoteDirectory(for noteId: String) async throws -> URL {
         let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         return documentsURL.appendingPathComponent("NotaLibrary/notes/\(noteId)")

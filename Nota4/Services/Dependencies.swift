@@ -78,6 +78,7 @@ protocol NotaFileManagerProtocol {
     func readNoteFile(noteId: String) async throws -> String
     func updateNoteFile(_ note: Note) async throws
     func deleteNoteFile(noteId: String) async throws
+    func restoreFromTrash(noteId: String) async throws
     func getNoteDirectory(for noteId: String) async throws -> URL
 }
 

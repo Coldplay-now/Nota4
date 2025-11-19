@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Nota4 v1.1.4 发布脚本（紧凑型布局优化）
+# Nota4 v1.1.5 发布脚本（修复标题字体设置和标签编辑按钮）
 
 set -e
 
-echo "🚀 Nota4 v1.1.4 发布流程（紧凑型布局优化）"
+echo "🚀 Nota4 v1.1.5 发布流程（修复标题字体设置和标签编辑按钮）"
 echo ""
 
 # 配置信息
@@ -14,8 +14,8 @@ DEVELOPER_ID="Developer ID Application: Xiaotian LIU (3G34A92J6L)"
 APPLE_ID="lxiaotian@gmail.com"
 TEAM_ID="3G34A92J6L"
 APP_PASSWORD="fugy-ntzw-gzua-rpdr"
-VERSION="1.1.4"
-BUILD_NUMBER="6"
+VERSION="1.1.5"
+BUILD_NUMBER="7"
 
 # 路径配置
 PROJECT_DIR="/Users/xt/LXT/code/trae/1107-model-eval/Nota4"
@@ -33,7 +33,7 @@ echo "  应用名称: $APP_NAME"
 echo "  版本号: $VERSION"
 echo "  Build 号: $BUILD_NUMBER"
 echo "  架构: arm64"
-echo "  更新: 紧凑型布局优化，分隔线对齐"
+echo "  更新: 修复标题字体设置，恢复标签编辑按钮"
 echo ""
 
 # 检查 Vendor 资源是否存在
@@ -354,7 +354,7 @@ echo "   文件名: $DMG_NAME"
 echo "   路径: $DMG_PATH"
 echo "   大小: $(du -h "$DMG_PATH" | cut -f1)"
 echo "   版本: $VERSION (Build $BUILD_NUMBER)"
-echo "   更新: 紧凑型布局优化，分隔线对齐"
+echo "   更新: 修复标题字体设置，恢复标签编辑按钮"
 echo ""
 echo "✅ 状态:"
 echo "   ✓ 应用已签名"
