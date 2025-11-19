@@ -534,8 +534,16 @@ struct MarkdownTextEditor: NSViewRepresentable {
         
         // MARK: - List Continuation Support
         
-        /// 拦截命令（用于实现列表自动续行）
+        /// 拦截命令（用于实现列表自动续行和缩进）
         func textView(_ textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+            // 拦截 Tab 键
+            if commandSelector == #selector(NSTextView.insertTab(_:)) {
+                return handleTabKey(textView: textView, isShiftPressed: false)
+            }
+            // 拦截 Shift+Tab 键
+            if commandSelector == #selector(NSTextView.insertBacktab(_:)) {
+                return handleTabKey(textView: textView, isShiftPressed: true)
+            }
             // 拦截回车键
             if commandSelector == #selector(NSTextView.insertNewline(_:)) {
                 return handleEnterKey(textView: textView)
@@ -551,10 +559,11 @@ struct MarkdownTextEditor: NSViewRepresentable {
             // 获取当前行
             let nsText = text as NSString
             let lineRange = nsText.lineRange(for: selection)
-            let lineText = nsText.substring(with: lineRange).trimmingCharacters(in: .whitespacesAndNewlines)
+            let fullLineText = nsText.substring(with: lineRange)  // 包含缩进的完整行
+            let trimmedLineText = fullLineText.trimmingCharacters(in: .whitespacesAndNewlines)  // 去除缩进用于检测
             
             // 检测列表类型
-            guard let listInfo = detectListType(line: lineText) else {
+            guard let listInfo = detectListType(line: trimmedLineText) else {
                 // 不是列表项，执行默认行为
                 return false
             }
@@ -563,20 +572,38 @@ struct MarkdownTextEditor: NSViewRepresentable {
             let newListMarker: String
             switch listInfo {
             case .ordered(let number):
-                // 如果当前行是空列表项（只有标记没有内容），保持相同序号
-                let content = lineText.replacingOccurrences(of: #"^\d+\.\s*"#, with: "", options: .regularExpression)
+                // 检测当前行的缩进层级
+                let indentLevel = detectIndentLevel(line: fullLineText)
+                
+                // 提取列表内容
+                let content = extractListContent(from: trimmedLineText)
+                
+                // 计算新行的序号
+                let newNumber: Int
                 if content.isEmpty {
-                    newListMarker = "\(number). "
+                    // 空列表项，保持相同序号
+                    newNumber = number
                 } else {
-                    newListMarker = "\(number + 1). "
+                    // 有内容，直接递增序号
+                    // 因为当前行本身就是同级列表项的一部分，下一个序号应该是当前序号 + 1
+                    newNumber = number + 1
                 }
+                
+                // 根据层级生成对应格式的标记
+                let newMarker = generateListMarker(level: indentLevel, number: newNumber)
+                
+                // 保持相同的缩进
+                let indent = String(repeating: " ", count: indentLevel * 2)
+                
+                // 生成新行的列表标记（包含缩进）
+                newListMarker = "\(indent)\(newMarker) "
             case .unordered:
                 // 提取当前行的标记（- 或 * 或 +）
-                if lineText.hasPrefix("- ") {
+                if trimmedLineText.hasPrefix("- ") {
                     newListMarker = "- "
-                } else if lineText.hasPrefix("* ") {
+                } else if trimmedLineText.hasPrefix("* ") {
                     newListMarker = "* "
-                } else if lineText.hasPrefix("+ ") {
+                } else if trimmedLineText.hasPrefix("+ ") {
                     newListMarker = "+ "
                 } else {
                     // 默认使用 "- "
@@ -584,11 +611,11 @@ struct MarkdownTextEditor: NSViewRepresentable {
                 }
             case .task:
                 // 提取当前行的标记
-                if lineText.hasPrefix("- [") {
+                if trimmedLineText.hasPrefix("- [") {
                     newListMarker = "- [ ] "
-                } else if lineText.hasPrefix("* [") {
+                } else if trimmedLineText.hasPrefix("* [") {
                     newListMarker = "* [ ] "
-                } else if lineText.hasPrefix("+ [") {
+                } else if trimmedLineText.hasPrefix("+ [") {
                     newListMarker = "+ [ ] "
                 } else {
                     // 默认使用 "- [ ] "
@@ -636,20 +663,314 @@ struct MarkdownTextEditor: NSViewRepresentable {
                 return .task
             }
             
-            // 检测有序列表：匹配 "数字. " 模式
-            if let match = line.range(of: #"^\d+\.\s"#, options: .regularExpression) {
-                let numberStr = String(line[..<match.upperBound].dropLast(2))
-                if let number = Int(numberStr) {
+            // 移除前导空格以检测列表标记
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            
+            // 检测有序列表：匹配 "数字. "、"字母. " 或 "罗马数字. " 模式
+            if let match = trimmed.range(of: #"^(\d+|[a-z]|[A-Z]|[ivxlcdmIVXLCDM]+)\.\s"#, options: .regularExpression) {
+                let markerStr = String(trimmed[..<match.upperBound].dropLast(2))
+                
+                // 尝试解析为数字
+                if let number = Int(markerStr) {
                     return .ordered(number: number)
+                }
+                
+                // 尝试解析为小写字母
+                if markerStr.count == 1, let char = markerStr.first, char.isLowercase {
+                    let number = Int(char.asciiValue! - 96)  // a=1, b=2, ...
+                    return .ordered(number: number)
+                }
+                
+                // 尝试解析为大写字母
+                if markerStr.count == 1, let char = markerStr.first, char.isUppercase {
+                    let number = Int(char.asciiValue! - 64)  // A=1, B=2, ...
+                    return .ordered(number: number)
+                }
+                
+                // 尝试解析为罗马数字
+                if let romanNumber = parseRomanNumeral(markerStr) {
+                    return .ordered(number: romanNumber)
                 }
             }
             
             // 检测无序列表：匹配 "- " 或 "* " 或 "+ "（但不能是任务列表）
-            if line.hasPrefix("- ") || line.hasPrefix("* ") || line.hasPrefix("+ ") {
+            if trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") || trimmed.hasPrefix("+ ") {
                 return .unordered
             }
             
             return nil
+        }
+        
+        // MARK: - List Indent Support
+        
+        /// 检测行的缩进层级
+        private func detectIndentLevel(line: String) -> Int {
+            var indentCount = 0
+            var index = line.startIndex
+            
+            while index < line.endIndex {
+                if line[index] == " " {
+                    indentCount += 1
+                    index = line.index(after: index)
+                } else if line[index] == "\t" {
+                    // Tab 键通常等于 4 个空格
+                    indentCount += 4
+                    index = line.index(after: index)
+                } else {
+                    break
+                }
+            }
+            
+            // 每 2 个空格为一个层级（Markdown 标准）
+            return indentCount / 2
+        }
+        
+        /// 计算 Tab/Shift+Tab 后的目标层级
+        private func calculateTargetLevel(currentLevel: Int, isShiftPressed: Bool) -> Int {
+            if isShiftPressed {
+                // Shift+Tab: 减少缩进
+                return max(0, currentLevel - 1)
+            } else {
+                // Tab: 增加缩进
+                return min(5, currentLevel + 1)  // 最多5层
+            }
+        }
+        
+        /// 将数字转换为罗马数字
+        private func romanNumeral(_ number: Int, uppercase: Bool) -> String {
+            guard number > 0 && number < 4000 else {
+                return "\(number)"  // 超出范围，返回原数字
+            }
+            
+            let values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1]
+            let symbols = uppercase
+                ? ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"]
+                : ["m", "cm", "d", "cd", "c", "xc", "l", "xl", "x", "ix", "v", "iv", "i"]
+            
+            var result = ""
+            var remaining = number
+            
+            for (index, value) in values.enumerated() {
+                let count = remaining / value
+                if count > 0 {
+                    result += String(repeating: symbols[index], count: count)
+                    remaining -= value * count
+                }
+            }
+            
+            return result
+        }
+        
+        /// 解析罗马数字为整数
+        private func parseRomanNumeral(_ roman: String) -> Int? {
+            let romanUpper = roman.uppercased()
+            let romanMap: [Character: Int] = [
+                "I": 1, "V": 5, "X": 10, "L": 50,
+                "C": 100, "D": 500, "M": 1000
+            ]
+            
+            var result = 0
+            var previous = 0
+            
+            for char in romanUpper.reversed() {
+                guard let value = romanMap[char] else {
+                    return nil
+                }
+                
+                if value < previous {
+                    result -= value
+                } else {
+                    result += value
+                }
+                
+                previous = value
+            }
+            
+            return result > 0 ? result : nil
+        }
+        
+        /// 根据层级和序号生成列表标记
+        private func generateListMarker(level: Int, number: Int) -> String {
+            switch level {
+            case 0:
+                return "\(number)."
+            case 1:
+                // a, b, c, ...
+                let char = Character(UnicodeScalar(96 + number)!)
+                return "\(char)."
+            case 2:
+                // i, ii, iii, ...
+                return "\(romanNumeral(number, uppercase: false))."
+            case 3:
+                // A, B, C, ...
+                let char = Character(UnicodeScalar(64 + number)!)
+                return "\(char)."
+            case 4:
+                // I, II, III, ...
+                return "\(romanNumeral(number, uppercase: true))."
+            default:
+                // 超过5层，循环使用小写字母
+                let char = Character(UnicodeScalar(96 + number)!)
+                return "\(char)."
+            }
+        }
+        
+        /// 从列表行中提取序号
+        private func extractListNumber(from line: String) -> Int? {
+            // 移除前导空格
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            
+            // 匹配有序列表：数字. 或 字母. 或 罗马数字.
+            if let match = trimmed.range(of: #"^(\d+|[a-z]|[A-Z]|[ivxlcdmIVXLCDM]+)\.\s"#, options: .regularExpression) {
+                let numberStr = String(trimmed[..<match.upperBound].dropLast(2))
+                
+                // 尝试解析为数字
+                if let number = Int(numberStr) {
+                    return number
+                }
+                
+                // 尝试解析为字母
+                if numberStr.count == 1, let char = numberStr.first {
+                    if char.isLowercase {
+                        return Int(char.asciiValue! - 96)  // a=1, b=2, ...
+                    } else if char.isUppercase {
+                        return Int(char.asciiValue! - 64)  // A=1, B=2, ...
+                    }
+                }
+                
+                // 尝试解析为罗马数字
+                if let roman = parseRomanNumeral(numberStr) {
+                    return roman
+                }
+            }
+            
+            return nil
+        }
+        
+        /// 从列表行中提取内容（去除缩进和标记）
+        private func extractListContent(from line: String) -> String {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            // 匹配并移除列表标记
+            if let match = trimmed.range(of: #"^(\d+|[a-z]|[A-Z]|[ivxlcdmIVXLCDM]+)\.\s*"#, options: .regularExpression) {
+                return String(trimmed[match.upperBound...])
+            }
+            
+            return trimmed
+        }
+        
+        /// 检测当前列表项在同级中的序号
+        private func detectListNumber(
+            text: String,
+            currentLineIndex: Int,
+            indentLevel: Int
+        ) -> Int {
+            let lines = text.components(separatedBy: .newlines)
+            var number = 1
+            
+            // 向前查找，找到第一个同级或更高级的列表项
+            for i in stride(from: currentLineIndex - 1, through: 0, by: -1) {
+                guard i < lines.count else { break }
+                let line = lines[i]
+                let lineIndent = detectIndentLevel(line: line)
+                
+                if lineIndent < indentLevel {
+                    // 找到了更高级的列表项，停止查找
+                    break
+                } else if lineIndent == indentLevel {
+                    // 找到了同级列表项，提取序号并递增
+                    if let listNumber = extractListNumber(from: line) {
+                        number = listNumber + 1
+                        break
+                    }
+                } else if lineIndent > indentLevel {
+                    // 子级列表项，继续查找
+                    continue
+                }
+            }
+            
+            return number
+        }
+        
+        /// 处理 Tab 键，实现列表缩进
+        private func handleTabKey(textView: NSTextView, isShiftPressed: Bool) -> Bool {
+            let text = textView.string
+            let selection = textView.selectedRange()
+            
+            // 获取当前行
+            let nsText = text as NSString
+            let lineRange = nsText.lineRange(for: selection)
+            let lineText = nsText.substring(with: lineRange)
+            
+            // 检测是否是列表项（需要保留前导空格）
+            let trimmedLineText = lineText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let listInfo = detectListType(line: trimmedLineText) else {
+                // 不是列表项，执行默认 Tab 行为（插入制表符或空格）
+                return false
+            }
+            
+            // 只处理有序列表
+            guard case .ordered = listInfo else {
+                // 无序列表或任务列表，执行默认 Tab 行为
+                return false
+            }
+            
+            // 检测当前缩进层级
+            let currentIndentLevel = detectIndentLevel(line: lineText)
+            let targetIndentLevel = calculateTargetLevel(
+                currentLevel: currentIndentLevel,
+                isShiftPressed: isShiftPressed
+            )
+            
+            // 如果层级没有变化，不处理
+            if currentIndentLevel == targetIndentLevel {
+                return false
+            }
+            
+            // 计算新的缩进和序号
+            let newIndent = String(repeating: " ", count: targetIndentLevel * 2)
+            
+            // 计算当前行在文本中的行号（通过计算换行符数量）
+            let currentLineIndex = nsText.substring(to: selection.location).components(separatedBy: .newlines).count - 1
+            let listNumber = detectListNumber(
+                text: text,
+                currentLineIndex: currentLineIndex,
+                indentLevel: targetIndentLevel
+            )
+            let newMarker = generateListMarker(level: targetIndentLevel, number: listNumber)
+            
+            // 移除旧的列表标记和缩进，添加新的
+            let content = extractListContent(from: trimmedLineText)
+            // 如果内容为空，只保留标记后的空格
+            let newLine = content.isEmpty ? "\(newIndent)\(newMarker) " : "\(newIndent)\(newMarker) \(content)"
+            
+            // 替换当前行
+            let replacementRange = lineRange
+            guard textView.shouldChangeText(in: replacementRange, replacementString: newLine) else {
+                return false
+            }
+            
+            if let textStorage = textView.textStorage {
+                textStorage.replaceCharacters(in: replacementRange, with: newLine)
+                textView.didChangeText()
+                
+                // 更新选中范围到新行的列表标记后面
+                let newSelection = NSRange(
+                    location: replacementRange.location + newIndent.count + newMarker.count + 1,
+                    length: 0
+                )
+                textView.setSelectedRange(newSelection)
+                textView.scrollRangeToVisible(newSelection)
+                
+                // 通知父组件内容已改变
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.parent.text = textView.string
+                    self.parent.onSelectionChange(newSelection)
+                }
+            }
+            
+            return true
         }
         
         /// 列表类型枚举
