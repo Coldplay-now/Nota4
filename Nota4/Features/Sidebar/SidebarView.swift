@@ -154,23 +154,25 @@ struct SidebarView: View {
                                         let isSelected = store.selectedTags.contains(tag.name)
                                         let isHovered = hoveredTag == tag.name
                                         
-                                        HStack {
+                                        HStack(spacing: 0) {
                                             Label {
                                                 Text(tag.name)
                                             } icon: {
                                                 Image(systemName: "tag")
                                             }
-                                            Spacer()
+                                            Spacer(minLength: 2)
                                             HStack(spacing: 4) {
                                                 Text("\(tag.count)")
                                                     .foregroundColor(.secondary)
                                                     .font(.subheadline)
+                                                    .frame(width: 30, alignment: .trailing)
                                                 if isSelected {
                                                     Image(systemName: "checkmark")
                                                         .foregroundColor(.accentColor)
                                                         .font(.caption)
                                                 }
                                             }
+                                            .padding(.trailing, 12)
                                         }
                                         .contentShape(Rectangle())
                                         .background(
