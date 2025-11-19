@@ -10,8 +10,8 @@ struct NoteEditorView: View {
         HighlightedTitleField(
             text: $store.title,
             searchKeywords: store.listSearchKeywords,
-            fontName: nil,
-            fontSize: 18,
+            fontName: store.editorStyle.titleFontName,
+            fontSize: store.editorStyle.titleFontSize,
             onFocusChange: { isFocused in
                 if !isFocused {
                     store.send(.manualSave)
@@ -52,6 +52,21 @@ struct NoteEditorView: View {
                                     .foregroundColor(note.isPinned ? .orange : .gray)
                             }
                             .buttonStyle(.plain)
+                            
+                            // 标签编辑按钮
+                            Button {
+                                store.send(.tagEdit(.showTagEditPanel))
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "tag")
+                                    if !note.tags.isEmpty {
+                                        Text("\(note.tags.count)")
+                                            .font(.caption2)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .help("编辑标签")
                             
                             // 删除按钮
                             Button(role: .destructive) {
@@ -139,6 +154,12 @@ struct NoteEditorView: View {
                 }
             } message: {
                 Text("确定要删除这篇笔记吗？此操作可以在回收站中恢复。")
+            }
+            .sheet(isPresented: Binding(
+                get: { store.tagEdit.isTagEditPanelVisible },
+                set: { if !$0 { store.send(.tagEdit(.hideTagEditPanel)) } }
+            )) {
+                TagEditPanel(store: store)
             }
             .onChange(of: store.showImagePicker) { oldValue, newValue in
                 if newValue {
