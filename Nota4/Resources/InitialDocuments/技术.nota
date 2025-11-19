@@ -1,0 +1,339 @@
+---
+title: 技术
+created: 2024-01-01T00:00:00Z
+updated: 2024-01-01T00:00:00Z
+starred: true
+pinned: true
+tags: [技术, 编程, 开发]
+checksum: ""
+---
+
+# 技术
+
+技术笔记集合，记录编程技巧、开发工具和学习心得。
+
+## 目录
+
+1. [编程语言](#1-编程语言)
+2. [开发工具](#2-开发工具)
+3. [技术栈](#3-技术栈)
+4. [学习资源](#4-学习资源)
+5. [代码片段](#5-代码片段)
+6. [问题解决](#6-问题解决)
+
+---
+
+## 1. 编程语言
+
+### 1.1. Swift
+
+Swift 是苹果开发的现代编程语言，用于 iOS、macOS 等平台开发。
+
+**特点**：
+
+- 类型安全
+- 语法简洁
+- 性能优秀
+- 支持函数式编程
+
+**示例代码**：
+
+```swift
+// 定义一个结构体
+struct Note {
+    let id: String
+    var title: String
+    var content: String
+    
+    // 计算属性
+    var wordCount: Int {
+        content.split(separator: " ").count
+    }
+    
+    // 方法
+    func updateTitle(_ newTitle: String) -> Note {
+        Note(id: id, title: newTitle, content: content)
+    }
+}
+
+// 使用
+let note = Note(id: "1", title: "我的笔记", content: "这是内容")
+print("字数：\(note.wordCount)")
+```
+
+### 1.2. Python
+
+Python 是广泛使用的通用编程语言，适合数据分析、Web 开发等。
+
+**常用库**：
+
+- `pandas` - 数据分析
+- `numpy` - 数值计算
+- `flask` - Web 框架
+- `requests` - HTTP 请求
+
+**示例代码**：
+
+```python
+# 数据处理示例
+import pandas as pd
+
+def analyze_data(file_path):
+    """分析数据文件"""
+    df = pd.read_csv(file_path)
+    
+    # 基本统计
+    print(f"总行数: {len(df)}")
+    print(f"平均值: {df['value'].mean()}")
+    print(f"最大值: {df['value'].max()}")
+    
+    return df.describe()
+```
+
+### 1.3. JavaScript
+
+JavaScript 是 Web 开发的核心语言，支持前端和后端开发。
+
+**现代特性**：
+
+- ES6+ 语法
+- 异步编程（async/await）
+- 模块化（import/export）
+- TypeScript 类型支持
+
+## 2. 开发工具
+
+### 2.1. 版本控制
+
+**Git 常用命令**：
+
+| 命令 | 说明 |
+|------|------|
+| `git init` | 初始化仓库 |
+| `git add .` | 添加所有文件 |
+| `git commit -m "message"` | 提交更改 |
+| `git push` | 推送到远程 |
+| `git pull` | 拉取更新 |
+| `git branch` | 查看分支 |
+| `git merge` | 合并分支 |
+
+### 2.2. 开发环境
+
+**推荐工具**：
+
+- **IDE**：Xcode、VS Code、IntelliJ IDEA
+- **终端**：iTerm2、Terminal.app
+- **包管理**：Homebrew、npm、CocoaPods
+- **调试工具**：Chrome DevTools、Instruments
+
+### 2.3. 项目管理
+
+**工具对比**：
+
+```mermaid
+graph TD
+    A[项目管理] --> B[GitHub]
+    A --> C[GitLab]
+    A --> D[Bitbucket]
+    
+    B --> E[代码托管]
+    B --> F[Issue 跟踪]
+    B --> G[CI/CD]
+    
+    C --> E
+    C --> F
+    C --> G
+    
+    D --> E
+    D --> F
+```
+
+## 3. 技术栈
+
+### 3.1. 前端技术
+
+**现代前端栈**：
+
+- **框架**：React、Vue、Angular
+- **构建工具**：Webpack、Vite、Rollup
+- **CSS 框架**：Tailwind CSS、Bootstrap
+- **状态管理**：Redux、MobX、Zustand
+
+### 3.2. 后端技术
+
+**后端架构**：
+
+- **语言**：Node.js、Python、Go、Java
+- **框架**：Express、Django、Gin、Spring
+- **数据库**：PostgreSQL、MongoDB、Redis
+- **API**：REST、GraphQL、gRPC
+
+### 3.3. 移动开发
+
+**跨平台方案**：
+
+- **React Native** - 使用 React 开发原生应用
+- **Flutter** - Google 的跨平台框架
+- **SwiftUI** - 苹果的声明式 UI 框架
+- **Kotlin Multiplatform** - JetBrains 的跨平台方案
+
+## 4. 学习资源
+
+### 4.1. 在线课程
+
+- **Coursera** - 大学级别的在线课程
+- **Udemy** - 实用的技能课程
+- **Pluralsight** - 技术专业培训
+- **YouTube** - 免费教程和演示
+
+### 4.2. 文档和书籍
+
+**推荐书籍**：
+
+1. 《Clean Code》- 代码整洁之道
+2. 《Design Patterns》- 设计模式
+3. 《The Pragmatic Programmer》- 程序员修炼之道
+4. 《Refactoring》- 重构
+
+### 4.3. 社区和论坛
+
+- **Stack Overflow** - 技术问答
+- **GitHub** - 开源项目
+- **Reddit** - 技术讨论
+- **Dev.to** - 开发者博客
+
+## 5. 代码片段
+
+### 5.1. 常用工具函数
+
+**JavaScript**：
+
+```javascript
+// 防抖函数
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// 使用示例
+const handleSearch = debounce((query) => {
+    console.log('搜索:', query);
+}, 300);
+```
+
+**Swift**：
+
+```swift
+// 扩展 String
+extension String {
+    // 检查是否为有效邮箱
+    var isValidEmail: Bool {
+        let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+        return NSPredicate(format: "SELF MATCHES %@", emailRegex).evaluate(with: self)
+    }
+    
+    // 首字母大写
+    var capitalizedFirst: String {
+        guard !isEmpty else { return self }
+        return prefix(1).uppercased() + dropFirst()
+    }
+}
+```
+
+### 5.2. 算法示例
+
+**快速排序**：
+
+```python
+def quicksort(arr):
+    """快速排序算法"""
+    if len(arr) <= 1:
+        return arr
+    
+    pivot = arr[len(arr) // 2]
+    left = [x for x in arr if x < pivot]
+    middle = [x for x in arr if x == pivot]
+    right = [x for x in arr if x > pivot]
+    
+    return quicksort(left) + middle + quicksort(right)
+
+# 使用
+numbers = [3, 6, 8, 10, 1, 2, 1]
+sorted_numbers = quicksort(numbers)
+print(sorted_numbers)  # [1, 1, 2, 3, 6, 8, 10]
+```
+
+## 6. 问题解决
+
+### 6.1. 常见问题
+
+**问题 1：依赖冲突**
+
+> **解决方案**：
+> 
+> 1. 检查 `package.json` 或 `Podfile`
+> 2. 更新到最新版本
+> 3. 清理缓存并重新安装
+> 4. 使用依赖锁定文件
+
+**问题 2：性能优化**
+
+**优化策略**：
+
+```mermaid
+graph TD
+    A[性能问题] --> B[分析瓶颈]
+    B --> C{问题类型}
+    C -->|CPU| D[算法优化]
+    C -->|内存| E[内存管理]
+    C -->|网络| F[请求优化]
+    C -->|渲染| G[UI 优化]
+    
+    D --> H[使用缓存]
+    E --> H
+    F --> H
+    G --> H
+```
+
+### 6.2. 调试技巧
+
+**调试清单**：
+
+- [ ] 检查控制台错误信息
+- [ ] 使用断点调试
+- [ ] 打印关键变量值
+- [ ] 检查网络请求
+- [ ] 验证数据格式
+- [ ] 测试边界条件
+- [ ] 查看日志文件
+
+### 6.3. 代码审查要点
+
+**审查清单**：
+
+1. **代码风格**：是否符合项目规范
+2. **功能正确性**：是否满足需求
+3. **性能考虑**：是否有性能问题
+4. **安全性**：是否有安全隐患
+5. **可维护性**：代码是否清晰易懂
+6. **测试覆盖**：是否有足够的测试
+
+---
+
+**标签说明**：
+
+这个笔记使用了以下标签：
+- **技术**：标识这是技术相关的笔记
+- **编程**：与编程相关的内容
+- **开发**：软件开发相关
+
+你可以在侧边栏的标签列表中点击这些标签，快速筛选出所有相关的笔记。通过标签，你可以更好地组织和查找你的技术笔记。
+
+**持续学习，不断进步！** 🚀

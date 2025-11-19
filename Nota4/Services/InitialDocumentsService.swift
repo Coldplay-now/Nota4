@@ -13,8 +13,23 @@ actor InitialDocumentsService {
     private init() {}
     
     /// 检查是否需要导入初始文档
-    func shouldImportInitialDocuments() -> Bool {
-        return !userDefaults.bool(forKey: hasImportedKey)
+    /// 如果数据库中没有任何笔记，即使之前导入过，也应该重新导入
+    func shouldImportInitialDocuments(noteRepository: NoteRepositoryProtocol) async -> Bool {
+        // 如果从未导入过，需要导入
+        if !userDefaults.bool(forKey: hasImportedKey) {
+            return true
+        }
+        
+        // 如果已经导入过，检查数据库中是否有笔记
+        // 如果没有笔记（用户可能删除了所有笔记），重新导入
+        do {
+            let count = try await noteRepository.getTotalCount()
+            return count == 0
+        } catch {
+            // 如果检查失败，默认不导入（避免重复导入）
+            print("⚠️ [INITIAL] 检查笔记数量失败: \(error)")
+            return false
+        }
     }
     
     /// 导入初始文档
@@ -22,14 +37,16 @@ actor InitialDocumentsService {
         noteRepository: NoteRepositoryProtocol,
         notaFileManager: NotaFileManagerProtocol
     ) async throws {
-        guard shouldImportInitialDocuments() else {
+        guard await shouldImportInitialDocuments(noteRepository: noteRepository) else {
             return
         }
         
         
         let documentNames = [
             "使用说明",
-            "Markdown示例"
+            "Markdown示例",
+            "运动",
+            "技术"
         ]
         
         for documentName in documentNames {

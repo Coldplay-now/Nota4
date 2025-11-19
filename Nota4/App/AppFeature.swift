@@ -226,13 +226,13 @@ struct AppFeature {
                         let prefs = await PreferencesStorage.shared.load()
                         await send(.preferencesLoaded(prefs))
                     },
-                    // 导入初始文档（首次启动）
+                    // 导入初始文档（首次启动或数据库为空时）
                     .run { send in
                         let service = InitialDocumentsService.shared
-                        if await service.shouldImportInitialDocuments() {
+                        if await service.shouldImportInitialDocuments(noteRepository: noteRepository) {
                             do {
                                 // 在导入前验证资源是否存在（可选，但有助于诊断问题）
-                                let documentNames = ["使用说明", "Markdown示例"]
+                                let documentNames = ["使用说明", "Markdown示例", "运动", "技术"]
                                 var missingResources: [String] = []
                                 for documentName in documentNames {
                                     if Bundle.safeResourceURL(
@@ -749,9 +749,12 @@ struct AppFeature {
             case .noteList(.permanentlyDeleteNotes):
                 return .none  // 不立即更新计数，等待永久删除完成通知
                 
-            // 永久删除完成 → 更新侧边栏计数
+            // 永久删除完成 → 更新侧边栏计数和标签列表
             case .noteList(.permanentlyDeleteNotesCompleted):
-                return .send(.sidebar(.loadCounts))
+                return .concatenate(
+                    .send(.sidebar(.loadCounts)),
+                    .send(.sidebar(.loadTags))  // 刷新标签列表和计数
+                )
                 
             // 笔记列表请求创建 → 转发给编辑器
             case .noteList(.createNote):

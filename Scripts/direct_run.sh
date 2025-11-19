@@ -24,7 +24,9 @@ APP_DIR="$BUILD_DIR/Nota4.app"
 EXECUTABLE=".build/debug/Nota4"
 
 # 如果可执行文件比应用包新，或应用包不存在，则更新
+NEED_UPDATE=false
 if [ ! -d "$APP_DIR" ] || [ "$EXECUTABLE" -nt "$APP_DIR/Contents/MacOS/Nota4" ]; then
+    NEED_UPDATE=true
     echo -e "${BLUE}📦 更新应用包...${NC}"
     
     mkdir -p "$APP_DIR/Contents/MacOS"
@@ -63,25 +65,43 @@ if [ ! -d "$APP_DIR" ] || [ "$EXECUTABLE" -nt "$APP_DIR/Contents/MacOS/Nota4" ];
 </plist>
 EOF
     fi
-    
-    # 复制图标（如果存在）
-    if [ -f "Nota4/Nota4/Resources/AppIcon.icns" ]; then
-        cp "Nota4/Nota4/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/"
-        echo -e "${BLUE}  ✓ 图标已复制${NC}"
-    elif [ -f "Nota4/Resources/AppIcon.icns" ]; then
-        cp "Nota4/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/"
-        echo -e "${BLUE}  ✓ 图标已复制${NC}"
-    fi
-    
-    # 复制 Themes 目录
-    if [ -d "Nota4/Resources/Themes" ]; then
-        echo -e "${BLUE}📁 复制主题资源...${NC}"
-        mkdir -p "$APP_DIR/Contents/Resources"
-        cp -r "Nota4/Resources/Themes" "$APP_DIR/Contents/Resources/"
-        echo -e "${GREEN}✅ 主题资源已复制${NC}"
-    fi
 else
     echo -e "${GREEN}✅ 应用包已是最新${NC}"
+fi
+
+# 确保资源文件总是被复制（即使应用包已存在）
+mkdir -p "$APP_DIR/Contents/Resources"
+
+# 复制图标（如果存在）
+if [ -f "Nota4/Nota4/Resources/AppIcon.icns" ]; then
+    cp "Nota4/Nota4/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/"
+    [ "$NEED_UPDATE" = false ] && echo -e "${BLUE}  ✓ 图标已更新${NC}"
+elif [ -f "Nota4/Resources/AppIcon.icns" ]; then
+    cp "Nota4/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/"
+    [ "$NEED_UPDATE" = false ] && echo -e "${BLUE}  ✓ 图标已更新${NC}"
+fi
+
+# 复制 Themes 目录
+if [ -d "Nota4/Resources/Themes" ]; then
+    [ "$NEED_UPDATE" = false ] && echo -e "${BLUE}📁 更新主题资源...${NC}"
+    cp -r "Nota4/Resources/Themes" "$APP_DIR/Contents/Resources/"
+    [ "$NEED_UPDATE" = false ] && echo -e "${GREEN}✅ 主题资源已更新${NC}"
+fi
+
+# 复制 InitialDocuments 目录（从构建产物或源代码）
+# 总是复制，确保资源文件是最新的
+[ "$NEED_UPDATE" = false ] && echo -e "${BLUE}📁 更新初始文档资源...${NC}"
+
+# 优先从构建产物复制（SPM 构建后的位置）
+if [ -d ".build/debug/Nota4_Nota4.bundle/Resources/InitialDocuments" ]; then
+    cp -r ".build/debug/Nota4_Nota4.bundle/Resources/InitialDocuments" "$APP_DIR/Contents/Resources/"
+    [ "$NEED_UPDATE" = false ] && echo -e "${GREEN}✅ 初始文档已从构建产物更新${NC}"
+# 如果构建产物中没有，从源代码复制
+elif [ -d "Nota4/Resources/InitialDocuments" ]; then
+    cp -r "Nota4/Resources/InitialDocuments" "$APP_DIR/Contents/Resources/"
+    [ "$NEED_UPDATE" = false ] && echo -e "${GREEN}✅ 初始文档已从源代码更新${NC}"
+else
+    echo -e "${BLUE}⚠️  未找到初始文档资源目录${NC}"
 fi
 
 # 3. 关闭旧实例（如果在运行）
