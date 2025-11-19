@@ -31,8 +31,8 @@ struct AppearanceSettingsPanel: View {
                             
                         // 使用自适应网格布局
                             LazyVGrid(columns: [
-                            GridItem(.flexible(minimum: 200), spacing: 12),
-                            GridItem(.flexible(minimum: 200), spacing: 12)
+                            GridItem(.flexible(minimum: 100, maximum: 200), spacing: 12),
+                            GridItem(.flexible(minimum: 100, maximum: 200), spacing: 12)
                             ], spacing: 12) {
                                 ForEach(store.theme.builtInThemes) { theme in
                                     ThemeCard(
@@ -40,60 +40,6 @@ struct AppearanceSettingsPanel: View {
                                         isSelected: theme.id == store.theme.currentThemeId,
                                         onSelect: {
                                             store.send(.theme(.selectTheme(theme.id)))
-                                        }
-                                    )
-                                }
-                            }
-                        .padding(.horizontal, 20)
-                        }
-                    }
-                    
-                    Divider()
-                        .padding(.vertical, 8)
-                    .padding(.horizontal, 20)
-                    
-                    // 自定义主题
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("自定义主题")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            
-                            Spacer()
-                            
-                            Button {
-                                importTheme()
-                            } label: {
-                                Label("导入", systemImage: "square.and.arrow.down")
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.small)
-                        }
-                    .padding(.horizontal, 20)
-                        
-                        if store.theme.customThemes.isEmpty {
-                            ContentUnavailableView(
-                                "暂无自定义主题",
-                                systemImage: "paintbrush",
-                                description: Text("点击【导入】按钮添加自定义主题")
-                            )
-                            .frame(height: 150)
-                        .frame(maxWidth: .infinity)
-                        .padding(.horizontal, 20)
-                        } else {
-                            VStack(spacing: 8) {
-                                ForEach(store.theme.customThemes) { theme in
-                                    CustomThemeRow(
-                                        theme: theme,
-                                        isSelected: theme.id == store.theme.currentThemeId,
-                                        onSelect: {
-                                            store.send(.theme(.selectTheme(theme.id)))
-                                        },
-                                        onExport: {
-                                            exportTheme(themeId: theme.id, themeName: theme.displayName)
-                                        },
-                                        onDelete: {
-                                            store.send(.theme(.confirmDelete(theme.id)))
                                         }
                                     )
                                 }
@@ -122,15 +68,36 @@ struct AppearanceSettingsPanel: View {
                         }
                         
                         if store.useCustomCodeHighlightTheme {
-                            Picker("", selection: Binding(
-                                get: { store.codeHighlightTheme },
-                                set: { store.send(.codeHighlightThemeChanged($0)) }
-                            )) {
+                            // 使用网格布局，两排显示
+                            LazyVGrid(columns: [
+                                GridItem(.flexible(minimum: 80), spacing: 8),
+                                GridItem(.flexible(minimum: 80), spacing: 8),
+                                GridItem(.flexible(minimum: 80), spacing: 8)
+                            ], spacing: 8) {
                                 ForEach(CodeTheme.allCases, id: \.self) { theme in
-                                    Text(theme.displayName).tag(theme)
+                                    Button {
+                                        store.send(.codeHighlightThemeChanged(theme))
+                                    } label: {
+                                        Text(theme.displayName)
+                                            .font(.caption)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .frame(maxWidth: .infinity)
+                                            .background(
+                                                store.codeHighlightTheme == theme
+                                                    ? Color.accentColor
+                                                    : Color.secondary.opacity(0.1)
+                                            )
+                                            .foregroundColor(
+                                                store.codeHighlightTheme == theme
+                                                    ? .white
+                                                    : .primary
+                                            )
+                                            .cornerRadius(6)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
-                            .pickerStyle(.segmented)
                         } else {
                             Text("使用预览主题的代码高亮设置")
                                 .font(.caption)
@@ -268,16 +235,6 @@ private struct ThemeCard: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(2)
-                }
-                
-                // 颜色预览
-                if let colors = theme.colors {
-                    HStack(spacing: 4) {
-                        ColorDot(color: colors.backgroundColor)
-                        ColorDot(color: colors.textColor)
-                        ColorDot(color: colors.primaryColor)
-                        ColorDot(color: colors.accentColor)
-                    }
                 }
             }
             .padding()
