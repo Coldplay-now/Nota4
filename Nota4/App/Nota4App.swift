@@ -285,6 +285,7 @@ struct AppView: View {
             // 不设置最小宽度，让编辑器区域灵活适应窗口大小
         }
         .navigationSplitViewStyle(.balanced)
+        .padding(0)  // 移除默认内边距，让内容贴近窗口边缘（方案一：紧凑型布局）
     }
     
     // 获取侧边栏理想宽度

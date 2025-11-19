@@ -173,7 +173,8 @@ struct StatusBarView: View {
                 }
             }
             .padding(.horizontal, 16)
-            .frame(height: 22)
+            .padding(.vertical, 8)
+            .frame(height: 32)
             .background(Color(nsColor: .windowBackgroundColor))
             .overlay(
                 Rectangle()

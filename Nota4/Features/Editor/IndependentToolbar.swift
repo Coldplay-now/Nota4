@@ -77,7 +77,7 @@ struct IndependentToolbar: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .frame(height: 48)
+            .frame(height: 44)
             .background(Color(nsColor: .controlBackgroundColor))
             .overlay(
                 Rectangle()

@@ -79,8 +79,8 @@ struct NoteListToolbar: View {
                 Spacer()
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .frame(height: 40)
+            .padding(.vertical, 10)
+            .frame(height: 60)  // 调整为60pt，与编辑区标题栏高度对齐，使分隔线对齐
             .background(Color(nsColor: .controlBackgroundColor))
             .overlay(
                 Rectangle()

@@ -61,9 +61,15 @@ struct NoteEditorView: View {
                             }
                             .buttonStyle(.plain)
                         }
-                        .padding()
-                        
-                        Divider()
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 16)
+                        .frame(height: 60)
+                        .overlay(
+                            Rectangle()
+                                .frame(height: 0.5)
+                                .foregroundColor(Color(nsColor: .separatorColor)),
+                            alignment: .bottom
+                        )
                         
                         // 独立工具栏
                         IndependentToolbar(store: store)
