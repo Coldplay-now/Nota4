@@ -40,7 +40,11 @@ struct NoteListView: View {
                         noteRow(note: note, store: store, isSelected: selectedNotes.contains(note.noteId))
                             .id(note.noteId)
                             .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
-                            .listRowBackground(EmptyView()) // 完全禁用系统默认背景和选中样式
+                            // 使用系统颜色覆盖系统默认的选中背景，根据主题自动调整
+                            .listRowBackground(
+                                Color(nsColor: .controlBackgroundColor)
+                                    .clipShape(RoundedRectangle(cornerRadius: 0))
+                            )
                             .listRowSeparator(.hidden)
                             .tag(note.noteId)
                     }

@@ -94,9 +94,10 @@ struct NoteRowView: View {
         .padding(12)
         .background(
             ZStack(alignment: .leading) {
-                // 卡片背景（使用 textBackgroundColor，选中时不会变深）
+                // 卡片背景：使用系统颜色，根据主题自动调整
+                // 使用 controlBackgroundColor 而不是 textBackgroundColor，避免选中时系统自动变深
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(nsColor: .textBackgroundColor))
+                    .fill(Color(nsColor: .controlBackgroundColor))
                 
                 // Hover背景（只在未选中时显示）
                 if !isSelected {
@@ -104,8 +105,13 @@ struct NoteRowView: View {
                         .fill(isHovered ? Color(nsColor: .controlAccentColor).opacity(0.08) : Color.clear)
                 }
                 
-                // 选中状态：只显示左边框（不使用圆角，避免灰色尖角）
+                // 选中状态：显示灰色背景（与 hover 一致）+ 橙色左边框
                 if isSelected {
+                    // 选中时的灰色背景（与 hover 一致）
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color(nsColor: .controlAccentColor).opacity(0.08))
+                    
+                    // 橙色左边框
                     Rectangle()
                         .fill(Color.orange)
                         .frame(width: 3)
