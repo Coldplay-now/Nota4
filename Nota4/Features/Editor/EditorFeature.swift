@@ -152,6 +152,7 @@ struct EditorFeature {
         case noteCreated(Result<Note, Error>)
         case selectionChanged(NSRange)
         case focusChanged(Bool)
+        case moveFocusToContentStart  // 将焦点移到正文文首（标题编辑时按回车）
         
         // 新增：导出 Actions（转发到 AppFeature）
         case exportCurrentNote(ExportFeature.ExportFormat)
@@ -395,9 +396,10 @@ struct EditorFeature {
             case .noteLoaded(.success(let note)):
                 state.note = note
                 state.content = note.content
-                state.title = note.title
+                // 确保 title 不为空，如果为空则使用默认值
+                state.title = note.title.isEmpty ? "无标题" : note.title
                 state.lastSavedContent = note.content
-                state.lastSavedTitle = note.title
+                state.lastSavedTitle = state.title  // 使用处理后的 title
                 
                 // 切换笔记时关闭搜索面板并清除搜索状态
                 if state.search.isSearchPanelVisible {
@@ -1260,6 +1262,11 @@ struct EditorFeature {
                 if !isFocused {
                     return .send(.manualSave)
                 }
+                return .none
+                
+            case .moveFocusToContentStart:
+                // 将光标移到正文文首
+                state.selectionRange = NSRange(location: 0, length: 0)
                 return .none
                 
             case .exportCurrentNote:

@@ -9,6 +9,7 @@ struct HighlightedTitleField: NSViewRepresentable {
     var fontSize: CGFloat
     var onFocusChange: (Bool) -> Void
     @Binding var isFocused: Bool
+    var onReturnKey: (() -> Void)? = nil  // 回车键回调
     
     func makeNSView(context: Context) -> NSTextField {
         let textField = NSTextField()
@@ -39,9 +40,14 @@ struct HighlightedTitleField: NSViewRepresentable {
         let currentEditor = textField.currentEditor()
         let isCurrentlyEditing = textField.window?.firstResponder == currentEditor
         
-        // 如果用户正在编辑，不更新文本和高亮，不管理焦点
+        // 检查是否是首次加载或文本从空变为有值
+        let currentText = textField.stringValue
+        let isInitialLoad = currentText.isEmpty && !text.isEmpty
+        let isTextChanged = currentText != text
+        
+        // 如果用户正在编辑且不是首次加载，不更新文本和高亮，不管理焦点
         // 把焦点选择完全还给用户，避免任何干扰
-        if isCurrentlyEditing {
+        if isCurrentlyEditing && !isInitialLoad {
             // 用户正在输入，不进行任何更新操作，避免干扰焦点和光标位置
             return
         }
@@ -49,8 +55,7 @@ struct HighlightedTitleField: NSViewRepresentable {
         // 用户没有在编辑时，才进行更新操作
         
         // 更新文本（仅在文本不同时更新，避免循环更新）
-        let currentText = textField.stringValue
-        if currentText != text {
+        if isTextChanged {
             textField.stringValue = text
         }
         
@@ -112,6 +117,27 @@ struct HighlightedTitleField: NSViewRepresentable {
             // 用户结束编辑时，更新焦点状态并触发保存
             parent.isFocused = false
             parent.onFocusChange(false)
+        }
+        
+        // 处理键盘命令（拦截回车键）
+        func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+            // 拦截回车键（insertNewline:）
+            if commandSelector == #selector(NSTextView.insertNewline(_:)) {
+                // 先让标题框失去焦点
+                if let window = control.window {
+                    window.makeFirstResponder(nil)
+                }
+                
+                // 延迟调用回调，确保标题框完全失去焦点
+                DispatchQueue.main.async {
+                    self.parent.onReturnKey?()
+                }
+                
+                // 返回 true 表示已处理，阻止默认行为（插入换行）
+                return true
+            }
+            // 其他命令不处理，返回 false 使用默认行为
+            return false
         }
         
         func updateHighlights(text: String, keywords: [String], textField: NSTextField, fontName: String?, fontSize: CGFloat) {

@@ -181,6 +181,7 @@ struct AppFeature {
         case dismissSettings
         case preferencesLoaded(EditorPreferences)
         case preferencesUpdated(EditorPreferences)
+        case alignmentToggled  // 切换对齐方式（左对齐 ↔ 居中）
         
         // 新增：导出 Actions
         case exportCurrentNote(ExportFeature.ExportFormat)
@@ -285,6 +286,12 @@ struct AppFeature {
                     },
                     .send(.editor(.applyPreferences(prefs)))
                 )
+                
+            case .alignmentToggled:
+                // 切换对齐方式：左对齐 ↔ 居中
+                var updatedPrefs = state.preferences
+                updatedPrefs.alignment = updatedPrefs.alignment == .center ? .leading : .center
+                return .send(.preferencesUpdated(updatedPrefs))
                 
             case .layoutModeChanged(let mode):
                 // 如果已经是目标模式，直接返回
@@ -630,6 +637,12 @@ struct AppFeature {
             // 笔记列表加载完成 → 不再更新侧边栏统计
             // （因为 notes 是过滤后的，不能用来计算全局计数）
             case .noteList(.notesLoaded(.success(let notes))):
+                // 如果还没有选中笔记，且列表不为空，自动选择第一个（置顶优先）
+                if state.noteList.selectedNoteId == nil,
+                   state.editor.note == nil,
+                   let firstNote = notes.first {
+                    return .send(.noteList(.noteSelected(firstNote.noteId)))
+                }
                 return .none
                 
             // 编辑器创建笔记完成 → 刷新笔记列表和侧边栏计数，并选中新创建的笔记
