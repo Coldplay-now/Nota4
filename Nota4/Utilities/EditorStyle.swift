@@ -59,31 +59,31 @@ struct EditorStyle: Equatable {
         titleFontSize: 28
     )
     
-    /// 从 EditorPreferences 创建样式
+    /// 从 EditorPreferences 创建样式（使用编辑模式设置）
     init(from preferences: EditorPreferences) {
-        self.fontSize = preferences.bodyFontSize
-        self.lineSpacing = preferences.lineSpacing
-        self.horizontalPadding = preferences.horizontalPadding
-        self.verticalPadding = preferences.verticalPadding
-        self.maxWidth = preferences.maxWidth
-        self.paragraphSpacing = preferences.paragraphSpacing
-        self.alignment = preferences.alignment == .center ? .center : .leading
+        self.fontSize = preferences.editorFonts.bodyFontSize
+        self.lineSpacing = preferences.editorLayout.lineSpacing
+        self.horizontalPadding = preferences.editorLayout.horizontalPadding
+        self.verticalPadding = preferences.editorLayout.verticalPadding
+        self.maxWidth = preferences.editorLayout.maxWidth ?? 0  // 编辑模式不使用最大行宽
+        self.paragraphSpacing = preferences.editorLayout.paragraphSpacing
+        self.alignment = preferences.editorLayout.alignment == .center ? .center : .leading
         
         // 使用实际字体名称（如果不是 "System"）
-        self.fontName = preferences.bodyFontName != "System" ? preferences.bodyFontName : nil
+        self.fontName = preferences.editorFonts.bodyFontName != "System" ? preferences.editorFonts.bodyFontName : nil
         
         // 标题字体设置
-        self.titleFontName = preferences.titleFontName != "System" ? preferences.titleFontName : nil
-        self.titleFontSize = preferences.titleFontSize
+        self.titleFontName = preferences.editorFonts.titleFontName != "System" ? preferences.editorFonts.titleFontName : nil
+        self.titleFontSize = preferences.editorFonts.titleFontSize
         
         // 根据字体名称映射 fontDesign（作为后备）
-        if preferences.bodyFontName.contains("Menlo") || 
-           preferences.bodyFontName.contains("Monaco") ||
-           preferences.bodyFontName.contains("Courier") ||
-           preferences.bodyFontName.contains("SF Mono") {
+        if preferences.editorFonts.bodyFontName.contains("Menlo") || 
+           preferences.editorFonts.bodyFontName.contains("Monaco") ||
+           preferences.editorFonts.bodyFontName.contains("Courier") ||
+           preferences.editorFonts.bodyFontName.contains("SF Mono") {
             self.fontDesign = .monospaced
-        } else if preferences.bodyFontName.contains("Songti") ||
-                  preferences.bodyFontName.contains("Kaiti") {
+        } else if preferences.editorFonts.bodyFontName.contains("Songti") ||
+                  preferences.editorFonts.bodyFontName.contains("Kaiti") {
             self.fontDesign = .serif
         } else {
             self.fontDesign = .default

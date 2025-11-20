@@ -34,6 +34,26 @@ struct RenderOptions: Equatable {
     /// 段落间距（em 单位）
     var paragraphSpacing: CGFloat? = nil
     
+    // MARK: - 字体设置（预览相关）
+    
+    /// 正文字体名称（nil 表示使用主题字体或系统默认）
+    var bodyFontName: String? = nil
+    
+    /// 正文字体大小（pt 单位）
+    var bodyFontSize: CGFloat? = nil
+    
+    /// 标题字体名称（nil 表示使用主题字体或系统默认）
+    var titleFontName: String? = nil
+    
+    /// 标题字体大小（pt 单位，作为 h1 的基础大小）
+    var titleFontSize: CGFloat? = nil
+    
+    /// 代码字体名称（nil 表示使用主题字体或系统默认）
+    var codeFontName: String? = nil
+    
+    /// 代码字体大小（pt 单位）
+    var codeFontSize: CGFloat? = nil
+    
     static let `default` = RenderOptions()
 }
 

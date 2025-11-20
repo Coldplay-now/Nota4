@@ -77,9 +77,9 @@ struct StatusBarView: View {
                     store.send(.alignmentToggled)
                 } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: store.preferences.alignment == .center ? "text.aligncenter" : "text.alignleft")
+                        Image(systemName: store.preferences.editorLayout.alignment == .center ? "text.aligncenter" : "text.alignleft")
                             .font(.system(size: 10))
-                        Text(store.preferences.alignment.rawValue)
+                        Text(store.preferences.editorLayout.alignment.rawValue)
                             .font(.system(size: 11))
                     }
                     .foregroundColor(.secondary)

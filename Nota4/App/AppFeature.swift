@@ -291,7 +291,7 @@ struct AppFeature {
             case .alignmentToggled:
                 // 切换对齐方式：左对齐 ↔ 居中
                 var updatedPrefs = state.preferences
-                updatedPrefs.alignment = updatedPrefs.alignment == .center ? .leading : .center
+                updatedPrefs.editorLayout.alignment = updatedPrefs.editorLayout.alignment == .center ? .leading : .center
                 return .send(.preferencesUpdated(updatedPrefs))
                 
             case .layoutModeChanged(let mode):

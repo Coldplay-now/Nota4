@@ -41,8 +41,10 @@ struct MarkdownTextEditor: NSViewRepresentable {
         textView.isContinuousSpellCheckingEnabled = false
         
         // 设置文本容器（使用传入的 padding 值）
-        textView.textContainer?.lineFragmentPadding = horizontalPadding
-        textView.textContainerInset = NSSize(width: 0, height: verticalPadding)
+        // textContainerInset 控制整个文本容器的边距（更明显）
+        textView.textContainerInset = NSSize(width: horizontalPadding, height: verticalPadding)
+        // lineFragmentPadding 控制文本行的左右边距（设置为较小值，避免双重边距）
+        textView.textContainer?.lineFragmentPadding = 0
         
         // 设置段落样式
         let paragraphStyle = NSMutableParagraphStyle()
@@ -75,6 +77,11 @@ struct MarkdownTextEditor: NSViewRepresentable {
                            textView.backgroundColor != backgroundColor ||
                            textView.defaultParagraphStyle?.lineSpacing != lineSpacing ||
                            textView.defaultParagraphStyle?.paragraphSpacing != paragraphSpacing
+        
+        // 检查边距是否改变
+        let paddingChanged = textView.textContainerInset.width != horizontalPadding ||
+                            textView.textContainerInset.height != verticalPadding ||
+                            textView.textContainer?.lineFragmentPadding != 0
         
         // 更新文本（只在从外部改变时，不在用户输入时）
         // 注意：如果正在执行替换操作，不要更新 textView.string，否则会清除 undo stack
@@ -113,6 +120,12 @@ struct MarkdownTextEditor: NSViewRepresentable {
                 textView.setSelectedRange(safeSelection)
                 textView.scrollRangeToVisible(safeSelection)
             }
+        }
+        
+        // 更新边距（如果改变）
+        if paddingChanged {
+            textView.textContainerInset = NSSize(width: horizontalPadding, height: verticalPadding)
+            textView.textContainer?.lineFragmentPadding = 0
         }
         
         // 只在样式改变时更新样式和应用到全文

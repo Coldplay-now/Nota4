@@ -117,21 +117,40 @@ private struct EditorSettingsPanel: View {
             
             Divider()
             
-            // 字体设置
+            // 编辑模式字体设置
             CompactSettingSection {
-                FontSettingsView(store: store)
-            }
-            
-            Divider()
-            
-            // 排版和布局设置（合并）
-            CompactSettingSection {
-                Text("排版布局")
+                Text("编辑模式字体")
                     .font(.headline)
                     .foregroundColor(.primary)
                     .padding(.bottom, 4)
                 
-                TypographyAndLayoutSettingsView(store: store)
+                FontSettingsView(
+                    fonts: $store.editorPreferences.editorFonts,
+                    onFontChanged: { type, name in
+                        store.send(.editorFontChanged(type, name))
+                    },
+                    onFontSizeChanged: { type, size in
+                        store.send(.editorFontSizeChanged(type, size))
+                    }
+                )
+            }
+            
+            Divider()
+            
+            // 编辑模式排版布局设置
+            CompactSettingSection {
+                Text("编辑模式排版布局")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                    .padding(.bottom, 4)
+                
+                LayoutSettingsView(
+                    layout: $store.editorPreferences.editorLayout,
+                    showMaxWidth: false,  // 编辑模式不显示最大行宽
+                    onLayoutChanged: { layout in
+                        store.send(.editorLayoutChanged(layout))
+                    }
+                )
             }
             
             Divider()
@@ -180,10 +199,12 @@ private struct CompactSettingSection<Content: View>: View {
     }
 }
 
-// MARK: - Font Settings
+// MARK: - Font Settings (可复用组件)
 
 private struct FontSettingsView: View {
-    @Bindable var store: StoreOf<SettingsFeature>
+    @Binding var fonts: EditorPreferences.FontSettings
+    let onFontChanged: (SettingsFeature.FontType, String) -> Void
+    let onFontSizeChanged: (SettingsFeature.FontType, CGFloat) -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -194,16 +215,22 @@ private struct FontSettingsView: View {
                     .font(.subheadline)
                 
                 FontPickerView(
-                    selectedFont: $store.editorPreferences.bodyFontName,
+                    selectedFont: $fonts.bodyFontName,
                     fonts: EditorPreferences.allSystemFonts
                 )
                 .frame(width: 180, alignment: .leading)
+                .onChange(of: fonts.bodyFontName) { _, newValue in
+                    onFontChanged(.body, newValue)
+                }
                 
-                Stepper("\(Int(store.editorPreferences.bodyFontSize)) pt",
-                       value: $store.editorPreferences.bodyFontSize,
+                Stepper("\(Int(fonts.bodyFontSize)) pt",
+                       value: $fonts.bodyFontSize,
                        in: 12...24,
                        step: 1)
                 .frame(width: 120)
+                .onChange(of: fonts.bodyFontSize) { _, newValue in
+                    onFontSizeChanged(.body, newValue)
+                }
             }
             
             // 标题字体
@@ -213,16 +240,22 @@ private struct FontSettingsView: View {
                     .font(.subheadline)
                 
                 FontPickerView(
-                    selectedFont: $store.editorPreferences.titleFontName,
+                    selectedFont: $fonts.titleFontName,
                     fonts: EditorPreferences.allSystemFonts
                 )
                 .frame(width: 180, alignment: .leading)
+                .onChange(of: fonts.titleFontName) { _, newValue in
+                    onFontChanged(.title, newValue)
+                }
                 
-                Stepper("\(Int(store.editorPreferences.titleFontSize)) pt",
-                       value: $store.editorPreferences.titleFontSize,
+                Stepper("\(Int(fonts.titleFontSize)) pt",
+                       value: $fonts.titleFontSize,
                        in: 18...32,
                        step: 1)
                 .frame(width: 120)
+                .onChange(of: fonts.titleFontSize) { _, newValue in
+                    onFontSizeChanged(.title, newValue)
+                }
             }
             
             // 代码字体
@@ -232,85 +265,118 @@ private struct FontSettingsView: View {
                     .font(.subheadline)
                 
                 FontPickerView(
-                    selectedFont: $store.editorPreferences.codeFontName,
+                    selectedFont: $fonts.codeFontName,
                     fonts: EditorPreferences.allMonospacedFonts
                 )
                 .frame(width: 180, alignment: .leading)
+                .onChange(of: fonts.codeFontName) { _, newValue in
+                    onFontChanged(.code, newValue)
+                }
                 
-                Stepper("\(Int(store.editorPreferences.codeFontSize)) pt",
-                       value: $store.editorPreferences.codeFontSize,
+                Stepper("\(Int(fonts.codeFontSize)) pt",
+                       value: $fonts.codeFontSize,
                        in: 10...20,
                        step: 1)
                 .frame(width: 120)
+                .onChange(of: fonts.codeFontSize) { _, newValue in
+                    onFontSizeChanged(.code, newValue)
+                }
             }
         }
     }
 }
 
-// MARK: - Typography and Layout Settings (合并)
+// MARK: - Layout Settings (可复用组件)
 
-private struct TypographyAndLayoutSettingsView: View {
-    @Bindable var store: StoreOf<SettingsFeature>
+private struct LayoutSettingsView: View {
+    @Binding var layout: EditorPreferences.LayoutSettings
+    let showMaxWidth: Bool  // 是否显示最大行宽设置
+    let onLayoutChanged: (EditorPreferences.LayoutSettings) -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // 排版设置
             SliderRow(
                 title: "行间距",
-                value: $store.editorPreferences.lineSpacing,
+                value: $layout.lineSpacing,
                 range: 4...50,
                 unit: "pt",
                 step: 1
             )
+            .onChange(of: layout.lineSpacing) { _, _ in
+                onLayoutChanged(layout)
+            }
             
             SliderRow(
                 title: "段落间距",
-                value: $store.editorPreferences.paragraphSpacing,
+                value: $layout.paragraphSpacing,
                 range: 0.5...6.0,
                 unit: "em",
                 step: 0.1
             )
+            .onChange(of: layout.paragraphSpacing) { _, _ in
+                onLayoutChanged(layout)
+            }
             
-            VStack(alignment: .leading, spacing: 4) {
-                SliderRow(
-                    title: "最大行宽",
-                    value: $store.editorPreferences.maxWidth,
-                    range: 600...1200,
-                    unit: "pt",
-                    step: 50
-                )
-                Text("预览模式下的最大行宽，编辑模式会根据编辑区域宽度自动适应")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.leading, 0)  // 左对齐，不再需要特殊对齐
+            // 最大行宽（仅预览模式显示）
+            if showMaxWidth {
+                VStack(alignment: .leading, spacing: 4) {
+                    SliderRow(
+                        title: "最大行宽",
+                        value: Binding(
+                            get: { layout.maxWidth ?? 800 },
+                            set: { layout.maxWidth = $0 }
+                        ),
+                        range: 600...1200,
+                        unit: "pt",
+                        step: 50
+                    )
+                    .onChange(of: layout.maxWidth) { _, _ in
+                        onLayoutChanged(layout)
+                    }
+                    
+                    Text("预览模式下的最大行宽")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.leading, 0)
+                }
             }
             
             // 布局设置
             SliderRow(
                 title: "左右边距",
-                value: $store.editorPreferences.horizontalPadding,
+                value: $layout.horizontalPadding,
                 range: 16...80,
                 unit: "pt",
                 step: 4
             )
+            .onChange(of: layout.horizontalPadding) { _, _ in
+                onLayoutChanged(layout)
+            }
             
             SliderRow(
                 title: "上下边距",
-                value: $store.editorPreferences.verticalPadding,
+                value: $layout.verticalPadding,
                 range: 12...100,
                 unit: "pt",
                 step: 4
             )
+            .onChange(of: layout.verticalPadding) { _, _ in
+                onLayoutChanged(layout)
+            }
             
             // 对齐方式
             HStack(spacing: 12) {
-                Picker("", selection: $store.editorPreferences.alignment) {
-                    ForEach(EditorPreferences.Alignment.allCases, id: \.self) { alignment in
+                Picker("", selection: $layout.alignment) {
+                    ForEach(EditorPreferences.LayoutSettings.Alignment.allCases, id: \.self) { alignment in
                         Text(alignment.rawValue).tag(alignment)
                     }
                 }
                 .pickerStyle(.segmented)
                 .frame(width: 200, alignment: .leading)
+                .onChange(of: layout.alignment) { _, _ in
+                    onLayoutChanged(layout)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }

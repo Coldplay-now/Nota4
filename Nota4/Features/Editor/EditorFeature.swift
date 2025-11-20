@@ -838,14 +838,29 @@ struct EditorFeature {
                 return .none
                 
             case .applyPreferences(let prefs):
+                // 应用编辑器样式（使用编辑模式设置）
                 state.editorStyle = EditorStyle(from: prefs)
-                // 更新预览渲染选项，应用所有布局设置
-                state.preview.renderOptions.horizontalPadding = prefs.horizontalPadding
-                state.preview.renderOptions.verticalPadding = prefs.verticalPadding
-                state.preview.renderOptions.alignment = prefs.alignment == .center ? "center" : "left"
-                state.preview.renderOptions.maxWidth = prefs.maxWidth
-                state.preview.renderOptions.lineSpacing = prefs.lineSpacing
-                state.preview.renderOptions.paragraphSpacing = prefs.paragraphSpacing
+                
+                // 更新预览渲染选项（使用预览模式设置）
+                state.preview.renderOptions.horizontalPadding = prefs.previewLayout.horizontalPadding
+                state.preview.renderOptions.verticalPadding = prefs.previewLayout.verticalPadding
+                state.preview.renderOptions.alignment = prefs.previewLayout.alignment == .center ? "center" : "left"
+                state.preview.renderOptions.maxWidth = prefs.previewLayout.maxWidth ?? 800
+                state.preview.renderOptions.lineSpacing = prefs.previewLayout.lineSpacing
+                state.preview.renderOptions.paragraphSpacing = prefs.previewLayout.paragraphSpacing
+                
+                // 应用预览主题
+                state.preview.renderOptions.themeId = prefs.previewThemeId
+                
+                // 应用预览字体设置
+                // 处理 "System" 字体：System → nil（表示使用主题字体或系统默认）
+                state.preview.renderOptions.bodyFontName = prefs.previewFonts.bodyFontName != "System" ? prefs.previewFonts.bodyFontName : nil
+                state.preview.renderOptions.bodyFontSize = prefs.previewFonts.bodyFontSize
+                state.preview.renderOptions.titleFontName = prefs.previewFonts.titleFontName != "System" ? prefs.previewFonts.titleFontName : nil
+                state.preview.renderOptions.titleFontSize = prefs.previewFonts.titleFontSize
+                state.preview.renderOptions.codeFontName = prefs.previewFonts.codeFontName != "System" ? prefs.previewFonts.codeFontName : nil
+                state.preview.renderOptions.codeFontSize = prefs.previewFonts.codeFontSize
+                
                 // 如果当前在预览模式，重新渲染以应用新设置
                 if state.viewMode != .editOnly {
                     return .send(.preview(.render))

@@ -1,61 +1,84 @@
 import Foundation
+import AppKit
 
 /// 编辑器偏好设置
 struct EditorPreferences: Codable, Equatable {
-    // MARK: - 字体设置
+    // MARK: - 编辑模式设置
     
-    /// 标题字体名称
-    var titleFontName: String = "System"
+    /// 编辑模式字体设置
+    var editorFonts: FontSettings = FontSettings()
     
-    /// 标题字号
-    var titleFontSize: CGFloat = 24
+    /// 编辑模式排版布局设置
+    var editorLayout: LayoutSettings = LayoutSettings(
+        lineSpacing: 4,
+        paragraphSpacing: 0.5,
+        horizontalPadding: 16,
+        verticalPadding: 12,
+        alignment: .leading,
+        maxWidth: nil  // 编辑模式不使用最大行宽
+    )
     
-    /// 正文字体名称
-    var bodyFontName: String = "System"
+    // MARK: - 预览模式设置
     
-    /// 正文字号
-    var bodyFontSize: CGFloat = 17
+    /// 预览模式字体设置
+    var previewFonts: FontSettings = FontSettings()
     
-    /// 代码字体名称
-    var codeFontName: String = "Menlo"
+    /// 预览模式排版布局设置
+    var previewLayout: LayoutSettings = LayoutSettings(
+        lineSpacing: 6,
+        paragraphSpacing: 0.8,
+        horizontalPadding: 24,
+        verticalPadding: 20,
+        alignment: .leading,
+        maxWidth: 800  // 预览模式使用最大行宽
+    )
     
-    /// 代码字号
-    var codeFontSize: CGFloat = 14
+    // MARK: - 外观设置（预览相关）
     
-    // MARK: - 排版设置
+    /// 预览主题ID（内置主题：builtin-light, builtin-dark, builtin-github, builtin-notion）
+    var previewThemeId: String = "builtin-light"
     
-    /// 行间距（pt 单位）
-    var lineSpacing: CGFloat = 6
+    /// 代码高亮主题
+    var codeHighlightTheme: CodeTheme = .xcode
     
-    /// 段落间距（em 单位）
-    var paragraphSpacing: CGFloat = 0.8
-    
-    /// 最大行宽（pt 单位）
-    var maxWidth: CGFloat = 800
-    
-    // MARK: - 布局设置
-    
-    /// 左右边距（pt 单位）
-    var horizontalPadding: CGFloat = 24
-    
-    /// 上下边距（pt 单位）
-    var verticalPadding: CGFloat = 20
-    
-    /// 对齐方式
-    var alignment: Alignment = .leading
+    /// 代码高亮设置模式
+    var codeHighlightMode: CodeHighlightMode = .followTheme
     
     // MARK: - Nested Types
     
-    /// 对齐方式
-    enum Alignment: String, Codable, CaseIterable {
-        case leading = "左对齐"
-        case center = "居中"
+    /// 字体设置
+    struct FontSettings: Codable, Equatable {
+        var bodyFontName: String = "System"
+        var bodyFontSize: CGFloat = 17
+        var titleFontName: String = "System"
+        var titleFontSize: CGFloat = 24
+        var codeFontName: String = "Menlo"
+        var codeFontSize: CGFloat = 14
+    }
+    
+    /// 排版布局设置
+    struct LayoutSettings: Codable, Equatable {
+        var lineSpacing: CGFloat
+        var paragraphSpacing: CGFloat
+        var horizontalPadding: CGFloat
+        var verticalPadding: CGFloat
+        var alignment: Alignment
+        var maxWidth: CGFloat?  // 可选，仅预览模式使用
+        
+        enum Alignment: String, Codable, CaseIterable {
+            case leading = "左对齐"
+            case center = "居中"
+        }
+    }
+    
+    /// 代码高亮设置模式
+    enum CodeHighlightMode: String, Codable, Equatable {
+        case followTheme = "跟随主题"      // 使用主题的代码高亮设置
+        case custom = "自定义"            // 使用自定义代码高亮主题
     }
 }
 
 // MARK: - 可用字体列表
-
-import AppKit
 
 extension EditorPreferences {
     /// 系统字体列表（常用字体）
@@ -199,4 +222,8 @@ extension EditorPreferences {
         return fontName
     }
 }
+
+// MARK: - 兼容性别名（用于在导入 CodeTheme 前使用）
+
+// CodeTheme 在 ThemeConfig.swift 中定义，已经导入
 

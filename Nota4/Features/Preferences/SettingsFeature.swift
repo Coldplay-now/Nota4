@@ -11,21 +11,9 @@ struct SettingsFeature {
         var originalEditorPreferences: EditorPreferences
         var theme: ThemeState = ThemeState()
         
-        // 代码高亮主题设置
-        var codeHighlightTheme: CodeTheme = .xcode
-        var useCustomCodeHighlightTheme: Bool = false
-        
         init(editorPreferences: EditorPreferences) {
             self.editorPreferences = editorPreferences
             self.originalEditorPreferences = editorPreferences
-            
-            // 从 UserDefaults 加载用户保存的代码高亮主题设置
-            if let savedThemeRaw = UserDefaults.standard.string(forKey: "customCodeHighlightTheme"),
-               let savedTheme = CodeTheme(rawValue: savedThemeRaw) {
-                self.codeHighlightTheme = savedTheme
-            }
-            
-            self.useCustomCodeHighlightTheme = UserDefaults.standard.bool(forKey: "useCustomCodeHighlightTheme")
         }
     }
     
@@ -63,19 +51,35 @@ struct SettingsFeature {
     enum Action: BindableAction {
         case binding(BindingAction<State>)
         case categorySelected(SettingsCategory)
+        
+        // Editor Preferences Actions
+        case editorFontChanged(FontType, String)
+        case editorFontSizeChanged(FontType, CGFloat)
+        case editorLayoutChanged(EditorPreferences.LayoutSettings)
+        
+        // Preview Preferences Actions
+        case previewFontChanged(FontType, String)
+        case previewFontSizeChanged(FontType, CGFloat)
+        case previewLayoutChanged(EditorPreferences.LayoutSettings)
+        
+        // Theme actions
+        case theme(ThemeAction)
+        
+        // Code highlight actions
+        case codeHighlightModeChanged(EditorPreferences.CodeHighlightMode)
+        case codeHighlightThemeChanged(CodeTheme)
+        
+        // Config Management
         case resetToDefaults
         case exportConfig
         case importConfig
         case apply
         case cancel
         case dismiss
-        
-        // Theme actions
-        case theme(ThemeAction)
-        
-        // Code highlight theme actions
-        case codeHighlightThemeChanged(CodeTheme)
-        case useCustomCodeHighlightThemeToggled(Bool)
+    }
+    
+    enum FontType {
+        case body, title, code
     }
     
     enum ThemeAction {
@@ -124,6 +128,80 @@ struct SettingsFeature {
                 if category == .appearance {
                     return .send(.theme(.loadThemes))
                 }
+                return .none
+            
+            // MARK: - Editor Font Actions
+            
+            case .editorFontChanged(let type, let fontName):
+                switch type {
+                case .body:
+                    state.editorPreferences.editorFonts.bodyFontName = fontName
+                case .title:
+                    state.editorPreferences.editorFonts.titleFontName = fontName
+                case .code:
+                    state.editorPreferences.editorFonts.codeFontName = fontName
+                }
+                return .none
+                
+            case .editorFontSizeChanged(let type, let size):
+                switch type {
+                case .body:
+                    state.editorPreferences.editorFonts.bodyFontSize = size
+                case .title:
+                    state.editorPreferences.editorFonts.titleFontSize = size
+                case .code:
+                    state.editorPreferences.editorFonts.codeFontSize = size
+                }
+                return .none
+            
+            case .editorLayoutChanged(let layout):
+                state.editorPreferences.editorLayout = layout
+                return .none
+            
+            // MARK: - Preview Font Actions
+            
+            case .previewFontChanged(let type, let fontName):
+                switch type {
+                case .body:
+                    state.editorPreferences.previewFonts.bodyFontName = fontName
+                case .title:
+                    state.editorPreferences.previewFonts.titleFontName = fontName
+                case .code:
+                    state.editorPreferences.previewFonts.codeFontName = fontName
+                }
+                return .none
+                
+            case .previewFontSizeChanged(let type, let size):
+                switch type {
+                case .body:
+                    state.editorPreferences.previewFonts.bodyFontSize = size
+                case .title:
+                    state.editorPreferences.previewFonts.titleFontSize = size
+                case .code:
+                    state.editorPreferences.previewFonts.codeFontSize = size
+                }
+                return .none
+            
+            case .previewLayoutChanged(let layout):
+                state.editorPreferences.previewLayout = layout
+                return .none
+            
+            // MARK: - Code Highlight Actions
+            
+            case .codeHighlightModeChanged(let mode):
+                state.editorPreferences.codeHighlightMode = mode
+                
+                // 如果切换到"跟随主题"，更新代码高亮主题为当前主题的默认值
+                if mode == .followTheme,
+                   let currentTheme = state.theme.currentTheme {
+                    state.editorPreferences.codeHighlightTheme = currentTheme.codeHighlightTheme
+                }
+                return .none
+                
+            case .codeHighlightThemeChanged(let theme):
+                state.editorPreferences.codeHighlightTheme = theme
+                // 切换到自定义模式
+                state.editorPreferences.codeHighlightMode = .custom
                 return .none
                 
             case .resetToDefaults:
@@ -178,10 +256,20 @@ struct SettingsFeature {
             
             case .theme(.syncCurrentTheme(let themeId)):
                 state.theme.currentThemeId = themeId
+                state.editorPreferences.previewThemeId = themeId
                 return .none
             
             case .theme(.selectTheme(let themeId)):
                 guard state.theme.currentThemeId != themeId else { return .none }
+                
+                state.editorPreferences.previewThemeId = themeId
+                state.theme.currentThemeId = themeId
+                
+                // 如果代码高亮模式是"跟随主题"，更新代码高亮主题
+                if state.editorPreferences.codeHighlightMode == .followTheme,
+                   let theme = state.theme.currentTheme {
+                    state.editorPreferences.codeHighlightTheme = theme.codeHighlightTheme
+                }
                 
                 return .run { send in
                     await send(.theme(.themeSelected(
@@ -266,22 +354,6 @@ struct SettingsFeature {
                  .theme(.deleteTheme),
                  .theme(.cancelDelete):
                 // These are handled by the view layer
-                return .none
-            
-            // MARK: - Code Highlight Theme Actions
-            
-            case .codeHighlightThemeChanged(let theme):
-                state.codeHighlightTheme = theme
-                // 保存到 UserDefaults
-                UserDefaults.standard.set(theme.rawValue, forKey: "customCodeHighlightTheme")
-                UserDefaults.standard.synchronize()
-                return .none
-                
-            case .useCustomCodeHighlightThemeToggled(let enabled):
-                state.useCustomCodeHighlightTheme = enabled
-                // 保存到 UserDefaults
-                UserDefaults.standard.set(enabled, forKey: "useCustomCodeHighlightTheme")
-                UserDefaults.standard.synchronize()
                 return .none
             }
         }

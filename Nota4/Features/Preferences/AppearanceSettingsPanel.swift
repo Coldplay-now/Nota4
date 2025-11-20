@@ -5,204 +5,464 @@ import AppKit
 // MARK: - Appearance Settings Panel
 
 /// 外观设置面板
-/// 用于管理主题和预览样式
+/// 用于管理预览模式的字体、布局、主题和代码高亮
 struct AppearanceSettingsPanel: View {
     @Bindable var store: StoreOf<SettingsFeature>
     
     var body: some View {
         WithPerceptionTracking {
-                VStack(alignment: .leading, spacing: 20) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
                     // 标题
-                HStack {
-                    Text("预览主题")
-                        .font(.headline)
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                    
-                    // 内置主题
-                    if !store.theme.builtInThemes.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("内置主题")
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("外观")
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                            Text("自定义预览区域的字体、排版、主题和代码高亮")
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            .padding(.horizontal, 20)
-                            
-                        // 使用纵向排列布局
-                            VStack(spacing: 12) {
-                                ForEach(store.theme.builtInThemes) { theme in
-                                    ThemeCard(
-                                        theme: theme,
-                                        isSelected: theme.id == store.theme.currentThemeId,
-                                        onSelect: {
-                                            store.send(.theme(.selectTheme(theme.id)))
-                                        }
-                                    )
-                                }
-                            }
-                        .padding(.leading, 20)
-                        .padding(.trailing, 40)
+                                .foregroundStyle(.secondary)
                         }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 24)
+                    
+                    Divider()
+                    
+                    // 预览模式字体设置
+                    SettingSection(
+                        title: "预览模式字体",
+                        icon: "textformat",
+                        description: "影响预览区域的字体显示"
+                    ) {
+                        PreviewFontSettingsView(store: store)
                     }
                     
                     Divider()
-                        .padding(.vertical, 8)
-                    .padding(.horizontal, 20)
                     
-                    // 代码高亮主题选择区域
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("代码高亮主题")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        
-                        HStack {
-                            Toggle("独立设置代码高亮主题", isOn: Binding(
-                                get: { store.useCustomCodeHighlightTheme },
-                                set: { store.send(.useCustomCodeHighlightThemeToggled($0)) }
-                            ))
-                            
-                            Spacer()
-                        }
-                        
-                        if store.useCustomCodeHighlightTheme {
-                            // 使用网格布局，两排显示
-                            LazyVGrid(columns: [
-                                GridItem(.flexible(minimum: 80), spacing: 8),
-                                GridItem(.flexible(minimum: 80), spacing: 8),
-                                GridItem(.flexible(minimum: 80), spacing: 8)
-                            ], spacing: 8) {
-                                ForEach(CodeTheme.allCases, id: \.self) { theme in
-                                    Button {
-                                        store.send(.codeHighlightThemeChanged(theme))
-                                    } label: {
-                                        Text(theme.displayName)
-                                            .font(.caption)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 6)
-                                            .frame(maxWidth: .infinity)
-                                            .background(
-                                                store.codeHighlightTheme == theme
-                                                    ? Color.accentColor
-                                                    : Color.secondary.opacity(0.1)
-                                            )
-                                            .foregroundColor(
-                                                store.codeHighlightTheme == theme
-                                                    ? .white
-                                                    : .primary
-                                            )
-                                            .cornerRadius(6)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        } else {
-                            Text("使用预览主题的代码高亮设置")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .italic()
-                        }
-                    }
-                .padding(.horizontal, 20)
-                    
-                    // 导入/导出状态提示
-                    if case .importing = store.theme.importExportState {
-                        HStack {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                            Text("正在导入主题...")
-                                .font(.caption)
-                        }
-                        .padding()
-                        .background(Color.secondary.opacity(0.1))
-                        .cornerRadius(8)
-                    .padding(.horizontal, 20)
+                    // 预览模式排版布局
+                    SettingSection(
+                        title: "预览模式排版布局",
+                        icon: "text.alignleft",
+                        description: "影响预览区域的排版和布局"
+                    ) {
+                        PreviewLayoutSettingsView(store: store)
                     }
                     
-                    if case .success = store.theme.importExportState {
-                        HStack {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                            Text("操作成功")
-                                .font(.caption)
-                        }
-                        .padding()
-                        .background(Color.green.opacity(0.1))
-                        .cornerRadius(8)
-                    .padding(.horizontal, 20)
+                    Divider()
+                    
+                    // 预览主题
+                    SettingSection(
+                        title: "预览主题",
+                        icon: "paintpalette",
+                        description: "选择预览区域的整体风格"
+                    ) {
+                        ThemeSelectionView(store: store)
                     }
                     
-                    // 错误提示
-                    if let error = store.theme.errorMessage {
-                        HStack {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(.orange)
-                            Text(error)
-                                .font(.caption)
-                            Spacer()
-                            Button("关闭") {
-                                store.send(.theme(.dismissError))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding()
-                        .background(Color.orange.opacity(0.1))
-                        .cornerRadius(8)
-                    .padding(.horizontal, 20)
+                    Divider()
+                    
+                    // 代码高亮样式
+                    SettingSection(
+                        title: "代码高亮样式",
+                        icon: "curlybraces",
+                        description: "选择代码块的语法高亮配色方案"
+                    ) {
+                        CodeHighlightSettingsView(store: store)
+                    }
+                    
+                    Spacer(minLength: 24)
                 }
-                
-                Spacer(minLength: 20)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(nsColor: .controlBackgroundColor))
             .onAppear {
                 store.send(.theme(.onAppear))
             }
         }
     }
+}
+
+// MARK: - Setting Section
+
+private struct SettingSection<Content: View>: View {
+    let title: String
+    let icon: String
+    let description: String?
+    @ViewBuilder let content: Content
     
-    // MARK: - Helper Methods
-    
-    private func importTheme() {
-        let panel = NSOpenPanel()
-        panel.title = "选择主题文件夹"
-        panel.message = "请选择包含 theme.json 的主题文件夹"
-        panel.canChooseFiles = false
-        panel.canChooseDirectories = true
-        panel.allowsMultipleSelection = false
-        
-        DispatchQueue.main.async {
-            panel.begin { response in
-                guard response == .OK, let url = panel.url else { return }
-                self.store.send(.theme(.importTheme(url)))
-            }
-        }
+    init(
+        title: String,
+        icon: String,
+        description: String? = nil,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.icon = icon
+        self.description = description
+        self.content = content()
     }
     
-    private func exportTheme(themeId: String, themeName: String) {
-        let panel = NSSavePanel()
-        panel.title = "导出主题"
-        panel.message = "选择导出位置"
-        panel.nameFieldStringValue = themeName
-        panel.canCreateDirectories = true
-        
-        DispatchQueue.main.async {
-            panel.begin { response in
-                guard response == .OK, let url = panel.url else { return }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Label(title, systemImage: icon)
+                    .font(.headline)
+                    .foregroundColor(.primary)
                 
-                Task {
-                    do {
-                        try await ThemeManager.shared.exportTheme(themeId, to: url)
-                        await MainActor.run {
-                            self.store.send(.theme(.exportThemeResponse(.success(()))))
-                        }
-                    } catch {
-                        await MainActor.run {
-                            self.store.send(.theme(.exportThemeResponse(.failure(error))))
-                        }
-                    }
+                if let description = description {
+                    Text(description)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            content
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 16)
+    }
+}
+
+// MARK: - Preview Font Settings
+
+private struct PreviewFontSettingsView: View {
+    @Bindable var store: StoreOf<SettingsFeature>
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // 正文字体
+            HStack(alignment: .center, spacing: 12) {
+                Text("正文字体")
+                    .frame(width: 80, alignment: .leading)
+                    .font(.subheadline)
+                
+                FontPickerView(
+                    selectedFont: $store.editorPreferences.previewFonts.bodyFontName,
+                    fonts: EditorPreferences.allSystemFonts
+                )
+                .frame(width: 180, alignment: .leading)
+                .onChange(of: store.editorPreferences.previewFonts.bodyFontName) { _, newValue in
+                    store.send(.previewFontChanged(.body, newValue))
+                }
+                
+                Stepper("\(Int(store.editorPreferences.previewFonts.bodyFontSize)) pt",
+                       value: $store.editorPreferences.previewFonts.bodyFontSize,
+                       in: 12...24,
+                       step: 1)
+                .frame(width: 120)
+                .onChange(of: store.editorPreferences.previewFonts.bodyFontSize) { _, newValue in
+                    store.send(.previewFontSizeChanged(.body, newValue))
+                }
+            }
+            
+            // 标题字体
+            HStack(alignment: .center, spacing: 12) {
+                Text("标题字体")
+                    .frame(width: 80, alignment: .leading)
+                    .font(.subheadline)
+                
+                FontPickerView(
+                    selectedFont: $store.editorPreferences.previewFonts.titleFontName,
+                    fonts: EditorPreferences.allSystemFonts
+                )
+                .frame(width: 180, alignment: .leading)
+                .onChange(of: store.editorPreferences.previewFonts.titleFontName) { _, newValue in
+                    store.send(.previewFontChanged(.title, newValue))
+                }
+                
+                Stepper("\(Int(store.editorPreferences.previewFonts.titleFontSize)) pt",
+                       value: $store.editorPreferences.previewFonts.titleFontSize,
+                       in: 18...32,
+                       step: 1)
+                .frame(width: 120)
+                .onChange(of: store.editorPreferences.previewFonts.titleFontSize) { _, newValue in
+                    store.send(.previewFontSizeChanged(.title, newValue))
+                }
+            }
+            
+            // 代码字体
+            HStack(alignment: .center, spacing: 12) {
+                Text("代码字体")
+                    .frame(width: 80, alignment: .leading)
+                    .font(.subheadline)
+                
+                FontPickerView(
+                    selectedFont: $store.editorPreferences.previewFonts.codeFontName,
+                    fonts: EditorPreferences.allMonospacedFonts
+                )
+                .frame(width: 180, alignment: .leading)
+                .onChange(of: store.editorPreferences.previewFonts.codeFontName) { _, newValue in
+                    store.send(.previewFontChanged(.code, newValue))
+                }
+                
+                Stepper("\(Int(store.editorPreferences.previewFonts.codeFontSize)) pt",
+                       value: $store.editorPreferences.previewFonts.codeFontSize,
+                       in: 10...20,
+                       step: 1)
+                .frame(width: 120)
+                .onChange(of: store.editorPreferences.previewFonts.codeFontSize) { _, newValue in
+                    store.send(.previewFontSizeChanged(.code, newValue))
                 }
             }
         }
+    }
+}
+
+// MARK: - Preview Layout Settings
+
+private struct PreviewLayoutSettingsView: View {
+    @Bindable var store: StoreOf<SettingsFeature>
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            SliderRow(
+                title: "行间距",
+                value: $store.editorPreferences.previewLayout.lineSpacing,
+                range: 4...50,
+                unit: "pt",
+                step: 1
+            )
+            .onChange(of: store.editorPreferences.previewLayout.lineSpacing) { _, _ in
+                store.send(.previewLayoutChanged(store.editorPreferences.previewLayout))
+            }
+            
+            SliderRow(
+                title: "段落间距",
+                value: $store.editorPreferences.previewLayout.paragraphSpacing,
+                range: 0.5...6.0,
+                unit: "em",
+                step: 0.1
+            )
+            .onChange(of: store.editorPreferences.previewLayout.paragraphSpacing) { _, _ in
+                store.send(.previewLayoutChanged(store.editorPreferences.previewLayout))
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                SliderRow(
+                    title: "最大行宽",
+                    value: Binding(
+                        get: { store.editorPreferences.previewLayout.maxWidth ?? 800 },
+                        set: { store.editorPreferences.previewLayout.maxWidth = $0 }
+                    ),
+                    range: 600...1200,
+                    unit: "pt",
+                    step: 50
+                )
+                .onChange(of: store.editorPreferences.previewLayout.maxWidth) { _, _ in
+                    store.send(.previewLayoutChanged(store.editorPreferences.previewLayout))
+                }
+                
+                Text("预览模式下的最大行宽")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            SliderRow(
+                title: "左右边距",
+                value: $store.editorPreferences.previewLayout.horizontalPadding,
+                range: 16...80,
+                unit: "pt",
+                step: 4
+            )
+            .onChange(of: store.editorPreferences.previewLayout.horizontalPadding) { _, _ in
+                store.send(.previewLayoutChanged(store.editorPreferences.previewLayout))
+            }
+            
+            SliderRow(
+                title: "上下边距",
+                value: $store.editorPreferences.previewLayout.verticalPadding,
+                range: 12...100,
+                unit: "pt",
+                step: 4
+            )
+            .onChange(of: store.editorPreferences.previewLayout.verticalPadding) { _, _ in
+                store.send(.previewLayoutChanged(store.editorPreferences.previewLayout))
+            }
+            
+            HStack(spacing: 12) {
+                Picker("", selection: $store.editorPreferences.previewLayout.alignment) {
+                    ForEach(EditorPreferences.LayoutSettings.Alignment.allCases, id: \.self) { alignment in
+                        Text(alignment.rawValue).tag(alignment)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 200, alignment: .leading)
+                .onChange(of: store.editorPreferences.previewLayout.alignment) { _, _ in
+                    store.send(.previewLayoutChanged(store.editorPreferences.previewLayout))
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.trailing, 40)
+    }
+}
+
+// MARK: - Theme Selection
+
+private struct ThemeSelectionView: View {
+    @Bindable var store: StoreOf<SettingsFeature>
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if !store.theme.builtInThemes.isEmpty {
+                VStack(spacing: 12) {
+                    ForEach(store.theme.builtInThemes) { theme in
+                        ThemeCard(
+                            theme: theme,
+                            isSelected: theme.id == store.theme.currentThemeId,
+                            onSelect: {
+                                store.send(.theme(.selectTheme(theme.id)))
+                            }
+                        )
+                    }
+                }
+            }
+            
+            // 导入/导出状态提示
+            if case .importing = store.theme.importExportState {
+                HStack {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("正在导入主题...")
+                        .font(.caption)
+                }
+                .padding()
+                .background(Color.secondary.opacity(0.1))
+                .cornerRadius(8)
+            }
+            
+            if case .success = store.theme.importExportState {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                    Text("操作成功")
+                        .font(.caption)
+                }
+                .padding()
+                .background(Color.green.opacity(0.1))
+                .cornerRadius(8)
+            }
+            
+            // 错误提示
+            if let error = store.theme.errorMessage {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                    Text(error)
+                        .font(.caption)
+                    Spacer()
+                    Button("关闭") {
+                        store.send(.theme(.dismissError))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding()
+                .background(Color.orange.opacity(0.1))
+                .cornerRadius(8)
+            }
+        }
+    }
+}
+
+// MARK: - Code Highlight Settings
+
+private struct CodeHighlightSettingsView: View {
+    @Bindable var store: StoreOf<SettingsFeature>
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // 设置模式选择
+            Picker("代码高亮模式", selection: Binding(
+                get: { store.editorPreferences.codeHighlightMode },
+                set: { store.send(.codeHighlightModeChanged($0)) }
+            )) {
+                Text("跟随主题").tag(EditorPreferences.CodeHighlightMode.followTheme)
+                Text("自定义").tag(EditorPreferences.CodeHighlightMode.custom)
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 300)
+            
+            // 如果选择"跟随主题"，显示当前主题的代码高亮主题
+            if store.editorPreferences.codeHighlightMode == .followTheme {
+                HStack {
+                    Text("当前主题代码高亮：")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    Text(store.theme.currentTheme?.codeHighlightTheme.displayName ?? "未知")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                }
+                .padding(.top, 4)
+            } else {
+                // 如果选择"自定义"，显示代码高亮主题选择器
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("选择代码高亮主题")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    LazyVGrid(columns: [
+                        GridItem(.flexible(minimum: 80), spacing: 8),
+                        GridItem(.flexible(minimum: 80), spacing: 8),
+                        GridItem(.flexible(minimum: 80), spacing: 8)
+                    ], spacing: 8) {
+                        ForEach(CodeTheme.allCases, id: \.self) { theme in
+                            Button {
+                                store.send(.codeHighlightThemeChanged(theme))
+                            } label: {
+                                Text(theme.displayName)
+                                    .font(.caption)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .frame(maxWidth: .infinity)
+                                    .background(
+                                        store.editorPreferences.codeHighlightTheme == theme
+                                            ? Color.accentColor
+                                            : Color.secondary.opacity(0.1)
+                                    )
+                                    .foregroundColor(
+                                        store.editorPreferences.codeHighlightTheme == theme
+                                            ? .white
+                                            : .primary
+                                    )
+                                    .cornerRadius(6)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .padding(.top, 8)
+            }
+        }
+    }
+}
+
+// MARK: - Slider Row
+
+private struct SliderRow: View {
+    let title: String
+    @Binding var value: CGFloat
+    let range: ClosedRange<CGFloat>
+    let unit: String
+    let step: CGFloat
+    
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Text(String(format: "%.1f %@", value, unit))
+                .monospacedDigit()
+                .foregroundStyle(.primary)
+                .fontWeight(.medium)
+                .font(.subheadline)
+                .frame(width: 80, alignment: .trailing)
+            
+            Slider(value: $value, in: range, step: step) {
+                Text(title)
+            }
+            .accentColor(.accentColor)
+            .frame(maxWidth: 400)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -246,113 +506,6 @@ private struct ThemeCard: View {
             .fixedSize(horizontal: false, vertical: true)
         }
         .buttonStyle(.plain)
-    }
-}
-
-// MARK: - Custom Theme Row
-
-private struct CustomThemeRow: View {
-    let theme: ThemeConfig
-    let isSelected: Bool
-    let onSelect: () -> Void
-    let onExport: () -> Void
-    let onDelete: () -> Void
-    
-    var body: some View {
-        HStack {
-            Button(action: onSelect) {
-                HStack {
-                    if isSelected {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.accentColor)
-                    } else {
-                        Image(systemName: "circle")
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    VStack(alignment: .leading) {
-                        Text(theme.displayName)
-                            .font(.body)
-                        
-                        if let author = theme.author {
-                            Text("作者: \(author)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
-                    Spacer()
-                }
-            }
-            .buttonStyle(.plain)
-            
-            Button {
-                onExport()
-            } label: {
-                Image(systemName: "square.and.arrow.up")
-                    .foregroundColor(.secondary)
-            }
-            .buttonStyle(.plain)
-            .help("导出主题")
-            
-            Button {
-                onDelete()
-            } label: {
-                Image(systemName: "trash")
-                    .foregroundColor(.red)
-            }
-            .buttonStyle(.plain)
-            .help("删除主题")
-        }
-        .padding()
-        .background(isSelected ? Color.accentColor.opacity(0.1) : Color.clear)
-        .cornerRadius(6)
-    }
-}
-
-// MARK: - Color Dot
-
-private struct ColorDot: View {
-    let color: String
-    
-    var body: some View {
-        Circle()
-            .fill(Color(hex: color) ?? .gray)
-            .frame(width: 12, height: 12)
-    }
-}
-
-// MARK: - Color Extension
-
-extension Color {
-    init?(hex: String) {
-        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
-        
-        var rgb: UInt64 = 0
-        
-        guard Scanner(string: hexSanitized).scanHexInt64(&rgb) else {
-            return nil
-        }
-        
-        let length = hexSanitized.count
-        let r, g, b, a: Double
-        
-        if length == 6 {
-            r = Double((rgb & 0xFF0000) >> 16) / 255.0
-            g = Double((rgb & 0x00FF00) >> 8) / 255.0
-            b = Double(rgb & 0x0000FF) / 255.0
-            a = 1.0
-        } else if length == 8 {
-            r = Double((rgb & 0xFF000000) >> 24) / 255.0
-            g = Double((rgb & 0x00FF0000) >> 16) / 255.0
-            b = Double((rgb & 0x0000FF00) >> 8) / 255.0
-            a = Double(rgb & 0x000000FF) / 255.0
-        } else {
-            return nil
-        }
-        
-        self.init(.sRGB, red: r, green: g, blue: b, opacity: a)
     }
 }
 
