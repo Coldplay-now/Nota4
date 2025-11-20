@@ -301,8 +301,8 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     
     var icon: String {
         switch self {
-        case .editor: return "textformat"
-        case .appearance: return "paintbrush"
+        case .editor: return "doc.text"
+        case .appearance: return "paintpalette"
         }
     }
     

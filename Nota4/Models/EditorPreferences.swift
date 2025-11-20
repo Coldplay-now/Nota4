@@ -42,7 +42,7 @@ struct EditorPreferences: Codable, Equatable {
     var verticalPadding: CGFloat = 20
     
     /// 对齐方式
-    var alignment: Alignment = .center
+    var alignment: Alignment = .leading
     
     // MARK: - Nested Types
     

@@ -315,6 +315,7 @@ private struct TypographyAndLayoutSettingsView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.trailing, 40)
     }
 }
 

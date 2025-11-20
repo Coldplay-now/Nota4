@@ -29,11 +29,8 @@ struct AppearanceSettingsPanel: View {
                                 .foregroundColor(.secondary)
                             .padding(.horizontal, 20)
                             
-                        // 使用自适应网格布局
-                            LazyVGrid(columns: [
-                            GridItem(.flexible(minimum: 100, maximum: 200), spacing: 12),
-                            GridItem(.flexible(minimum: 100, maximum: 200), spacing: 12)
-                            ], spacing: 12) {
+                        // 使用纵向排列布局
+                            VStack(spacing: 12) {
                                 ForEach(store.theme.builtInThemes) { theme in
                                     ThemeCard(
                                         theme: theme,
@@ -44,7 +41,8 @@ struct AppearanceSettingsPanel: View {
                                     )
                                 }
                             }
-                        .padding(.horizontal, 20)
+                        .padding(.leading, 20)
+                        .padding(.trailing, 40)
                         }
                     }
                     
