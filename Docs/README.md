@@ -1,6 +1,6 @@
 # Nota4 文档中心
 
-> 📚 **最后更新**: 2025-11-20 16:30:00  
+> 📚 **最后更新**: 2025-11-20 17:05:00  
 > 🏗️ **项目**: Nota4 - 基于 SwiftUI 4.0 + TCA 1.11 的现代化 macOS Markdown 笔记应用
 > 📦 **当前版本**: v1.1.8
 
@@ -93,7 +93,11 @@ Docs/
     ├── APP_ICON_UPDATE.md  # 应用图标更新记录
     ├── PREFERENCES_REDESIGN_IMPLEMENTATION_SUMMARY.md  # 首选项重构实施总结
     ├── KEYBOARD_SHORTCUTS_AND_MENU_OPTIMIZATION_IMPLEMENTATION.md  # 快捷键与菜单优化实施总结
-    └── NOTE_MENU_DYNAMIC_STATE_OPTIMIZATION.md  # 笔记菜单动态状态优化实施总结
+    ├── NOTE_MENU_DYNAMIC_STATE_OPTIMIZATION.md  # 笔记菜单动态状态优化实施总结
+    ├── INITIAL_DOCUMENTS_PACKAGING_CHECK.md  # 初始文档资源打包检查报告
+    ├── ICON_PACKAGING_AND_VERSIONED_IMPORT_FIX.md  # Icon 打包修复和版本化导入标记实施总结
+    ├── GATEKEEPER_INSUFFICIENT_CONTEXT_ANALYSIS.md  # Gatekeeper "Insufficient Context" 问题分析
+    └── LOGO_UPDATE_TO_INITIAL_DOCUMENTS.md  # 初始文档 Logo 图片更新记录
 ```
 
 ---
