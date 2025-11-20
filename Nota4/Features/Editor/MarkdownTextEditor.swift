@@ -12,12 +12,23 @@ struct MarkdownTextEditor: NSViewRepresentable {
     let paragraphSpacing: CGFloat
     let horizontalPadding: CGFloat
     let verticalPadding: CGFloat
+    let alignment: Alignment
     let onSelectionChange: (NSRange) -> Void
     let onFocusChange: (Bool) -> Void
     
     // 搜索高亮相关
     var searchMatches: [NSRange] = []
     var currentSearchIndex: Int = -1
+    
+    // 将 SwiftUI.Alignment 转换为 NSTextAlignment
+    private var nsTextAlignment: NSTextAlignment {
+        switch alignment {
+        case .leading: return .left
+        case .center: return .center
+        case .trailing: return .right
+        default: return .left
+        }
+    }
     
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSTextView.scrollableTextView()
@@ -50,6 +61,7 @@ struct MarkdownTextEditor: NSViewRepresentable {
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineSpacing = lineSpacing
         paragraphStyle.paragraphSpacing = paragraphSpacing
+        paragraphStyle.alignment = nsTextAlignment
         textView.defaultParagraphStyle = paragraphStyle
         
         // 将段落样式应用到初始文本
@@ -76,7 +88,8 @@ struct MarkdownTextEditor: NSViewRepresentable {
                            textView.textColor != textColor ||
                            textView.backgroundColor != backgroundColor ||
                            textView.defaultParagraphStyle?.lineSpacing != lineSpacing ||
-                           textView.defaultParagraphStyle?.paragraphSpacing != paragraphSpacing
+                           textView.defaultParagraphStyle?.paragraphSpacing != paragraphSpacing ||
+                           textView.defaultParagraphStyle?.alignment != nsTextAlignment
         
         // 检查边距是否改变
         let paddingChanged = textView.textContainerInset.width != horizontalPadding ||
@@ -100,6 +113,7 @@ struct MarkdownTextEditor: NSViewRepresentable {
                 let paragraphStyle = NSMutableParagraphStyle()
                 paragraphStyle.lineSpacing = lineSpacing
                 paragraphStyle.paragraphSpacing = paragraphSpacing
+                paragraphStyle.alignment = nsTextAlignment
                 
                 let fullRange = NSRange(location: 0, length: textStorage.length)
                 textStorage.addAttribute(.paragraphStyle, value: paragraphStyle, range: fullRange)
@@ -137,6 +151,7 @@ struct MarkdownTextEditor: NSViewRepresentable {
             let paragraphStyle = NSMutableParagraphStyle()
             paragraphStyle.lineSpacing = lineSpacing
             paragraphStyle.paragraphSpacing = paragraphSpacing
+            paragraphStyle.alignment = nsTextAlignment
             textView.defaultParagraphStyle = paragraphStyle
             
             // 将新样式应用到已有文本

@@ -124,6 +124,7 @@ struct NoteEditorView: View {
                                     paragraphSpacing: store.editorStyle.paragraphSpacing,
                                     horizontalPadding: store.editorStyle.horizontalPadding,
                                     verticalPadding: store.editorStyle.verticalPadding,
+                                    alignment: store.editorStyle.alignment,
                                     onSelectionChange: { range in
                                         store.send(.selectionChanged(range))
                                     },

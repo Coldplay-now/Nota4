@@ -1,6 +1,6 @@
 # Nota4 文档中心
 
-> 📚 **最后更新**: 2025-11-20 14:30:00  
+> 📚 **最后更新**: 2025-11-20 14:59:00  
 > 🏗️ **项目**: Nota4 - 基于 SwiftUI 4.0 + TCA 1.11 的现代化 macOS Markdown 笔记应用
 > 📦 **当前版本**: v1.1.8
 
@@ -84,6 +84,7 @@ Docs/
     ├── PREVIEW_FONT_SIZE_ALIGNMENT_CHECK.md  # 预览字体字号对齐检查
     ├── PREVIEW_FONT_SIZE_FIX_SUMMARY.md  # 预览字体字号修复总结
     ├── TITLE_FONT_SIZE_ALIGNMENT_FIX.md  # 标题字号对齐修复
+    ├── ALIGNMENT_SETTINGS_ALIGNMENT_CHECK.md  # 对齐设置与实际应用对齐检查
     └── PREFERENCES_REDESIGN_IMPLEMENTATION_SUMMARY.md  # 首选项重构实施总结
 ```
 
@@ -371,6 +372,7 @@ Docs/
 - `ORDERED_LIST_INDENT_DESIGN.md` - 有序列表层级缩进功能设计
 - `EDITOR_PREVIEW_LAYOUT_SEPARATION_DESIGN.md` - 编辑器预览布局分离设计
 - `PREFERENCES_REDESIGN_COMPLETE.md` - 首选项配置完整重新设计方案
+- `KEYBOARD_SHORTCUTS_AND_MENU_OPTIMIZATION_PLAN.md` - 快捷键与菜单优化方案
 - `LINE_SPACING_IN_MULTILEVEL_LISTS_ANALYSIS.md` - 多级列表行间距分析
 - `ORDERED_LIST_INDENT_INTERACTION_ANALYSIS.md` - 有序列表缩进交互分析
 - `PARAGRAPH_SPACING_IN_MULTILEVEL_LISTS_ANALYSIS.md` - 多级列表段落间距分析
@@ -642,10 +644,11 @@ Docs/
 | v1.3.0 | 2025-11-19 | 更新 PRD 至 v1.1.1，创建系统架构设计 Spec 和 API 文档 |
 | v1.4.0 | 2025-11-19 | 新增 Design/ 目录，添加有序列表层级缩进功能设计文档 |
 | v1.5.0 | 2025-11-20 | 更新 Process/ 文档，添加首选项重构、字体字号对齐修复等文档 |
+| v1.6.0 | 2025-11-20 | 添加快捷键与菜单优化方案文档 |
 
 ---
 
 **维护者**: Nota4 开发团队  
-**最后审查**: 2025-11-20 14:30:00  
+**最后审查**: 2025-11-20 14:59:00  
 **状态**: ✅ 活跃维护中
 
