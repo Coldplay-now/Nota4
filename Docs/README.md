@@ -1,6 +1,6 @@
 # Nota4 文档中心
 
-> 📚 **最后更新**: 2025-11-20 14:59:00  
+> 📚 **最后更新**: 2025-11-20 15:51:00  
 > 🏗️ **项目**: Nota4 - 基于 SwiftUI 4.0 + TCA 1.11 的现代化 macOS Markdown 笔记应用
 > 📦 **当前版本**: v1.1.8
 
@@ -85,6 +85,10 @@ Docs/
     ├── PREVIEW_FONT_SIZE_FIX_SUMMARY.md  # 预览字体字号修复总结
     ├── TITLE_FONT_SIZE_ALIGNMENT_FIX.md  # 标题字号对齐修复
     ├── ALIGNMENT_SETTINGS_ALIGNMENT_CHECK.md  # 对齐设置与实际应用对齐检查
+    ├── BUTTON_CLICK_AREA_ANALYSIS.md  # 按钮点击区域问题分析
+    ├── BUTTON_CLICK_AREA_FIX_SUMMARY.md  # 按钮点击区域修复总结
+    ├── BUTTON_CLICK_AREA_OPTIMIZATION.md  # 按钮点击区域优化方案
+    └── APP_ICON_UPDATE.md  # 应用图标更新记录
     └── PREFERENCES_REDESIGN_IMPLEMENTATION_SUMMARY.md  # 首选项重构实施总结
 ```
 
@@ -649,6 +653,6 @@ Docs/
 ---
 
 **维护者**: Nota4 开发团队  
-**最后审查**: 2025-11-20 14:59:00  
+**最后审查**: 2025-11-20 15:51:00  
 **状态**: ✅ 活跃维护中
 

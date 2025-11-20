@@ -28,7 +28,8 @@ struct ViewModeControl: View {
                 // 编辑模式下显示眼睛（切换到预览），预览模式下显示笔（切换到编辑）
                 Image(systemName: store.viewMode == .editOnly ? "eye" : "pencil")
                     .font(.system(size: 14))
-                    .frame(width: 32, height: 28)
+                    .frame(width: 32, height: 32)
+                    .padding(6)  // 添加内边距扩大点击区域
             }
             .buttonStyle(.plain)
             .disabled(store.preview.isRendering)  // 从 Store 读取状态，符合 TCA 原则
@@ -41,7 +42,7 @@ struct ViewModeControl: View {
                     .stroke(Color(nsColor: .separatorColor), lineWidth: 0.5)
             )
             .foregroundColor(Color.primary)
-            .contentShape(Rectangle())  // 确保整个区域可点击
+            .contentShape(Rectangle())  // 确保整个区域可点击，必须在所有修饰符之后
             .help(store.viewMode == .editOnly ? "切换到预览模式" : "切换到编辑模式")
             .onHover { hovering in
                 isHovered = hovering
