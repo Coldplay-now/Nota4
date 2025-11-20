@@ -1,0 +1,569 @@
+---
+title: Markdown 完整示例 / Complete Markdown Guide
+created: 2025-11-20T09:20:09Z
+updated: 2025-11-20T09:20:09Z
+starred: true
+pinned: false
+tags: [示例, Markdown, 教程, Example, Guide]
+checksum: ""
+---
+
+# Markdown 完整示例 / Complete Markdown Guide
+
+This document demonstrates all Markdown features supported by Nota4, with both **中文** and **English** content.
+
+本文档展示了 Nota4 支持的所有 Markdown 功能，包含**中文**和**英文**内容。
+
+## 目录 / Table of Contents
+
+1. [文本样式 / Text Styling](#1-文本样式--text-styling)
+2. [列表 / Lists](#2-列表--lists)
+3. [链接和图片 / Links and Images](#3-链接和图片--links-and-images)
+4. [代码块 / Code Blocks](#4-代码块--code-blocks)
+5. [表格 / Tables](#5-表格--tables)
+6. [数学公式 / Math Formulas](#6-数学公式--math-formulas)
+7. [Mermaid 图表 / Mermaid Diagrams](#7-mermaid-图表--mermaid-diagrams)
+8. [引用和分隔线 / Quotes and Dividers](#8-引用和分隔线--quotes-and-dividers)
+
+---
+
+## 1. 文本样式 / Text Styling
+
+### 1.1. 基本样式 / Basic Styles
+
+**粗体文本 / Bold Text** 或 __Bold Text__
+
+*斜体文本 / Italic Text* 或 _Italic Text_
+
+***粗斜体文本 / Bold Italic Text*** 或 ___Bold Italic Text___
+
+~~删除线文本 / Strikethrough Text~~
+
+`行内代码 / Inline Code`
+
+### 1.2. 组合样式 / Combined Styles
+
+**粗体**中包含*斜体*，或者*斜体*中包含**粗体**。
+
+Bold with *italic* inside, or *italic* with **bold** inside.
+
+`代码`可以与**粗体**和*斜体*组合使用。
+
+`Code` can be combined with **bold** and *italic*.
+
+### 1.3. 强调和标记 / Emphasis and Marking
+
+> **Note / 注意**: This is a blockquote with **bold** and *italic* text.
+> 
+> 这是一个引用块，包含**粗体**和*斜体*文本。
+
+---
+
+## 2. 列表 / Lists
+
+### 2.1. 无序列表 / Unordered Lists
+
+- 第一项 / First item
+- 第二项 / Second item
+  - 嵌套项 2.1 / Nested item 2.1
+  - 嵌套项 2.2 / Nested item 2.2
+    - 更深层嵌套 / Deeper nesting
+- 第三项 / Third item
+
+### 2.2. 有序列表 / Ordered Lists
+
+1. 第一步 / First step
+2. 第二步 / Second step
+   1. 子步骤 2.1 / Sub-step 2.1
+   2. 子步骤 2.2 / Sub-step 2.2
+3. 第三步 / Third step
+
+### 2.3. 任务列表 / Task Lists
+
+- [x] 已完成的任务 / Completed task
+- [x] Another completed task / 另一个已完成的任务
+- [ ] 待完成的任务 / Pending task
+- [ ] Another pending task / 另一个待完成的任务
+
+---
+
+## 3. 链接和图片 / Links and Images
+
+### 3.1. 外部链接 / External Links
+
+**中文资源 / Chinese Resources**:
+- [GitHub](https://github.com)
+- [Markdown 指南](https://www.markdownguide.org)
+- [Swift 文档](https://swift.org/documentation/)
+
+**English Resources**:
+- [Wikipedia](https://www.wikipedia.org)
+- [Stack Overflow](https://stackoverflow.com)
+- [MDN Web Docs](https://developer.mozilla.org)
+
+### 3.2. 带标题的链接 / Links with Titles
+
+[带标题的链接 / Link with Title](https://www.example.com "这是一个链接标题 / This is a link title")
+
+### 3.3. 自动链接 / Auto Links
+
+<https://www.example.com>
+
+<email@example.com>
+
+### 3.4. 图片 / Images
+
+![Nota4 Logo](icon_1024x1024.png)
+
+![带标题的图片 / Image with Title](icon_1024x1024.png "Nota4 Logo")
+
+---
+
+## 4. 代码块 / Code Blocks
+
+### 4.1. 行内代码 / Inline Code
+
+使用 `console.log()` 输出日志。在 Swift 中使用 `print()` 函数。
+
+Use `console.log()` to output logs. Use `print()` function in Swift.
+
+### 4.2. 代码块 / Code Blocks
+
+#### Swift 示例 / Swift Example
+
+```swift
+// Swift 代码示例 / Swift Code Example
+import Foundation
+
+struct Person {
+    let name: String
+    var age: Int
+    
+    func greet() {
+        print("Hello, I'm \(name) and I'm \(age) years old.")
+        print("你好，我是\(name)，今年\(age)岁。")
+    }
+}
+
+let person = Person(name: "Alice", age: 30)
+person.greet()
+```
+
+#### JavaScript 示例 / JavaScript Example
+
+```javascript
+// JavaScript 代码示例 / JavaScript Code Example
+function fibonacci(n) {
+    if (n <= 1) return n;
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+// 计算斐波那契数列 / Calculate Fibonacci sequence
+console.log(fibonacci(10)); // 55
+
+// 数组操作示例 / Array operations example
+const numbers = [1, 2, 3, 4, 5];
+const doubled = numbers.map(n => n * 2);
+console.log(doubled); // [2, 4, 6, 8, 10]
+```
+
+#### Python 示例 / Python Example
+
+```python
+# Python 代码示例 / Python Code Example
+def quick_sort(arr):
+    """快速排序算法 / Quick Sort Algorithm"""
+    if len(arr) <= 1:
+        return arr
+    pivot = arr[len(arr) // 2]
+    left = [x for x in arr if x < pivot]
+    middle = [x for x in arr if x == pivot]
+    right = [x for x in arr if x > pivot]
+    return quick_sort(left) + middle + quick_sort(right)
+
+# 使用示例 / Usage example
+numbers = [3, 6, 8, 10, 1, 2, 1]
+sorted_numbers = quick_sort(numbers)
+print(f"排序结果 / Sorted result: {sorted_numbers}")
+```
+
+#### TypeScript 示例 / TypeScript Example
+
+```typescript
+// TypeScript 代码示例 / TypeScript Code Example
+interface User {
+    id: number;
+    name: string;
+    email: string;
+}
+
+class UserService {
+    private users: User[] = [];
+    
+    addUser(user: User): void {
+        this.users.push(user);
+    }
+    
+    findUser(id: number): User | undefined {
+        return this.users.find(u => u.id === id);
+    }
+}
+
+const service = new UserService();
+service.addUser({ id: 1, name: "Alice", email: "alice@example.com" });
+```
+
+#### Shell 脚本示例 / Shell Script Example
+
+```bash
+#!/bin/bash
+# Shell 脚本示例 / Shell Script Example
+
+echo "Hello, Nota4! / 你好，Nota4！"
+
+# 遍历文件 / Iterate files
+for file in *.nota; do
+    echo "Processing file: $file"
+    echo "处理文件: $file"
+done
+
+# 检查文件是否存在 / Check if file exists
+if [ -f "config.json" ]; then
+    echo "配置文件存在 / Config file exists"
+else
+    echo "配置文件不存在 / Config file not found"
+fi
+```
+
+---
+
+## 5. 表格 / Tables
+
+### 5.1. 基本表格 / Basic Table
+
+| 功能 / Feature | 快捷键 / Shortcut | 说明 / Description |
+|---------------|-----------------|-------------------|
+| 新建笔记 / New Note | ⌘N | 创建新笔记 / Create a new note |
+| 搜索 / Search | ⌘F | 搜索笔记内容 / Search note content |
+| 保存 / Save | ⌘S | 手动保存当前笔记 / Manually save current note |
+| 全选 / Select All | ⌘A | 选择所有文本 / Select all text |
+
+### 5.2. 对齐表格 / Aligned Table
+
+| 左对齐 / Left | 居中对齐 / Center | 右对齐 / Right |
+|:--------------|:----------------:|---------------:|
+| 左 / Left | 中 / Center | 右 / Right |
+| 左侧内容 / Left content | 中间内容 / Center content | 右侧内容 / Right content |
+| 更多左侧文本 / More left text | 更多中间文本 / More center text | 更多右侧文本 / More right text |
+
+### 5.3. 复杂表格 / Complex Table
+
+| 语言 / Language | 类型 / Type | 难度 / Difficulty | 推荐度 / Rating |
+|:---------------|:-----------:|:-----------------:|:---------------:|
+| Swift | 编译型 / Compiled | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| JavaScript | 解释型 / Interpreted | ⭐⭐ | ⭐⭐⭐⭐ |
+| Python | 解释型 / Interpreted | ⭐ | ⭐⭐⭐⭐⭐ |
+| Rust | 编译型 / Compiled | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+
+---
+
+## 6. 数学公式 / Math Formulas
+
+### 6.1. 行内公式 / Inline Formulas
+
+这是一个行内公式：$E = mc^2$，表示质能等价关系。
+
+This is an inline formula: $E = mc^2$, representing mass-energy equivalence.
+
+另一个例子：$\sum_{i=1}^{n} i = \frac{n(n+1)}{2}$
+
+Another example: $\sum_{i=1}^{n} i = \frac{n(n+1)}{2}$
+
+### 6.2. 块级公式 / Block Formulas
+
+**勾股定理 / Pythagorean Theorem**：
+
+$$a^2 + b^2 = c^2$$
+
+**二次方程求根公式 / Quadratic Formula**：
+
+$$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$
+
+**矩阵乘法 / Matrix Multiplication**：
+
+$$
+\begin{bmatrix}
+a & b \\
+c & d
+\end{bmatrix}
+\begin{bmatrix}
+x \\
+y
+\end{bmatrix}
+=
+\begin{bmatrix}
+ax + by \\
+cx + dy
+\end{bmatrix}
+$$
+
+**积分公式 / Integral Formula**：
+
+$$\int_{a}^{b} f(x) \, dx = F(b) - F(a)$$
+
+其中 $F(x)$ 是 $f(x)$ 的原函数。
+
+Where $F(x)$ is the antiderivative of $f(x)$.
+
+---
+
+## 7. Mermaid 图表 / Mermaid Diagrams
+
+### 7.1. 流程图 / Flowchart
+
+```mermaid
+graph TD
+    A[开始 / Start] --> B{判断条件 / Condition}
+    B -->|是 / Yes| C[执行操作1 / Action 1]
+    B -->|否 / No| D[执行操作2 / Action 2]
+    C --> E[结束 / End]
+    D --> E
+```
+
+**复杂流程图 / Complex Flowchart**：
+
+```mermaid
+graph LR
+    A[用户输入 / User Input] --> B{验证数据 / Validate Data}
+    B -->|有效 / Valid| C[保存到数据库 / Save to Database]
+    B -->|无效 / Invalid| D[显示错误 / Show Error]
+    C --> E[更新界面 / Update UI]
+    D --> A
+    E --> F[完成 / Complete]
+```
+
+### 7.2. 时序图 / Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant 用户 as User / 用户
+    participant 应用 as App / 应用
+    participant 数据库 as DB / 数据库
+    
+    用户->>应用: 创建笔记 / Create Note
+    应用->>应用: 生成ID / Generate ID
+    应用->>数据库: 保存笔记 / Save Note
+    数据库-->>应用: 保存成功 / Save Success
+    应用-->>用户: 显示笔记 / Display Note
+```
+
+### 7.3. 类图 / Class Diagram
+
+```mermaid
+classDiagram
+    class Note {
+        +String noteId
+        +String title
+        +String content
+        +Date created
+        +Date updated
+        +Boolean isStarred
+        +Boolean isPinned
+        +save()
+        +delete()
+    }
+    
+    class NoteRepository {
+        +createNote()
+        +fetchNote()
+        +updateNote()
+        +deleteNote()
+    }
+    
+    class NotaFileManager {
+        +createNoteFile()
+        +readNoteFile()
+        +updateNoteFile()
+        +deleteNoteFile()
+    }
+    
+    NoteRepository "1" --> "*" Note : manages
+    NoteRepository --> NotaFileManager : uses
+```
+
+### 7.4. 甘特图 / Gantt Chart
+
+```mermaid
+gantt
+    title 项目开发计划 / Project Development Plan
+    dateFormat  YYYY-MM-DD
+    
+    section 设计阶段 / Design Phase
+    需求分析 / Requirements Analysis           :a1, 2024-01-01, 7d
+    UI设计 / UI Design            :a2, after a1, 5d
+    
+    section 开发阶段 / Development Phase
+    核心功能开发 / Core Features       :b1, after a2, 14d
+    测试与优化 / Testing & Optimization        :b2, after b1, 7d
+    
+    section 发布阶段 / Release Phase
+    打包发布 / Package & Release          :c1, after b2, 2d
+```
+
+### 7.5. 饼图 / Pie Chart
+
+```mermaid
+pie title 时间分配 / Time Distribution
+    "编码 / Coding" : 40
+    "测试 / Testing" : 20
+    "文档 / Documentation" : 15
+    "会议 / Meetings" : 15
+    "其他 / Others" : 10
+```
+
+**状态分布图 / Status Distribution**：
+
+```mermaid
+pie title 笔记状态分布 / Note Status Distribution
+    "普通笔记 / Normal Notes" : 60
+    "星标笔记 / Starred Notes" : 25
+    "置顶笔记 / Pinned Notes" : 10
+    "已删除 / Deleted" : 5
+```
+
+### 7.6. 状态图 / State Diagram
+
+```mermaid
+stateDiagram-v2
+    [*] --> 草稿: 创建笔记 / Create Note
+    草稿 --> 编辑中: 开始编辑 / Start Editing
+    编辑中 --> 已保存: 保存 / Save
+    已保存 --> 编辑中: 继续编辑 / Continue Editing
+    已保存 --> 已发布: 发布 / Publish
+    已发布 --> [*]: 删除 / Delete
+    草稿 --> [*]: 取消 / Cancel
+```
+
+---
+
+## 8. 引用和分隔线 / Quotes and Dividers
+
+### 8.1. 引用块 / Blockquotes
+
+> 这是一个单层引用块。
+> 
+> This is a single-level blockquote.
+
+> 这是一个多层引用块。
+> 
+> > 这是嵌套的引用。
+> > 
+> > This is a nested quote.
+> > 
+> > > 这是更深层的嵌套。
+> > > 
+> > > This is a deeper nesting.
+
+### 8.2. 分隔线 / Horizontal Rules
+
+---
+
+使用三个连字符创建分隔线。
+
+Use three hyphens to create a horizontal rule.
+
+***
+
+也可以使用三个星号。
+
+You can also use three asterisks.
+
+___
+
+或者三个下划线。
+
+Or three underscores.
+
+---
+
+## 9. 混合内容示例 / Mixed Content Example
+
+### 9.1. 完整示例 / Complete Example
+
+这是一个**完整的示例**，展示了如何组合使用各种 Markdown 功能：
+
+This is a **complete example** showing how to combine various Markdown features:
+
+1. **文本样式** / **Text Styling**: 使用 `**粗体**` 和 `*斜体*` / Use `**bold**` and `*italic*`
+2. **代码** / **Code**: 使用 `` `行内代码` `` / Use `` `inline code` ``
+3. **链接** / **Links**: [访问 GitHub](https://github.com) / [Visit GitHub](https://github.com)
+4. **列表** / **Lists**: 
+   - 无序列表项 / Unordered list item
+   - 另一个项 / Another item
+5. **表格** / **Tables**: 见下方 / See below
+
+| 功能 / Feature | 状态 / Status |
+|:--------------|:-------------:|
+| Markdown 支持 / Markdown Support | ✅ 完成 / Complete |
+| 代码高亮 / Syntax Highlighting | ✅ 完成 / Complete |
+| 数学公式 / Math Formulas | ✅ 完成 / Complete |
+| Mermaid 图表 / Mermaid Diagrams | ✅ 完成 / Complete |
+
+### 9.2. 代码和公式组合 / Code and Formula Combination
+
+在代码中引用数学公式：
+
+Referencing mathematical formulas in code:
+
+```python
+# 计算圆的面积 / Calculate circle area
+# 使用公式: A = πr² / Using formula: A = πr²
+import math
+
+def circle_area(radius):
+    return math.pi * radius ** 2  # A = πr²
+
+# 使用示例 / Usage example
+r = 5
+area = circle_area(r)
+print(f"半径为 {r} 的圆的面积是 {area:.2f}")
+print(f"Area of circle with radius {r} is {area:.2f}")
+```
+
+对应的数学公式：
+
+Corresponding mathematical formula:
+
+$$A = \pi r^2$$
+
+---
+
+## 10. 总结 / Summary
+
+这个文档展示了 Nota4 支持的主要 Markdown 功能：
+
+This document demonstrates the main Markdown features supported by Nota4:
+
+- ✅ **标题层级** / **Heading Levels** (最多六层 / Up to 6 levels)
+- ✅ **文本样式** / **Text Styling** (粗体、斜体、删除线等 / Bold, italic, strikethrough, etc.)
+- ✅ **列表** / **Lists** (有序、无序、任务列表 / Ordered, unordered, task lists)
+- ✅ **链接和图片** / **Links and Images** (外部链接、内链、图片 / External links, internal links, images)
+- ✅ **代码块** / **Code Blocks** (多种语言语法高亮 / Syntax highlighting for multiple languages)
+- ✅ **表格** / **Tables** (基本和对齐 / Basic and aligned)
+- ✅ **数学公式** / **Math Formulas** (LaTeX 语法 / LaTeX syntax)
+- ✅ **Mermaid 图表** / **Mermaid Diagrams** (流程图、时序图、类图等 / Flowcharts, sequence diagrams, class diagrams, etc.)
+- ✅ **引用块** / **Blockquotes** (单层和多层 / Single and multi-level)
+- ✅ **分隔线** / **Horizontal Rules**
+
+**参考资源 / Reference Resources**：
+- [Markdown 官方指南](https://www.markdownguide.org) / [Markdown Official Guide](https://www.markdownguide.org)
+- [Mermaid 文档](https://mermaid.js.org) / [Mermaid Documentation](https://mermaid.js.org)
+- [LaTeX 数学公式](https://www.latex-tutorial.com) / [LaTeX Math Formulas](https://www.latex-tutorial.com)
+- [GitHub Flavored Markdown](https://github.github.com/gfm/) / [GitHub Flavored Markdown](https://github.github.com/gfm/)
+
+---
+
+**创建时间 / Created**: 2025-11-20  
+**最后更新 / Last Updated**: 2025-11-20  
+**版本 / Version**: 1.0
+

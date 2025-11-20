@@ -131,6 +131,13 @@ struct NoteEditorView: View {
                                     onFocusChange: { isFocused in
                                         store.send(.focusChanged(isFocused))
                                     },
+                                    isEditorUpdating: store.isEditorUpdating,
+                                    onUpdateStarted: {
+                                        store.send(.editorUpdateStarted)
+                                    },
+                                    onUpdateCompleted: {
+                                        store.send(.editorUpdateCompleted)
+                                    },
                                     searchMatches: store.search.matches,
                                     currentSearchIndex: store.search.currentMatchIndex
                                 )

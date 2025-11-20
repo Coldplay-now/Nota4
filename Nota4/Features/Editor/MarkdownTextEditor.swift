@@ -16,6 +16,11 @@ struct MarkdownTextEditor: NSViewRepresentable {
     let onSelectionChange: (NSRange) -> Void
     let onFocusChange: (Bool) -> Void
     
+    // TCA 状态协调
+    var isEditorUpdating: Bool = false
+    var onUpdateStarted: (() -> Void)? = nil
+    var onUpdateCompleted: (() -> Void)? = nil
+    
     // 搜索高亮相关
     var searchMatches: [NSRange] = []
     var currentSearchIndex: Int = -1
@@ -32,7 +37,13 @@ struct MarkdownTextEditor: NSViewRepresentable {
     
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSTextView.scrollableTextView()
-        let textView = scrollView.documentView as! NSTextView
+        
+        // 安全获取 textView，避免强制解包崩溃
+        guard let textView = scrollView.documentView as? NSTextView else {
+            print("⚠️ [MARKDOWN_EDITOR] 无法获取 NSTextView，重新创建")
+            // 如果无法获取，返回新创建的 scrollView
+            return NSTextView.scrollableTextView()
+        }
         
         // 配置 TextView
         textView.isEditable = true
@@ -65,8 +76,17 @@ struct MarkdownTextEditor: NSViewRepresentable {
         textView.defaultParagraphStyle = paragraphStyle
         
         // 将段落样式应用到初始文本
+        // 添加文本存储访问保护，避免访问已释放的对象
         if let textStorage = textView.textStorage, textStorage.length > 0 {
-            let fullRange = NSRange(location: 0, length: textStorage.length)
+            let safeLength = textStorage.length
+            guard safeLength > 0 else { return scrollView }
+            
+            let fullRange = NSRange(location: 0, length: safeLength)
+            
+            // 使用 beginEditing/endEditing 保护批量操作
+            textStorage.beginEditing()
+            defer { textStorage.endEditing() }
+            
             textStorage.addAttribute(.paragraphStyle, value: paragraphStyle, range: fullRange)
             textStorage.addAttribute(.font, value: font, range: fullRange)
         }
@@ -82,6 +102,24 @@ struct MarkdownTextEditor: NSViewRepresentable {
     
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let textView = scrollView.documentView as? NSTextView else { return }
+        
+        // TCA 状态协调：如果编辑器正在更新，跳过本次更新以避免竞态条件
+        if isEditorUpdating {
+            return
+        }
+        
+        // 通知 TCA 更新开始（异步调用，避免循环依赖）
+        Task { @MainActor in
+            onUpdateStarted?()
+        }
+        
+        // 使用 defer 确保更新完成后通知 TCA（异步调用，避免循环依赖）
+        // 注意：即使提前 return，defer 也会执行，确保状态一致性
+        defer {
+            Task { @MainActor in
+                onUpdateCompleted?()
+            }
+        }
         
         // 检查样式是否改变
         let stylesChanged = textView.font != font ||
@@ -109,13 +147,22 @@ struct MarkdownTextEditor: NSViewRepresentable {
             textView.string = text
             
             // 如果正在编辑，应用样式
+            // 添加文本存储访问保护，避免访问已释放的对象
             if wasEditing, let textStorage = textView.textStorage, textStorage.length > 0 {
+                let safeLength = textStorage.length
+                guard safeLength > 0 else { return }
+                
                 let paragraphStyle = NSMutableParagraphStyle()
                 paragraphStyle.lineSpacing = lineSpacing
                 paragraphStyle.paragraphSpacing = paragraphSpacing
                 paragraphStyle.alignment = nsTextAlignment
                 
-                let fullRange = NSRange(location: 0, length: textStorage.length)
+                let fullRange = NSRange(location: 0, length: safeLength)
+                
+                // 使用 beginEditing/endEditing 保护批量操作
+                textStorage.beginEditing()
+                defer { textStorage.endEditing() }
+                
                 textStorage.addAttribute(.paragraphStyle, value: paragraphStyle, range: fullRange)
                 textStorage.addAttribute(.font, value: font, range: fullRange)
             }
@@ -155,8 +202,17 @@ struct MarkdownTextEditor: NSViewRepresentable {
             textView.defaultParagraphStyle = paragraphStyle
             
             // 将新样式应用到已有文本
+            // 添加文本存储访问保护，避免访问已释放的对象
             if let textStorage = textView.textStorage, textStorage.length > 0 {
-                let fullRange = NSRange(location: 0, length: textStorage.length)
+                let safeLength = textStorage.length
+                guard safeLength > 0 else { return }
+                
+                let fullRange = NSRange(location: 0, length: safeLength)
+                
+                // 使用 beginEditing/endEditing 保护批量操作
+                textStorage.beginEditing()
+                defer { textStorage.endEditing() }
+                
                 textStorage.addAttribute(.paragraphStyle, value: paragraphStyle, range: fullRange)
                 textStorage.addAttribute(.font, value: font, range: fullRange)
             }
@@ -225,10 +281,20 @@ struct MarkdownTextEditor: NSViewRepresentable {
         }
         
         @objc func handleFocusToContentStart(_ notification: Notification) {
-            guard let textView = textView else { return }
+            guard let textView = textView else {
+                print("⚠️ [MARKDOWN_EDITOR] textView 已被释放，无法设置焦点")
+                return
+            }
             
             // 延迟执行，确保标题框完全失去焦点
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            // 使用 weak self 和 weak textView 避免悬空引用
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+                guard let self = self,
+                      let textView = self.textView else {
+                    print("⚠️ [MARKDOWN_EDITOR] textView 已被释放，无法设置焦点")
+                    return
+                }
+                
                 // 设置光标到文首
                 textView.setSelectedRange(NSRange(location: 0, length: 0))
                 textView.scrollRangeToVisible(NSRange(location: 0, length: 0))
@@ -238,7 +304,13 @@ struct MarkdownTextEditor: NSViewRepresentable {
                     window.makeFirstResponder(textView)
                     
                     // 再次确保光标在文首
-                    DispatchQueue.main.async {
+                    // 使用 weak self 和 weak textView 避免悬空引用
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self,
+                              let textView = self.textView else {
+                            print("⚠️ [MARKDOWN_EDITOR] textView 已被释放，无法设置光标")
+                            return
+                        }
                         textView.setSelectedRange(NSRange(location: 0, length: 0))
                         textView.scrollRangeToVisible(NSRange(location: 0, length: 0))
                     }
@@ -480,12 +552,22 @@ struct MarkdownTextEditor: NSViewRepresentable {
             searchHighlights = matches
             currentHighlightIndex = currentIndex
             
+            // 添加文本存储访问保护，使用 beginEditing/endEditing 包装批量操作
+            let safeLength = textStorage.length
+            guard safeLength > 0 else {
+                print("⚠️ [SEARCH] textStorage 长度为 0，无法应用高亮")
+                return
+            }
+            
+            textStorage.beginEditing()
+            defer { textStorage.endEditing() }
+            
             // 应用高亮
             for (index, range) in matches.enumerated() {
                 guard range.location != NSNotFound,
                       range.location >= 0,
-                      range.location + range.length <= textStorage.length else {
-                    print("⚠️ [SEARCH] 无效的范围: \(range), textStorage.length: \(textStorage.length)")
+                      range.location + range.length <= safeLength else {
+                    print("⚠️ [SEARCH] 无效的范围: \(range), textStorage.length: \(safeLength)")
                     continue
                 }
                 
@@ -516,11 +598,30 @@ struct MarkdownTextEditor: NSViewRepresentable {
         }
         
         func clearSearchHighlights() {
-            guard let textView = textView else { return }
-            guard let textStorage = textView.textStorage else { return }
+            guard let textView = textView else {
+                print("⚠️ [MARKDOWN_EDITOR] textView 已被释放，无法清除搜索高亮")
+                return
+            }
+            guard let textStorage = textView.textStorage else {
+                print("⚠️ [MARKDOWN_EDITOR] textStorage 未设置，无法清除搜索高亮")
+                return
+            }
             
             // 移除所有高亮属性（但保留字体和段落样式）
-            let fullRange = NSRange(location: 0, length: textStorage.length)
+            // 添加文本存储访问保护
+            let safeLength = textStorage.length
+            guard safeLength > 0 else {
+                searchHighlights = []
+                currentHighlightIndex = -1
+                return
+            }
+            
+            let fullRange = NSRange(location: 0, length: safeLength)
+            
+            // 使用 beginEditing/endEditing 保护批量操作
+            textStorage.beginEditing()
+            defer { textStorage.endEditing() }
+            
             textStorage.removeAttribute(.backgroundColor, range: fullRange)
             textStorage.removeAttribute(.foregroundColor, range: fullRange)
             
@@ -671,8 +772,13 @@ struct MarkdownTextEditor: NSViewRepresentable {
                 textView.scrollRangeToVisible(newSelection)
                 
                 // 通知父组件内容已改变
+                // 使用 weak self 和 weak textView 避免悬空引用
                 DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
+                    guard let self = self,
+                          let textView = self.textView else {
+                        print("⚠️ [MARKDOWN_EDITOR] textView 已被释放，无法更新内容")
+                        return
+                    }
                     self.parent.text = textView.string
                     self.parent.onSelectionChange(newSelection)
                 }
@@ -991,8 +1097,13 @@ struct MarkdownTextEditor: NSViewRepresentable {
                 textView.scrollRangeToVisible(newSelection)
                 
                 // 通知父组件内容已改变
+                // 使用 weak self 和 weak textView 避免悬空引用
                 DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
+                    guard let self = self,
+                          let textView = self.textView else {
+                        print("⚠️ [MARKDOWN_EDITOR] textView 已被释放，无法更新内容")
+                        return
+                    }
                     self.parent.text = textView.string
                     self.parent.onSelectionChange(newSelection)
                 }
