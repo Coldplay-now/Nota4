@@ -152,12 +152,11 @@ enum ImageManager {
 
 struct ImageManagerMock: ImageManagerProtocol {
     func copyImage(from sourceURL: URL, to noteId: String) async throws -> String {
-        print("🖼️ Mock: Copied image to note: \(noteId)")
         return "img_001.png"
     }
     
     func deleteImages(forNote noteId: String) async throws {
-        print("🗑️ Mock: Deleted images for note: \(noteId)")
+        // Mock implementation
     }
     
     func getImageURL(noteId: String, imageId: String) -> URL {

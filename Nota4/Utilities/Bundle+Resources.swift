@@ -80,7 +80,6 @@ extension Bundle {
             }
             
             if FileManager.default.fileExists(atPath: path.path) {
-                print("✅ [BUNDLE] 找到资源: \(path.path)")
                 return path
             }
         }

@@ -307,19 +307,16 @@ actor NoteRepositoryMock: NoteRepositoryProtocol {
     
     func createNote(_ note: Note) async throws {
         notes.append(note)
-        print("📝 Mock: Created note: \(note.title)")
     }
     
     func fetchNote(byId noteId: String) async throws -> Note {
         guard let note = notes.first(where: { $0.noteId == noteId }) else {
             throw RepositoryError.noteNotFound(noteId)
         }
-        print("📖 Mock: Fetched note: \(note.title)")
         return note
     }
     
     func fetchNotes(filter: NoteListFeature.State.Filter) async throws -> [Note] {
-        print("📚 Mock: Fetching notes with filter")
         return notes.filter { !$0.isDeleted }
     }
     
@@ -327,14 +324,12 @@ actor NoteRepositoryMock: NoteRepositoryProtocol {
         if let index = notes.firstIndex(where: { $0.noteId == note.noteId }) {
             notes[index] = note
         }
-        print("💾 Mock: Updated note: \(note.title)")
     }
     
     func deleteNote(byId noteId: String) async throws {
         if let index = notes.firstIndex(where: { $0.noteId == noteId }) {
             notes[index].isDeleted = true
         }
-        print("🗑️ Mock: Deleted note: \(noteId)")
     }
     
     func deleteNotes(_ noteIds: Set<String>) async throws {
@@ -349,12 +344,10 @@ actor NoteRepositoryMock: NoteRepositoryProtocol {
                 notes[index].isDeleted = false
             }
         }
-        print("♻️ Mock: Restored \(noteIds.count) notes")
     }
     
     func permanentlyDeleteNotes(_ noteIds: Set<String>) async throws {
         notes.removeAll { noteIds.contains($0.noteId) }
-        print("💣 Mock: Permanently deleted \(noteIds.count) notes")
     }
     
     func fetchAllTags() async throws -> [SidebarFeature.State.Tag] {

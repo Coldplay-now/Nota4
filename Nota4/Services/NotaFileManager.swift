@@ -329,24 +329,23 @@ enum NotaFileManager {
 
 actor NotaFileManagerMock: NotaFileManagerProtocol {
     func createNoteFile(_ note: Note) async throws {
-        print("📄 Mock: Created note file: \(note.fileName)")
+        // Mock implementation
     }
     
     func readNoteFile(noteId: String) async throws -> String {
-        print("📖 Mock: Read note file: \(noteId).nota")
         return "# Mock Note\n\nContent..."
     }
     
     func updateNoteFile(_ note: Note) async throws {
-        print("💾 Mock: Updated note file: \(note.fileName)")
+        // Mock implementation
     }
     
     func deleteNoteFile(noteId: String) async throws {
-        print("🗑️ Mock: Deleted note file: \(noteId).nota")
+        // Mock implementation
     }
     
     func restoreFromTrash(noteId: String) async throws {
-        print("♻️ Mock: Restored note file from trash: \(noteId).nota")
+        // Mock implementation
     }
     
     func getNoteDirectory(for noteId: String) async throws -> URL {

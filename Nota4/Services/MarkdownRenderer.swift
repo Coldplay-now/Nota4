@@ -603,8 +603,8 @@ actor MarkdownRenderer {
         let paragraphSpacing = options.paragraphSpacing ?? 0.8
         
         // 计算行高（line-height）：行间距是绝对值（pt），需要转换为相对值
-        // 假设基础字体大小为 17pt（与 EditorPreferences 默认值一致）
-        let baseFontSize: CGFloat = 17.0
+        // 使用用户实际设置的正文字号，如果没有则使用默认值
+        let baseFontSize = options.bodyFontSize ?? 17.0
         let lineHeight = 1.0 + (lineSpacing / baseFontSize)
         
         let containerStyle = """
@@ -627,6 +627,9 @@ actor MarkdownRenderer {
             }
         """
         
+        // 生成字体 CSS（用户设置优先级高于主题字体）
+        let fontCSS = generateFontCSS(from: options)
+        
         return """
         <!DOCTYPE html>
         <html lang="zh-CN">
@@ -639,6 +642,7 @@ actor MarkdownRenderer {
             \(imageErrorCSS)
             <style>
                 \(paragraphSpacingStyle)
+                \(fontCSS)
             </style>
             \(getMermaidScript())
             \(getKaTeXScript())
@@ -869,6 +873,90 @@ actor MarkdownRenderer {
         }
     }
     
+    /// 生成字体 CSS（用户设置优先级高于主题字体）
+    private func generateFontCSS(from options: RenderOptions) -> String {
+        var cssRules: [String] = []
+        
+        // 正文字体设置
+        if let bodyFontName = options.bodyFontName {
+            // 构建字体栈，包含回退字体
+            let fontStack = buildFontStack(fontName: bodyFontName)
+            cssRules.append("""
+            body, .content {
+                font-family: \(fontStack) !important;
+            }
+            """)
+        }
+        
+        if let bodyFontSize = options.bodyFontSize {
+            cssRules.append("""
+            body, .content {
+                font-size: \(bodyFontSize)pt !important;
+            }
+            """)
+        }
+        
+        // 标题字体设置
+        if let titleFontName = options.titleFontName {
+            let fontStack = buildFontStack(fontName: titleFontName)
+            cssRules.append("""
+            h1, h2, h3, h4, h5, h6 {
+                font-family: \(fontStack) !important;
+            }
+            """)
+        }
+        
+        if let titleFontSize = options.titleFontSize {
+            // 根据标题级别计算字体大小
+            // 比例设计：titleFontSize 作为 h1 的基础大小，其他级别按比例缩小
+            // h1 = 1.0x, h2 = 0.75x, h3 = 0.625x, h4 = 0.55x, h5 = 0.5x, h6 = 0.45x
+            // 例如：titleFontSize = 24pt 时，h1 = 24pt, h2 = 18pt, h3 = 15pt, h4 = 13.2pt, h5 = 12pt, h6 = 10.8pt
+            // 这样用户设置的"标题字体 24pt"直接对应 h1 的大小，更符合用户直觉
+            cssRules.append("""
+            h1 { font-size: \(titleFontSize)pt !important; }
+            h2 { font-size: \(titleFontSize * 0.75)pt !important; }
+            h3 { font-size: \(titleFontSize * 0.625)pt !important; }
+            h4 { font-size: \(titleFontSize * 0.55)pt !important; }
+            h5 { font-size: \(titleFontSize * 0.5)pt !important; }
+            h6 { font-size: \(titleFontSize * 0.45)pt !important; }
+            """)
+        }
+        
+        // 代码字体设置
+        if let codeFontName = options.codeFontName {
+            let fontStack = buildFontStack(fontName: codeFontName)
+            cssRules.append("""
+            code, pre, .code-block {
+                font-family: \(fontStack) !important;
+            }
+            """)
+        }
+        
+        if let codeFontSize = options.codeFontSize {
+            cssRules.append("""
+            code, pre, .code-block {
+                font-size: \(codeFontSize)pt !important;
+            }
+            """)
+        }
+        
+        return cssRules.joined(separator: "\n")
+    }
+    
+    /// 构建字体栈（包含回退字体）
+    private func buildFontStack(fontName: String) -> String {
+        // 为字体名称添加引号（如果包含空格或特殊字符）
+        let quotedFontName: String
+        if fontName.contains(" ") || fontName.contains("-") {
+            quotedFontName = "\"\(fontName)\""
+        } else {
+            quotedFontName = fontName
+        }
+        
+        // 构建字体栈：用户字体 -> 系统字体回退
+        return "\(quotedFontName), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif"
+    }
+    
     private func getMermaidScript() -> String {
         // 尝试从本地资源加载，如果失败则使用 CDN（降级方案）
         if let mermaidURL = getVendorResourceURL(filename: "mermaid.min.js"),
@@ -933,17 +1021,17 @@ actor MarkdownRenderer {
     /// - Parameter themeId: 主题 ID（nil 表示使用当前主题）
     /// - Returns: 代码高亮 CSS 样式字符串
     private func getCodeHighlightCSS(for themeId: String?) async -> String {
-        // 1. 检查是否使用自定义代码高亮主题
-        let useCustom = UserDefaults.standard.bool(forKey: "useCustomCodeHighlightTheme")
-        let customThemeRaw = UserDefaults.standard.string(forKey: "customCodeHighlightTheme")
+        // 1. 从 PreferencesStorage 加载偏好设置
+        let prefs = await PreferencesStorage.shared.load()
         
         let codeTheme: CodeTheme
-        if useCustom, let customThemeRaw = customThemeRaw,
-           let customTheme = CodeTheme(rawValue: customThemeRaw) {
-            // 使用用户自定义的代码高亮主题
-            codeTheme = customTheme
+        
+        // 2. 检查代码高亮模式
+        if prefs.codeHighlightMode == .custom {
+            // 使用自定义代码高亮主题
+            codeTheme = prefs.codeHighlightTheme
         } else {
-            // 使用预览主题的代码高亮主题
+            // 跟随主题：使用主题的代码高亮主题
             let theme: ThemeConfig
             if let themeId = themeId {
                 let availableThemes = await themeManager.availableThemes

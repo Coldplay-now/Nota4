@@ -1,8 +1,8 @@
 # Nota4 文档中心
 
-> 📚 **最后更新**: 2025-11-19 08:26:02  
+> 📚 **最后更新**: 2025-11-20 14:30:00  
 > 🏗️ **项目**: Nota4 - 基于 SwiftUI 4.0 + TCA 1.11 的现代化 macOS Markdown 笔记应用
-> 📦 **当前版本**: v1.1.1
+> 📦 **当前版本**: v1.1.8
 
 ---
 
@@ -77,7 +77,14 @@ Docs/
 └── Process/                     # 🔄 开发过程
     ├── DECISIONS/               # 决策记录
     ├── ITERATIONS/              # 迭代记录
-    └── MEETING_NOTES/           # 会议纪要
+    ├── MEETING_NOTES/           # 会议纪要
+    ├── UI_IMPROVEMENTS_20251120.md  # UI 改进记录
+    ├── SETTINGS_ALIGNMENT_AUDIT_REPORT.md  # 设置对齐检查报告
+    ├── EDITOR_PADDING_AND_PREVIEW_FONTS_FIX_SUMMARY.md  # 编辑器边距和预览字体修复
+    ├── PREVIEW_FONT_SIZE_ALIGNMENT_CHECK.md  # 预览字体字号对齐检查
+    ├── PREVIEW_FONT_SIZE_FIX_SUMMARY.md  # 预览字体字号修复总结
+    ├── TITLE_FONT_SIZE_ALIGNMENT_FIX.md  # 标题字号对齐修复
+    └── PREFERENCES_REDESIGN_IMPLEMENTATION_SUMMARY.md  # 首选项重构实施总结
 ```
 
 ---
@@ -362,6 +369,11 @@ Docs/
 
 **当前文档**:
 - `ORDERED_LIST_INDENT_DESIGN.md` - 有序列表层级缩进功能设计
+- `EDITOR_PREVIEW_LAYOUT_SEPARATION_DESIGN.md` - 编辑器预览布局分离设计
+- `PREFERENCES_REDESIGN_COMPLETE.md` - 首选项配置完整重新设计方案
+- `LINE_SPACING_IN_MULTILEVEL_LISTS_ANALYSIS.md` - 多级列表行间距分析
+- `ORDERED_LIST_INDENT_INTERACTION_ANALYSIS.md` - 有序列表缩进交互分析
+- `PARAGRAPH_SPACING_IN_MULTILEVEL_LISTS_ANALYSIS.md` - 多级列表段落间距分析
 
 ---
 
@@ -629,10 +641,11 @@ Docs/
 | v1.2.0 | 2025-11-19 | 文档归类优化，将根目录文档移动到对应子目录，新增 Export/ 和 Tags/ 子目录 |
 | v1.3.0 | 2025-11-19 | 更新 PRD 至 v1.1.1，创建系统架构设计 Spec 和 API 文档 |
 | v1.4.0 | 2025-11-19 | 新增 Design/ 目录，添加有序列表层级缩进功能设计文档 |
+| v1.5.0 | 2025-11-20 | 更新 Process/ 文档，添加首选项重构、字体字号对齐修复等文档 |
 
 ---
 
 **维护者**: Nota4 开发团队  
-**最后审查**: 2025-11-19 08:26:02  
+**最后审查**: 2025-11-20 14:30:00  
 **状态**: ✅ 活跃维护中
 

@@ -21,7 +21,6 @@ actor PreferencesStorage {
     /// 加载配置
     func load() -> EditorPreferences {
         guard let data = defaults.data(forKey: key) else {
-            print("⚪ [PREFS] No saved preferences found, using defaults")
             return EditorPreferences()
         }
         
@@ -30,7 +29,6 @@ actor PreferencesStorage {
             return preferences
         } catch {
             print("❌ [PREFS] Failed to decode preferences: \(error)")
-            print("⚪ [PREFS] Using default preferences")
             return EditorPreferences()
         }
     }
@@ -83,27 +81,47 @@ actor PreferencesStorage {
     
     /// 验证配置是否有效
     func validate(_ preferences: EditorPreferences) -> Bool {
-        // 字号范围检查
-        guard preferences.titleFontSize >= 18 && preferences.titleFontSize <= 32 else {
+        // 编辑模式字号范围检查
+        guard preferences.editorFonts.titleFontSize >= 18 && preferences.editorFonts.titleFontSize <= 32 else {
             return false
         }
         
-        guard preferences.bodyFontSize >= 12 && preferences.bodyFontSize <= 24 else {
+        guard preferences.editorFonts.bodyFontSize >= 12 && preferences.editorFonts.bodyFontSize <= 24 else {
             return false
         }
         
-        guard preferences.codeFontSize >= 10 && preferences.codeFontSize <= 20 else {
+        guard preferences.editorFonts.codeFontSize >= 10 && preferences.editorFonts.codeFontSize <= 20 else {
             return false
         }
         
-        // 行间距范围检查
-        guard preferences.lineSpacing >= 4 && preferences.lineSpacing <= 12 else {
+        // 预览模式字号范围检查
+        guard preferences.previewFonts.titleFontSize >= 18 && preferences.previewFonts.titleFontSize <= 32 else {
             return false
         }
         
-        // 行宽范围检查
-        guard preferences.maxWidth >= 500 && preferences.maxWidth <= 1200 else {
+        guard preferences.previewFonts.bodyFontSize >= 12 && preferences.previewFonts.bodyFontSize <= 24 else {
             return false
+        }
+        
+        guard preferences.previewFonts.codeFontSize >= 10 && preferences.previewFonts.codeFontSize <= 20 else {
+            return false
+        }
+        
+        // 编辑模式行间距范围检查
+        guard preferences.editorLayout.lineSpacing >= 4 && preferences.editorLayout.lineSpacing <= 50 else {
+            return false
+        }
+        
+        // 预览模式行间距范围检查
+        guard preferences.previewLayout.lineSpacing >= 4 && preferences.previewLayout.lineSpacing <= 50 else {
+            return false
+        }
+        
+        // 预览模式行宽范围检查
+        if let maxWidth = preferences.previewLayout.maxWidth {
+            guard maxWidth >= 600 && maxWidth <= 1200 else {
+                return false
+            }
         }
         
         return true
