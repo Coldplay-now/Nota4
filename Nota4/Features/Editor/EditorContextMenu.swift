@@ -31,17 +31,17 @@ struct EditorContextMenu: View {
             Button("标题 1", systemImage: "h1.square") {
                 store.send(.insertHeading1)
             }
-            .keyboardShortcut("1", modifiers: .command)
+            .keyboardShortcut("1", modifiers: [.command, .option])
             
             Button("标题 2", systemImage: "h2.square") {
                 store.send(.insertHeading2)
             }
-            .keyboardShortcut("2", modifiers: .command)
+            .keyboardShortcut("2", modifiers: [.command, .option])
             
             Button("标题 3", systemImage: "h3.square") {
                 store.send(.insertHeading3)
             }
-            .keyboardShortcut("3", modifiers: .command)
+            .keyboardShortcut("3", modifiers: [.command, .option])
             
             Divider()
             
@@ -55,12 +55,12 @@ struct EditorContextMenu: View {
             Button("有序列表", systemImage: "list.number") {
                 store.send(.insertOrderedList)
             }
-            .keyboardShortcut("l", modifiers: [.command, .shift])
+            .keyboardShortcut("l", modifiers: [.command, .option])
             
             Button("任务列表", systemImage: "checklist") {
                 store.send(.insertTaskList)
             }
-            .keyboardShortcut("l", modifiers: [.command, .option])
+            .keyboardShortcut("l", modifiers: [.command, .option, .shift])
             
             Divider()
             

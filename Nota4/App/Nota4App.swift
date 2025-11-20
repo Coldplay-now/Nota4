@@ -23,6 +23,11 @@ struct Nota4App: App {
             }
             
             CommandGroup(after: .newItem) {
+                Button("打开...") {
+                    store.send(.showImport)
+                }
+                .keyboardShortcut("o", modifiers: .command)
+                
                 Button("保存") {
                     store.send(.editor(.manualSave))
                 }
@@ -47,6 +52,13 @@ struct Nota4App: App {
                     }
                 }
                 .keyboardShortcut("e", modifiers: [.command, .shift])
+                
+                Divider()
+                
+                Button("关闭窗口") {
+                    NSApplication.shared.keyWindow?.close()
+                }
+                .keyboardShortcut("w", modifiers: .command)
             }
             
             CommandGroup(after: .appSettings) {
@@ -97,6 +109,241 @@ struct Nota4App: App {
                 .keyboardShortcut("e", modifiers: [.command, .option, .shift])
             }
             
+            // MARK: - Format Commands
+            
+            CommandMenu("格式") {
+                // 文本格式
+                Button("加粗") {
+                    store.send(.editor(.formatBold))
+                }
+                .keyboardShortcut("b", modifiers: .command)
+                
+                Button("斜体") {
+                    store.send(.editor(.formatItalic))
+                }
+                .keyboardShortcut("i", modifiers: .command)
+                
+                Button("下划线") {
+                    store.send(.editor(.formatUnderline))
+                }
+                .keyboardShortcut("u", modifiers: [.command, .shift])
+                
+                Button("删除线") {
+                    store.send(.editor(.formatStrikethrough))
+                }
+                .keyboardShortcut("x", modifiers: [.command, .shift])
+                
+                Divider()
+                
+                // 标题子菜单
+                Menu("标题") {
+                    Button("标题 1") {
+                        store.send(.editor(.insertHeading1))
+                    }
+                    .keyboardShortcut("1", modifiers: [.command, .option])
+                    
+                    Button("标题 2") {
+                        store.send(.editor(.insertHeading2))
+                    }
+                    .keyboardShortcut("2", modifiers: [.command, .option])
+                    
+                    Button("标题 3") {
+                        store.send(.editor(.insertHeading3))
+                    }
+                    .keyboardShortcut("3", modifiers: [.command, .option])
+                    
+                    Button("标题 4") {
+                        store.send(.editor(.insertHeading4))
+                    }
+                    .keyboardShortcut("4", modifiers: [.command, .option])
+                    
+                    Button("标题 5") {
+                        store.send(.editor(.insertHeading5))
+                    }
+                    .keyboardShortcut("5", modifiers: [.command, .option])
+                    
+                    Button("标题 6") {
+                        store.send(.editor(.insertHeading6))
+                    }
+                    .keyboardShortcut("6", modifiers: [.command, .option])
+                }
+                
+                Divider()
+                
+                // 列表子菜单
+                Menu("列表") {
+                    Button("无序列表") {
+                        store.send(.editor(.insertUnorderedList))
+                    }
+                    .keyboardShortcut("l", modifiers: .command)
+                    
+                    Button("有序列表") {
+                        store.send(.editor(.insertOrderedList))
+                    }
+                    .keyboardShortcut("l", modifiers: [.command, .option])
+                    
+                    Button("任务列表") {
+                        store.send(.editor(.insertTaskList))
+                    }
+                    .keyboardShortcut("l", modifiers: [.command, .option, .shift])
+                }
+                
+                Divider()
+                
+                // 插入子菜单
+                Menu("插入") {
+                    Button("链接") {
+                        store.send(.editor(.insertLink))
+                    }
+                    .keyboardShortcut("k", modifiers: .command)
+                    
+                    Button("代码块") {
+                        store.send(.editor(.insertCodeBlock))
+                    }
+                    .keyboardShortcut("k", modifiers: [.command, .shift])
+                    
+                    Button("跨行代码块") {
+                        store.send(.editor(.insertCodeBlockWithLanguage))
+                    }
+                    .keyboardShortcut("k", modifiers: [.command, .option])
+                    
+                    Button("行内代码") {
+                        store.send(.editor(.formatInlineCode))
+                    }
+                    .keyboardShortcut("e", modifiers: .command)
+                    
+                    Button("区块引用") {
+                        store.send(.editor(.insertBlockquote))
+                    }
+                    .keyboardShortcut("q", modifiers: [.command, .shift])
+                    
+                    Button("分隔线") {
+                        store.send(.editor(.insertHorizontalRule))
+                    }
+                    .keyboardShortcut("-", modifiers: [.command, .shift])
+                }
+                
+                Divider()
+                
+                Button("插入附件") {
+                    store.send(.editor(.showAttachmentPicker))
+                }
+                .keyboardShortcut("a", modifiers: [.command, .shift])
+            }
+            
+            // MARK: - Note Commands
+            
+            CommandMenu("笔记") {
+                // 获取当前笔记和状态
+                let currentNote = store.editor.note
+                let selectedNoteId = store.noteList.selectedNoteId
+                let selectedNoteIds = store.noteList.selectedNoteIds
+                
+                // 判断是否在废纸篓视图
+                let isInTrash: Bool = {
+                    if case .category(let category) = store.noteList.filter {
+                        return category == .trash
+                    }
+                    return false
+                }()
+                
+                // 获取目标笔记（优先使用编辑器中的笔记，其次使用选中的笔记）
+                let targetNote: Note? = {
+                    if let note = currentNote {
+                        return note
+                    } else if let noteId = selectedNoteId {
+                        return store.noteList.notes.first { $0.noteId == noteId }
+                    }
+                    return nil
+                }()
+                
+                // 判断目标笔记是否已删除
+                let isNoteDeleted = targetNote?.isDeleted ?? false
+                
+                // 判断是否有可操作的笔记
+                let hasNotes: Bool = {
+                    if currentNote != nil || selectedNoteId != nil {
+                        return true
+                    }
+                    return !selectedNoteIds.isEmpty
+                }()
+                
+                // 星标/取消星标
+                Button(targetNote?.isStarred == true ? "取消星标" : "星标笔记") {
+                    if let noteId = currentNote?.noteId {
+                        store.send(.noteList(.toggleStar(noteId)))
+                    } else if let noteId = selectedNoteId {
+                        store.send(.noteList(.toggleStar(noteId)))
+                    }
+                }
+                .keyboardShortcut("d", modifiers: .command)
+                .disabled(!hasNotes || isInTrash || isNoteDeleted)
+                
+                // 置顶/取消置顶
+                Button(targetNote?.isPinned == true ? "取消置顶" : "置顶笔记") {
+                    if let noteId = currentNote?.noteId {
+                        store.send(.noteList(.togglePin(noteId)))
+                    } else if let noteId = selectedNoteId {
+                        store.send(.noteList(.togglePin(noteId)))
+                    }
+                }
+                .keyboardShortcut("p", modifiers: [.command, .shift])
+                .disabled(!hasNotes || isInTrash || isNoteDeleted)
+                
+                Divider()
+                
+                // 恢复笔记（仅在废纸篓中可用）
+                Button("恢复") {
+                    let noteIds: Set<String>
+                    if let noteId = currentNote?.noteId {
+                        noteIds = [noteId]
+                    } else if let noteId = selectedNoteId {
+                        noteIds = [noteId]
+                    } else {
+                        noteIds = selectedNoteIds
+                    }
+                    if !noteIds.isEmpty {
+                        store.send(.noteList(.restoreNotes(noteIds)))
+                    }
+                }
+                .keyboardShortcut(.delete, modifiers: .command)
+                .disabled(!hasNotes || (!isInTrash && !isNoteDeleted))
+                
+                // 移至废纸篓
+                Button("移至废纸篓") {
+                    let noteIds: Set<String>
+                    if let noteId = currentNote?.noteId {
+                        noteIds = [noteId]
+                    } else if let noteId = selectedNoteId {
+                        noteIds = [noteId]
+                    } else {
+                        noteIds = selectedNoteIds
+                    }
+                    if !noteIds.isEmpty {
+                        store.send(.noteList(.deleteNotes(noteIds)))
+                    }
+                }
+                .keyboardShortcut(.delete, modifiers: .command)
+                .disabled(!hasNotes || isInTrash || isNoteDeleted)
+                
+                // 永久删除（仅在废纸篓中可用）
+                Button("永久删除") {
+                    let noteIds: Set<String>
+                    if let noteId = currentNote?.noteId {
+                        noteIds = [noteId]
+                    } else if let noteId = selectedNoteId {
+                        noteIds = [noteId]
+                    } else {
+                        noteIds = selectedNoteIds
+                    }
+                    if !noteIds.isEmpty {
+                        store.send(.noteList(.permanentlyDeleteNotes(noteIds)))
+                    }
+                }
+                .keyboardShortcut(.delete, modifiers: [.command, .shift])
+                .disabled(!hasNotes || (!isInTrash && !isNoteDeleted))
+            }
+            
             // MARK: - View Commands (Layout Mode)
             
             CommandMenu("视图") {
@@ -129,6 +376,43 @@ struct Nota4App: App {
                     store.send(.layoutModeChanged(nextMode))
                     }
                 .keyboardShortcut("l", modifiers: [.command, .shift])
+                
+                Divider()
+                
+                Button("进入全屏") {
+                    NSApplication.shared.keyWindow?.toggleFullScreen(nil)
+                }
+                .keyboardShortcut("f", modifiers: [.control, .command])
+            }
+            
+            // MARK: - Window Commands
+            
+            CommandGroup(replacing: .windowArrangement) {
+                Button("最小化") {
+                    NSApplication.shared.keyWindow?.miniaturize(nil)
+                }
+                .keyboardShortcut("m", modifiers: .command)
+                
+                Button("缩放") {
+                    NSApplication.shared.keyWindow?.zoom(nil)
+                }
+            }
+            
+            CommandGroup(after: .windowArrangement) {
+                Button("前置全部窗口") {
+                    NSApplication.shared.arrangeInFront(nil)
+                }
+            }
+            
+            // MARK: - Help Commands
+            
+            CommandGroup(replacing: .help) {
+                Button("Nota4 帮助") {
+                    if let url = URL(string: "https://github.com/Coldplay-now/Nota4") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+                .keyboardShortcut("?", modifiers: .command)
             }
         }
     }

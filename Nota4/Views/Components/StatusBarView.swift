@@ -33,7 +33,7 @@ struct StatusBarView: View {
                             Image(systemName: "checkmark")
                         }
                     }
-                    .keyboardShortcut("1", modifiers: [.command, .shift])
+                    .keyboardShortcut("1", modifiers: [.command, .option])
                     
                     Button {
                         store.send(.layoutModeChanged(.twoColumn))
@@ -43,7 +43,7 @@ struct StatusBarView: View {
                             Image(systemName: "checkmark")
                         }
                     }
-                    .keyboardShortcut("2", modifiers: [.command, .shift])
+                    .keyboardShortcut("2", modifiers: [.command, .option])
                     
                 Button {
                         store.send(.layoutModeChanged(.oneColumn))
@@ -53,7 +53,7 @@ struct StatusBarView: View {
                             Image(systemName: "checkmark")
                         }
                     }
-                    .keyboardShortcut("3", modifiers: [.command, .shift])
+                    .keyboardShortcut("3", modifiers: [.command, .option])
                     
                     Divider()
                     
@@ -70,7 +70,7 @@ struct StatusBarView: View {
                     .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help("切换布局模式（⇧⌘1/2/3）")
+                .help("切换布局模式（⌘⌥1/2/3）")
                 
                 // 对齐方式指示器和切换控制
                 Button {

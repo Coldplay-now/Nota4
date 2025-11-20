@@ -1,6 +1,6 @@
 # Nota4 文档中心
 
-> 📚 **最后更新**: 2025-11-20 15:51:00  
+> 📚 **最后更新**: 2025-11-20 16:30:00  
 > 🏗️ **项目**: Nota4 - 基于 SwiftUI 4.0 + TCA 1.11 的现代化 macOS Markdown 笔记应用
 > 📦 **当前版本**: v1.1.8
 
@@ -56,7 +56,9 @@ Docs/
 │   └── SIDEBAR_COUNT_FIX.md
 │
 ├── Design/                      # 🎨 功能设计
-│   └── ORDERED_LIST_INDENT_DESIGN.md
+│   ├── ORDERED_LIST_INDENT_DESIGN.md
+│   ├── PREFERENCES_REDESIGN_COMPLETE.md  # 首选项配置完整重新设计方案
+│   └── KEYBOARD_SHORTCUTS_AND_MENU_OPTIMIZATION_PLAN.md  # 快捷键与菜单优化方案
 │
 ├── API/                         # 🔌 API 文档
 │   ├── API_REFERENCE.md
@@ -88,8 +90,10 @@ Docs/
     ├── BUTTON_CLICK_AREA_ANALYSIS.md  # 按钮点击区域问题分析
     ├── BUTTON_CLICK_AREA_FIX_SUMMARY.md  # 按钮点击区域修复总结
     ├── BUTTON_CLICK_AREA_OPTIMIZATION.md  # 按钮点击区域优化方案
-    └── APP_ICON_UPDATE.md  # 应用图标更新记录
-    └── PREFERENCES_REDESIGN_IMPLEMENTATION_SUMMARY.md  # 首选项重构实施总结
+    ├── APP_ICON_UPDATE.md  # 应用图标更新记录
+    ├── PREFERENCES_REDESIGN_IMPLEMENTATION_SUMMARY.md  # 首选项重构实施总结
+    ├── KEYBOARD_SHORTCUTS_AND_MENU_OPTIMIZATION_IMPLEMENTATION.md  # 快捷键与菜单优化实施总结
+    └── NOTE_MENU_DYNAMIC_STATE_OPTIMIZATION.md  # 笔记菜单动态状态优化实施总结
 ```
 
 ---

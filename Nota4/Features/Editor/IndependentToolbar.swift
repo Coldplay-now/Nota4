@@ -120,12 +120,12 @@ struct MoreMenu: View {
                         Button("有序列表", systemImage: "list.number") {
                             store.send(.insertOrderedList)
                         }
-                        .keyboardShortcut("l", modifiers: [.command, .shift])
+                        .keyboardShortcut("l", modifiers: [.command, .option])
                         
                         Button("任务列表", systemImage: "checklist") {
                             store.send(.insertTaskList)
                         }
-                        .keyboardShortcut("l", modifiers: [.command, .option])
+                        .keyboardShortcut("l", modifiers: [.command, .option, .shift])
                     }
                     
                     Divider()

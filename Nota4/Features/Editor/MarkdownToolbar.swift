@@ -72,12 +72,12 @@ struct MarkdownToolbar: View {
                     Button("有序列表", systemImage: "list.number") {
                         store.send(.insertOrderedList)
                     }
-                    .keyboardShortcut("l", modifiers: [.command, .shift])
+                    .keyboardShortcut("l", modifiers: [.command, .option])
                     
                     Button("任务列表", systemImage: "checklist") {
                         store.send(.insertTaskList)
                     }
-                    .keyboardShortcut("l", modifiers: [.command, .option])
+                    .keyboardShortcut("l", modifiers: [.command, .option, .shift])
                 }
                 
                 Divider()
@@ -240,32 +240,32 @@ struct HeadingMenu: View {
             Button("标题 1", systemImage: "h1.square") {
                 store.send(.insertHeading1)
             }
-            .keyboardShortcut("1", modifiers: .command)
+            .keyboardShortcut("1", modifiers: [.command, .option])
             
             Button("标题 2", systemImage: "h2.square") {
                 store.send(.insertHeading2)
             }
-            .keyboardShortcut("2", modifiers: .command)
+            .keyboardShortcut("2", modifiers: [.command, .option])
             
             Button("标题 3", systemImage: "h3.square") {
                 store.send(.insertHeading3)
             }
-            .keyboardShortcut("3", modifiers: .command)
+            .keyboardShortcut("3", modifiers: [.command, .option])
                 
                 Button("标题 4", systemImage: "h4.square") {
                     store.send(.insertHeading4)
                 }
-                .keyboardShortcut("4", modifiers: .command)
+                .keyboardShortcut("4", modifiers: [.command, .option])
                 
                 Button("标题 5", systemImage: "h5.square") {
                     store.send(.insertHeading5)
                 }
-                .keyboardShortcut("5", modifiers: .command)
+                .keyboardShortcut("5", modifiers: [.command, .option])
                 
                 Button("标题 6", systemImage: "h6.square") {
                     store.send(.insertHeading6)
                 }
-                .keyboardShortcut("6", modifiers: .command)
+                .keyboardShortcut("6", modifiers: [.command, .option])
         } label: {
                 Label("标题", systemImage: "textformat")
                 .labelStyle(.iconOnly)
