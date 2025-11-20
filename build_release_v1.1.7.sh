@@ -127,10 +127,16 @@ cat > "$APP_PATH/Contents/Info.plist" <<EOF
 </plist>
 EOF
 
-# 复制应用图标
-if [ -f "Nota4/Nota4/Nota4.icns" ]; then
+# 复制应用图标（优先使用 Assets/Icons，其次使用 Resources）
+if [ -f "Assets/Icons/Nota4.icns" ]; then
+    cp "Assets/Icons/Nota4.icns" "$APP_PATH/Contents/Resources/AppIcon.icns"
+    echo "   ✓ 应用图标已复制（来自 Assets/Icons）"
+elif [ -f "Nota4/Nota4/Resources/AppIcon.icns" ]; then
+    cp "Nota4/Nota4/Resources/AppIcon.icns" "$APP_PATH/Contents/Resources/AppIcon.icns"
+    echo "   ✓ 应用图标已复制（来自 Resources）"
+elif [ -f "Nota4/Nota4/Nota4.icns" ]; then
     cp "Nota4/Nota4/Nota4.icns" "$APP_PATH/Contents/Resources/AppIcon.icns"
-    echo "   ✓ 应用图标已复制"
+    echo "   ✓ 应用图标已复制（来自 Nota4/Nota4）"
 else
     echo "   ⚠️  未找到应用图标"
 fi
