@@ -14,16 +14,7 @@ This document demonstrates all Markdown features supported by Nota4, with both *
 
 本文档展示了 Nota4 支持的所有 Markdown 功能，包含**中文**和**英文**内容。
 
-## 目录 / Table of Contents
-
-1. [文本样式 / Text Styling](#1-文本样式--text-styling)
-2. [列表 / Lists](#2-列表--lists)
-3. [链接和图片 / Links and Images](#3-链接和图片--links-and-images)
-4. [代码块 / Code Blocks](#4-代码块--code-blocks)
-5. [表格 / Tables](#5-表格--tables)
-6. [数学公式 / Math Formulas](#6-数学公式--math-formulas)
-7. [Mermaid 图表 / Mermaid Diagrams](#7-mermaid-图表--mermaid-diagrams)
-8. [引用和分隔线 / Quotes and Dividers](#8-引用和分隔线--quotes-and-dividers)
+[TOC]
 
 ---
 
@@ -105,13 +96,7 @@ Bold with *italic* inside, or *italic* with **bold** inside.
 
 [带标题的链接 / Link with Title](https://www.example.com "这是一个链接标题 / This is a link title")
 
-### 3.3. 自动链接 / Auto Links
-
-<https://www.example.com>
-
-<email@example.com>
-
-### 3.4. 图片 / Images
+### 3.3. 图片 / Images
 
 ![Nota4 Logo](icon_1024x1024.png)
 
