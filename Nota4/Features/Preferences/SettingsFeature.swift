@@ -363,8 +363,8 @@ struct SettingsFeature {
 // MARK: - Settings Category
 
 enum SettingsCategory: String, CaseIterable, Identifiable {
-    case editor = "编辑器"
-    case appearance = "外观"
+    case editor = "编辑模式"
+    case appearance = "预览模式"
     // 未来可扩展：
     // case general = "通用"
     // case shortcuts = "快捷键"
