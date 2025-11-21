@@ -109,7 +109,7 @@ checksum: ""
 
 [带标题的链接](https://www.example.com "链接标题")
 
-<https://www.example.com>
+[自动链接示例](https://www.example.com)
 
 **外部链接示例**：
 - [GitHub](https://github.com)
