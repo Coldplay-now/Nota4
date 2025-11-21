@@ -20,6 +20,7 @@ struct EditorFeature {
         var editorStyle: EditorStyle = .comfortable
         var preview: PreviewState = PreviewState()
         var showDeleteConfirmation: Bool = false
+        var isEditorUpdating: Bool = false  // 标记编辑器是否正在更新，用于协调视图更新避免竞态条件
         
         // MARK: - Insert Dialog States
         
@@ -153,6 +154,8 @@ struct EditorFeature {
         case selectionChanged(NSRange)
         case focusChanged(Bool)
         case moveFocusToContentStart  // 将焦点移到正文文首（标题编辑时按回车）
+        case editorUpdateStarted  // 编辑器更新开始
+        case editorUpdateCompleted  // 编辑器更新完成
         
         // 新增：导出 Actions（转发到 AppFeature）
         case exportCurrentNote(ExportFeature.ExportFormat)
@@ -1285,6 +1288,16 @@ struct EditorFeature {
             case .moveFocusToContentStart:
                 // 将光标移到正文文首
                 state.selectionRange = NSRange(location: 0, length: 0)
+                return .none
+                
+            case .editorUpdateStarted:
+                // 标记编辑器更新开始，避免并发更新导致竞态条件
+                state.isEditorUpdating = true
+                return .none
+                
+            case .editorUpdateCompleted:
+                // 标记编辑器更新完成
+                state.isEditorUpdating = false
                 return .none
                 
             case .exportCurrentNote:

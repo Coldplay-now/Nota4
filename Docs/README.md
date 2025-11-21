@@ -1,6 +1,6 @@
 # Nota4 文档中心
 
-> 📚 **最后更新**: 2025-11-21 10:52:18  
+> 📚 **最后更新**: 2025-11-21 10:52:18
 > 🏗️ **项目**: Nota4 - 基于 SwiftUI 4.0 + TCA 1.11 的现代化 macOS Markdown 笔记应用
 > 📦 **当前版本**: v1.2
 
@@ -33,7 +33,9 @@ Docs/
 │   ├── CODE_BLOCK_ENHANCEMENT.md
 │   ├── WINDOW_NOT_SHOWING_FIX.md
 │   ├── FINAL_IMPLEMENTATION_REPORT.md
-│   └── DOCUMENTATION_ORGANIZATION_SUMMARY.md
+│   ├── DOCUMENTATION_ORGANIZATION_SUMMARY.md
+│   ├── CRASH_ANALYSIS_EXC_BAD_ACCESS_20251120.md  # EXC_BAD_ACCESS 崩溃分析
+│   └── HANG_ANALYSIS_20251120.md  # 应用挂起（Hang）问题分析
 │
 ├── Guides/                      # 📖 开发指南
 │   ├── TEST_DRIVEN_OPTIMIZATION_GUIDE.md
@@ -58,7 +60,8 @@ Docs/
 ├── Design/                      # 🎨 功能设计
 │   ├── ORDERED_LIST_INDENT_DESIGN.md
 │   ├── PREFERENCES_REDESIGN_COMPLETE.md  # 首选项配置完整重新设计方案
-│   └── KEYBOARD_SHORTCUTS_AND_MENU_OPTIMIZATION_PLAN.md  # 快捷键与菜单优化方案
+│   ├── KEYBOARD_SHORTCUTS_AND_MENU_OPTIMIZATION_PLAN.md  # 快捷键与菜单优化方案
+│   └── TASK_LIST_INTERACTIVE_CHECKBOX_REQUIREMENTS.md  # 任务列表交互式复选框需求分析
 │
 ├── API/                         # 🔌 API 文档
 │   ├── API_REFERENCE.md
@@ -98,7 +101,11 @@ Docs/
     ├── ICON_PACKAGING_AND_VERSIONED_IMPORT_FIX.md  # Icon 打包修复和版本化导入标记实施总结
     ├── GATEKEEPER_INSUFFICIENT_CONTEXT_ANALYSIS.md  # Gatekeeper "Insufficient Context" 问题分析
     ├── LOGO_UPDATE_TO_INITIAL_DOCUMENTS.md  # 初始文档 Logo 图片更新记录
+<<<<<<< HEAD
     └── MARKDOWN_INTERNAL_LINKS_FIX.md  # Markdown 内部链接跳转修复总结
+=======
+    └── EXC_BAD_ACCESS_CRASH_FIX_SUMMARY.md  # EXC_BAD_ACCESS 崩溃修复总结
+>>>>>>> 08205b0c67f6ab65d48b96419b72ab5eb9a940d7
 ```
 
 ---
@@ -386,6 +393,7 @@ Docs/
 - `EDITOR_PREVIEW_LAYOUT_SEPARATION_DESIGN.md` - 编辑器预览布局分离设计
 - `PREFERENCES_REDESIGN_COMPLETE.md` - 首选项配置完整重新设计方案
 - `KEYBOARD_SHORTCUTS_AND_MENU_OPTIMIZATION_PLAN.md` - 快捷键与菜单优化方案
+- `TASK_LIST_INTERACTIVE_CHECKBOX_REQUIREMENTS.md` - 任务列表交互式复选框需求分析
 - `LINE_SPACING_IN_MULTILEVEL_LISTS_ANALYSIS.md` - 多级列表行间距分析
 - `ORDERED_LIST_INDENT_INTERACTION_ANALYSIS.md` - 有序列表缩进交互分析
 - `PARAGRAPH_SPACING_IN_MULTILEVEL_LISTS_ANALYSIS.md` - 多级列表段落间距分析
@@ -658,8 +666,14 @@ Docs/
 | v1.4.0 | 2025-11-19 | 新增 Design/ 目录，添加有序列表层级缩进功能设计文档 |
 | v1.5.0 | 2025-11-20 | 更新 Process/ 文档，添加首选项重构、字体字号对齐修复等文档 |
 | v1.6.0 | 2025-11-20 | 添加快捷键与菜单优化方案文档 |
+<<<<<<< HEAD
 | v1.7.0 | 2025-11-21 | 添加 Markdown 内部链接跳转修复文档 |
 | v1.8.0 | 2025-11-21 | 添加预览模式\"回到页顶\"功能 PRD 文档 |
+=======
+| v1.7.0 | 2025-11-20 | 添加任务列表交互式复选框需求分析文档 |
+| v1.8.0 | 2025-11-20 | 添加 EXC_BAD_ACCESS 崩溃分析报告 |
+| v1.9.0 | 2025-11-20 | 实施 EXC_BAD_ACCESS 崩溃修复并集成 TCA 状态协调 |
+>>>>>>> 08205b0c67f6ab65d48b96419b72ab5eb9a940d7
 
 ---
 

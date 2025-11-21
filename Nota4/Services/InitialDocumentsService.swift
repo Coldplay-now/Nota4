@@ -65,6 +65,7 @@ actor InitialDocumentsService {
         let documentNames = [
             "使用说明",
             "Markdown示例",
+            "Markdown完整示例",
             "运动",
             "技术"
         ]
