@@ -232,7 +232,7 @@ struct AppFeature {
                         if await service.shouldImportInitialDocuments(noteRepository: noteRepository) {
                             do {
                                 // 在导入前验证资源是否存在（可选，但有助于诊断问题）
-                                let documentNames = ["使用说明", "Markdown示例", "Markdown完整示例", "运动", "技术", "嵌套链接测试"]
+                                let documentNames = ["使用说明", "Markdown示例", "Markdown完整示例", "运动", "技术"]
                                 var missingResources: [String] = []
                                 for documentName in documentNames {
                                     if Bundle.safeResourceURL(

@@ -67,8 +67,7 @@ actor InitialDocumentsService {
             "Markdown示例",
             "Markdown完整示例",
             "运动",
-            "技术",
-            "嵌套链接测试"  // 临时添加，用于诊断嵌套链接+图片问题
+            "技术"
         ]
         
         for documentName in documentNames {
