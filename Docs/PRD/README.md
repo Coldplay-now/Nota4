@@ -14,6 +14,7 @@
 | [EDITOR_TOOLBAR_PRD.md](./EDITOR_TOOLBAR_PRD.md) | 编辑器格式工具栏 PRD | 2025-11-16 |
 | [PREVIEW_RENDERING_ENHANCEMENT_PRD.md](./PREVIEW_RENDERING_ENHANCEMENT_PRD.md) | Markdown 预览渲染增强 PRD | 2025-11-16 |
 | [IMPORT_EXPORT_ENHANCEMENT_PRD.md](./IMPORT_EXPORT_ENHANCEMENT_PRD.md) | 导入导出功能完善 PRD | 2025-11-16 |
+| [HTML_IMPORT_PRD.md](./HTML_IMPORT_PRD.md) | HTML/HTM 导入功能 PRD | 2025-11-21 |
 
 ---
 
@@ -109,6 +110,32 @@
 **适用人员**:
 - 后端开发（Service 层）
 - 前端开发（Feature/UI 层）
+- 产品经理
+- QA 测试
+
+### HTML_IMPORT_PRD.md - HTML/HTM 导入功能 PRD
+
+**内容包含**:
+- 📄 HTML 转 Markdown 转换规则和实现方案
+- 📦 资源文件（图片、CSS、JS）识别和复制逻辑
+- 🔗 资源路径更新机制
+- 📁 文件夹导入支持（递归查找 HTML 文件）
+- 🏗️ 技术架构设计（HTMLConverter、ResourceManager）
+- 📅 四阶段实施计划（基础功能、资源处理、文件夹导入、优化测试）
+- 🧪 完整的测试计划（单元测试、集成测试、边界情况测试）
+
+**功能优先级**:
+- **P0（必须）**: 单 HTML 文件导入、HTML 转 Markdown、资源文件处理、路径更新
+- **P1（重要）**: 文件夹导入、批量导入进度显示
+- **P2（可选）**: CSS 样式处理、JavaScript 处理
+
+**技术选型**:
+- SwiftSoup：HTML 解析库
+- 自实现转换器：HTML 转 Markdown（基于 DOM 遍历）
+
+**适用人员**:
+- 后端开发（Service 层、HTML 转换器）
+- 前端开发（Import Feature/UI）
 - 产品经理
 - QA 测试
 

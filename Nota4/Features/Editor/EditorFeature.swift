@@ -39,6 +39,7 @@ struct EditorFeature {
             var currentThemeId: String? = nil
             var includeTOC: Bool = false
             var renderOptions: RenderOptions = .default
+            var previewHTMLFileURL: URL? = nil  // 临时 HTML 文件路径（用于 loadFileURL）
         }
         
         // MARK: - Search State
@@ -342,6 +343,12 @@ struct EditorFeature {
                 return .none
                 
             case .loadNote(let id):
+                // 清理当前笔记的预览临时文件
+                if let htmlFile = state.preview.previewHTMLFileURL {
+                    try? FileManager.default.removeItem(at: htmlFile)
+                    state.preview.previewHTMLFileURL = nil
+                }
+                
                 // 清除笔记目录
                 state.noteDirectory = nil
                 
@@ -1330,7 +1337,32 @@ struct EditorFeature {
             
             case .preview(.renderCompleted(.success(let html))):
                 state.preview.isRendering = false
-                state.preview.renderedHTML = html
+                state.preview.renderError = nil
+                
+                // 清理旧的临时文件
+                if let oldFileURL = state.preview.previewHTMLFileURL {
+                    try? FileManager.default.removeItem(at: oldFileURL)
+                }
+                
+                // 如果 noteDirectory 存在，创建临时 HTML 文件
+                if let noteDir = state.noteDirectory {
+                    let htmlFile = noteDir.appendingPathComponent(".preview_\(UUID().uuidString).html")
+                    do {
+                        try html.write(to: htmlFile, atomically: true, encoding: .utf8)
+                        state.preview.previewHTMLFileURL = htmlFile
+                        state.preview.renderedHTML = html  // 同时保存 HTML 字符串作为降级方案
+                    } catch {
+                        print("⚠️ [PREVIEW] 无法创建临时 HTML 文件: \(error)")
+                        // 失败时仍使用 HTML 字符串（降级方案）
+                        state.preview.renderedHTML = html
+                        state.preview.previewHTMLFileURL = nil
+                    }
+                } else {
+                    // noteDirectory 不存在，使用 HTML 字符串（降级方案）
+                    state.preview.renderedHTML = html
+                    state.preview.previewHTMLFileURL = nil
+                }
+                
                 return .none
             
             case .preview(.renderCompleted(.failure(let error))):

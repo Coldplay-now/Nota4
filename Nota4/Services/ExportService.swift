@@ -53,7 +53,38 @@ actor ExportServiceImpl: ExportServiceProtocol {
     private let markdownRenderer = MarkdownRenderer()
     
     func exportAsNota(note: Note, to url: URL) async throws {
-        // 生成 YAML Front Matter
+        // 1. 提取 Markdown 中的所有图片引用
+        let imageReferences = extractImageReferences(from: note.content)
+        
+        // 2. 创建资源文件夹
+        // 使用笔记标题作为文件夹名称，如果标题为空则使用 noteId 或 "Untitled"
+        let resourceFolderName: String
+        if note.title.isEmpty {
+            resourceFolderName = sanitizeFileName(note.noteId)
+        } else {
+            resourceFolderName = sanitizeFileName(note.title)
+        }
+        
+        let resourceFolderURL = url.deletingLastPathComponent()
+            .appendingPathComponent(resourceFolderName)
+        
+        // 3. 复制图片文件并构建路径映射
+        var pathMap: [String: String] = [:]
+        if !imageReferences.isEmpty {
+            pathMap = try await copyImagesToResourceFolder(
+                imageReferences: imageReferences,
+                noteId: note.noteId,
+                resourceFolderURL: resourceFolderURL
+            )
+        }
+        
+        // 4. 更新 Markdown 中的图片路径
+        let updatedContent = updateImagePathsInMarkdown(
+            markdown: note.content,
+            pathMap: pathMap
+        )
+        
+        // 5. 生成 YAML Front Matter
         let yamlDict: [String: Any] = [
             "id": note.noteId,
             "title": note.title,
@@ -69,10 +100,10 @@ actor ExportServiceImpl: ExportServiceProtocol {
             throw ExportServiceError.yamlSerializationFailed
         }
         
-        // 组合 YAML Front Matter 和 Markdown 内容
-        let content = "---\n\(yamlString)---\n\n\(note.content)"
+        // 6. 组合 YAML Front Matter 和更新后的 Markdown 内容
+        let content = "---\n\(yamlString)---\n\n\(updatedContent)"
         
-        // 写入文件
+        // 7. 写入 .nota 文件
         do {
             try content.write(to: url, atomically: true, encoding: .utf8)
         } catch {
@@ -315,6 +346,73 @@ actor ExportServiceImpl: ExportServiceProtocol {
     
     // MARK: - Image Processing Helpers
     
+    // MARK: - Image Reference Structure
+    
+    /// 图片引用结构体
+    struct ImageReference {
+        let alt: String
+        let path: String
+        let fullMatch: String  // 完整的 ![alt](path) 字符串
+    }
+    
+    // MARK: - Image Extraction and Processing
+    
+    /// 从 Markdown 中提取所有图片引用
+    /// - Parameter markdown: Markdown 内容
+    /// - Returns: 图片引用数组
+    private func extractImageReferences(from markdown: String) -> [ImageReference] {
+        var references: [ImageReference] = []
+        
+        // 匹配图片语法：![alt](path) 或 [![alt](image)](link)
+        let patterns = [
+            #"!\[([^\]]*)\]\(([^)]+)\)"#,  // ![alt](path)
+            #"\[!\[([^\]]*)\]\(([^)]+)\)\]"#  // [![alt](image)](link)
+        ]
+        
+        for pattern in patterns {
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+                continue
+            }
+            
+            let matches = regex.matches(
+                in: markdown,
+                range: NSRange(markdown.startIndex..., in: markdown)
+            )
+            
+            for match in matches {
+                guard match.numberOfRanges >= 3,
+                      let altRange = Range(match.range(at: 1), in: markdown),
+                      let pathRange = Range(match.range(at: 2), in: markdown) else {
+                    continue
+                }
+                
+                let alt = String(markdown[altRange])
+                let path = String(markdown[pathRange])
+                
+                // 跳过网络 URL 和 Data URL
+                if path.hasPrefix("http://") ||
+                   path.hasPrefix("https://") ||
+                   path.hasPrefix("data:") {
+                    continue
+                }
+                
+                // 获取完整的匹配字符串
+                guard let fullRange = Range(match.range, in: markdown) else {
+                    continue
+                }
+                let fullMatch = String(markdown[fullRange])
+                
+                references.append(ImageReference(
+                    alt: alt,
+                    path: path,
+                    fullMatch: fullMatch
+                ))
+            }
+        }
+        
+        return references
+    }
+    
     /// 将 HTML 中的图片内嵌为 Base64
     func embedImagesAsBase64(_ html: String, noteId: String) async throws -> String {
         var result = html
@@ -361,6 +459,127 @@ actor ExportServiceImpl: ExportServiceProtocol {
                     print("⚠️ [EXPORT] 无法读取图片: \(imageURL.path), 错误: \(error)")
                     // 继续处理其他图片
                 }
+            }
+        }
+        
+        return result
+    }
+    
+    /// 处理文件名冲突
+    /// - Parameter url: 目标文件 URL
+    /// - Returns: 处理冲突后的文件 URL
+    private func resolveFileNameConflict(_ url: URL) -> URL {
+        var destinationURL = url
+        var counter = 1
+        
+        while FileManager.default.fileExists(atPath: destinationURL.path) {
+            let nameWithoutExt = (url.deletingPathExtension().lastPathComponent as NSString).deletingPathExtension
+            let ext = url.pathExtension
+            let newFileName = "\(nameWithoutExt)_\(counter).\(ext)"
+            destinationURL = url.deletingLastPathComponent().appendingPathComponent(newFileName)
+            counter += 1
+        }
+        
+        return destinationURL
+    }
+    
+    /// 复制图片文件到资源文件夹
+    /// - Parameters:
+    ///   - imageReferences: 图片引用列表
+    ///   - noteId: 笔记 ID
+    ///   - resourceFolderURL: 资源文件夹 URL
+    /// - Returns: 路径映射字典 [原始路径: 新路径]
+    private func copyImagesToResourceFolder(
+        imageReferences: [ImageReference],
+        noteId: String,
+        resourceFolderURL: URL
+    ) async throws -> [String: String] {
+        var pathMap: [String: String] = [:]
+        
+        // 确保资源文件夹存在
+        try FileManager.default.createDirectory(
+            at: resourceFolderURL,
+            withIntermediateDirectories: true
+        )
+        
+        // 处理每个图片引用
+        for imageRef in imageReferences {
+            // 解析图片源 URL
+            guard let sourceURL = try await resolveImageURL(imageRef.path, noteId: noteId) else {
+                print("⚠️ [EXPORT] 无法解析图片路径: \(imageRef.path)")
+                continue
+            }
+            
+            // 检查源文件是否存在
+            guard FileManager.default.fileExists(atPath: sourceURL.path) else {
+                print("⚠️ [EXPORT] 图片文件不存在: \(sourceURL.path)")
+                continue
+            }
+            
+            // 构建目标文件 URL
+            let fileName = sourceURL.lastPathComponent
+            let destinationURL = resourceFolderURL.appendingPathComponent(fileName)
+            
+            // 处理文件名冲突
+            let finalDestinationURL = resolveFileNameConflict(destinationURL)
+            
+            // 复制文件
+            do {
+                try FileManager.default.copyItem(at: sourceURL, to: finalDestinationURL)
+                
+                // 记录路径映射
+                let resourceFolderName = resourceFolderURL.lastPathComponent
+                let newPath = "\(resourceFolderName)/\(finalDestinationURL.lastPathComponent)"
+                pathMap[imageRef.path] = newPath
+                
+                print("✅ [EXPORT] 已复制图片: \(imageRef.path) → \(newPath)")
+            } catch {
+                print("❌ [EXPORT] 复制图片失败: \(sourceURL.path) → \(finalDestinationURL.path), 错误: \(error)")
+                // 继续处理其他图片，不中断导出
+            }
+        }
+        
+        return pathMap
+    }
+    
+    /// 更新 Markdown 中的图片路径
+    /// - Parameters:
+    ///   - markdown: 原始 Markdown 内容
+    ///   - pathMap: 路径映射字典 [原始路径: 新路径]
+    /// - Returns: 更新后的 Markdown 内容
+    private func updateImagePathsInMarkdown(
+        markdown: String,
+        pathMap: [String: String]
+    ) -> String {
+        var result = markdown
+        
+        // 匹配图片语法：![alt](path)
+        let pattern = #"!\[([^\]]*)\]\(([^)]+)\)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+            return result
+        }
+        
+        let matches = regex.matches(
+            in: result,
+            range: NSRange(result.startIndex..., in: result)
+        )
+        
+        // 从后往前处理，避免索引偏移
+        for match in matches.reversed() {
+            guard match.numberOfRanges >= 3,
+                  let altRange = Range(match.range(at: 1), in: result),
+                  let pathRange = Range(match.range(at: 2), in: result) else {
+                continue
+            }
+            
+            let alt = String(result[altRange])
+            let oldPath = String(result[pathRange])
+            
+            // 查找新路径
+            if let newPath = pathMap[oldPath] {
+                let newImage = "![\(alt)](\(newPath))"
+                let fullRange = Range(match.range, in: result)!
+                result.replaceSubrange(fullRange, with: newImage)
             }
         }
         

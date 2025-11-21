@@ -32,7 +32,9 @@ struct MarkdownPreview: View {
                     )
                 } else {
                     WebViewWrapper(
-                        html: store.preview.renderedHTML
+                        html: store.preview.renderedHTML,
+                        htmlFileURL: store.preview.previewHTMLFileURL,
+                        baseURL: store.noteDirectory
                     )
                 }
             }
