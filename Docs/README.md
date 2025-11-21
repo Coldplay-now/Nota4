@@ -1,6 +1,6 @@
 # Nota4 文档中心
 
-> 📚 **最后更新**: 2025-11-21 11:19:34
+> 📚 **最后更新**: 2025-11-21 12:56:00
 > 🏗️ **项目**: Nota4 - 基于 SwiftUI 4.0 + TCA 1.11 的现代化 macOS Markdown 笔记应用
 > 📦 **当前版本**: v1.2.2
 
@@ -93,6 +93,8 @@ Docs/
     ├── BUTTON_CLICK_AREA_ANALYSIS.md  # 按钮点击区域问题分析
     ├── BUTTON_CLICK_AREA_FIX_SUMMARY.md  # 按钮点击区域修复总结
     ├── BUTTON_CLICK_AREA_OPTIMIZATION.md  # 按钮点击区域优化方案
+    ├── BUTTON_CLICK_AREA_SYSTEMATIC_ANALYSIS.md  # 按钮点击区域问题系统性分析
+    ├── BUTTON_CLICK_AREA_FIX_FINAL.md  # 按钮点击区域问题最终修复总结
     ├── APP_ICON_UPDATE.md  # 应用图标更新记录
     ├── PREFERENCES_REDESIGN_IMPLEMENTATION_SUMMARY.md  # 首选项重构实施总结
     ├── KEYBOARD_SHORTCUTS_AND_MENU_OPTIMIZATION_IMPLEMENTATION.md  # 快捷键与菜单优化实施总结
