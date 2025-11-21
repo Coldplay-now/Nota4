@@ -96,11 +96,50 @@ struct WebViewWrapper: NSViewRepresentable {
                                       urlString.hasPrefix("about:blank#") ||
                                       (url.fragment != nil && (url.scheme == nil || url.scheme == "about" || url.scheme == "file"))
                 
-                // 如果是内部锚点链接，允许 WebView 自己处理
-                // 修复：让 WebView 使用原生的锚点导航，而不是用 JavaScript 模拟
-                // 这样更可靠，与 Safari 行为一致
-                if isInternalAnchor {
-                    decisionHandler(.allow)
+                // 如果是内部锚点链接，使用 JavaScript 滚动
+                // 修复：file:// 协议下 WKWebView 的原生锚点跳转有时会失效或导致刷新
+                // 使用 scrollIntoView 提供更可靠的平滑滚动体验
+                if isInternalAnchor, let fragment = url.fragment {
+                    // 解码 fragment（处理中文锚点）
+                    let decodedFragment = fragment.removingPercentEncoding ?? fragment
+                    // 转义单引号，防止 JS 注入或错误
+                    let safeFragment = decodedFragment.replacingOccurrences(of: "'", with: "\\'")
+                    
+                    let js = """
+                    function findTarget(id) {
+                        // 1. 尝试精确匹配
+                        var element = document.getElementById(id);
+                        if (element) return element;
+                        
+                        // 2. 尝试解码后的 ID
+                        try {
+                            var decoded = decodeURIComponent(id);
+                            element = document.getElementById(decoded);
+                            if (element) return element;
+                        } catch(e) {}
+                        
+                        // 3. Fallback: 模糊匹配 (忽略连字符)
+                        var cleanId = id.replace(/-/g, '').toLowerCase();
+                        var headers = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                        for (var i = 0; i < headers.length; i++) {
+                            var h = headers[i];
+                            if (h.id) {
+                                var cleanHId = h.id.replace(/-/g, '').toLowerCase();
+                                if (cleanHId === cleanId) {
+                                    return h;
+                                }
+                            }
+                        }
+                        return null;
+                    }
+
+                    var target = findTarget('\(safeFragment)');
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                    """
+                    webView.evaluateJavaScript(js, completionHandler: nil)
+                    decisionHandler(.cancel)
                     return
                 }
                 

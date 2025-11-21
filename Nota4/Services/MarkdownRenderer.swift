@@ -816,9 +816,12 @@ actor MarkdownRenderer {
     }
     
     /// 从文本生成标题 ID
-    /// 规则：小写、空格转连字符、移除特殊字符（保留中文字符、数字、连字符）
+    /// 规则：小写、移除点号、空格转连字符、移除特殊字符（保留中文字符、数字、连字符）
     private func generateHeadingID(from text: String) -> String {
         var id = text.lowercased()
+        
+        // 0. 显式移除点号（确保 1.1. -> 11，与手动链接保持一致）
+        id = id.replacingOccurrences(of: ".", with: "")
         
         // 1. 空格转连字符
         id = id.replacingOccurrences(of: " ", with: "-")
