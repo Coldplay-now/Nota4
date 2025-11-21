@@ -118,9 +118,21 @@ checksum: ""
 
 ### 4.2. 图片
 
+**本地图片**：
+
 ![Nota4 Logo](icon_1024x1024.png)
 
 ![带标题的图片](icon_1024x1024.png "Nota4 Logo")
+
+**外部图片示例**：
+
+![GitHub Octocat](https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png "GitHub Logo")
+
+![Swift Logo](https://swift.org/assets/images/swift.svg "Swift Programming Language")
+
+**外部视频示例**：
+
+[![SwiftUI 教程](https://img.youtube.com/vi/bqu6BquVi2M/0.jpg)](https://www.youtube.com/watch?v=bqu6BquVi2M "SwiftUI Tutorial")
 
 ## 5. 代码块
 

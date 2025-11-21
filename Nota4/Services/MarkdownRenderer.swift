@@ -29,7 +29,13 @@ actor MarkdownRenderer {
         // 3. Markdown → HTML（使用 Ink）
         var html = parser.html(from: preprocessed.markdown)
         
-        // 3.5. 处理图片路径（验证和转换）
+        // 3.5. 修复嵌套链接+图片的 HTML 结构（修复 Ink 解析器的 href 属性错误）
+        html = fixNestedLinkImage(in: html)
+        
+        // 3.5. 修复嵌套链接+图片的 HTML 结构（修复 Ink 解析器的 href 属性错误）
+        html = fixNestedLinkImage(in: html)
+        
+        // 3.6. 处理图片路径（验证和转换）
         html = processImagePaths(in: html, noteDirectory: options.noteDirectory)
         
         // 4. 生成 TOC 和标题映射（从预处理后的 Markdown，确保与 HTML 生成使用相同的源）
@@ -1380,6 +1386,71 @@ actor MarkdownRenderer {
         }
         </style>
         """
+    }
+    
+    /// 修复嵌套链接+图片的 HTML 结构
+    /// 修复 Ink 解析器在处理 [![描述](图片)](链接 "标题") 时产生的 href 属性错误
+    /// 错误格式：<a href="url "title"">
+    /// 正确格式：<a href="url" title="title">
+    private func fixNestedLinkImage(in html: String) -> String {
+        var result = html
+        
+        // 模式1：修复 href 属性值中包含引号和标题的情况
+        // 匹配：<a href="url "title"">（URL 后跟空格、引号、标题、引号）
+        // 修复为：<a href="url" title="title">
+        // 注意：使用更精确的模式，匹配 href="... "..." 格式
+        // 原始格式：href="url "title""，需要提取 url 和 title，并移除多余的引号
+        let pattern1 = #"<a(\s+[^>]*?)href="([^"]*?)\s+"([^"]+)"([^>]*?)>"#
+        
+        guard let regex1 = try? NSRegularExpression(pattern: pattern1, options: []) else {
+            return result
+        }
+        
+        let matches1 = regex1.matches(
+            in: result,
+            range: NSRange(result.startIndex..., in: result)
+        )
+        
+        // 从后往前处理，避免索引偏移
+        for match in matches1.reversed() {
+            guard match.numberOfRanges >= 5,
+                  let tagStartRange = Range(match.range(at: 1), in: result),
+                  let urlRange = Range(match.range(at: 2), in: result),
+                  let titleRange = Range(match.range(at: 3), in: result),
+                  let tagEndRange = Range(match.range(at: 4), in: result) else {
+                continue
+            }
+            
+            let tagStart = String(result[tagStartRange])
+            let url = String(result[urlRange]).trimmingCharacters(in: .whitespaces)
+            let title = String(result[titleRange])
+            let tagEnd = String(result[tagEndRange])
+            
+            // 只有 URL 不为空且标题不为空时才修复（避免误匹配）
+            guard !url.isEmpty && !title.isEmpty else {
+                continue
+            }
+            
+            // 构建修复后的链接标签
+            // 注意：tagEnd 可能包含原始错误格式的残留引号，需要清理
+            // 移除 tagEnd 中可能存在的多余引号（如果 tagEnd 以 " 开头，说明是原始错误格式的残留）
+            var cleanTagEnd = tagEnd
+            if cleanTagEnd.hasPrefix("\"") {
+                cleanTagEnd = String(cleanTagEnd.dropFirst())
+            }
+            
+            let fixedTag: String
+            if cleanTagEnd.isEmpty {
+                fixedTag = "<a\(tagStart)href=\"\(escapeHTML(url))\" title=\"\(escapeHTML(title))\">"
+            } else {
+                fixedTag = "<a\(tagStart)href=\"\(escapeHTML(url))\" title=\"\(escapeHTML(title))\"\(cleanTagEnd)>"
+            }
+            
+            let fullRange = Range(match.range, in: result)!
+            result.replaceSubrange(fullRange, with: fixedTag)
+        }
+        
+        return result
     }
     
     /// 处理图片路径：验证相对路径文件是否存在，为无效图片添加标记

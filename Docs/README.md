@@ -1,8 +1,8 @@
 # Nota4 文档中心
 
-> 📚 **最后更新**: 2025-11-21 12:56:00
+> 📚 **最后更新**: 2025-11-21 13:56:40
 > 🏗️ **项目**: Nota4 - 基于 SwiftUI 4.0 + TCA 1.11 的现代化 macOS Markdown 笔记应用
-> 📦 **当前版本**: v1.2.2
+> 📦 **当前版本**: v1.2.3
 
 ---
 
@@ -106,7 +106,9 @@ Docs/
     ├── MARKDOWN_INTERNAL_LINKS_FIX.md  # Markdown 内部链接跳转修复总结
     ├── EXC_BAD_ACCESS_CRASH_FIX_SUMMARY.md  # EXC_BAD_ACCESS 崩溃修复总结
     ├── EDITOR_INPUT_INTERFERENCE_ANALYSIS.md  # 编辑器输入干扰问题分析
-    └── EDITOR_INPUT_INTERFERENCE_FIX_SUMMARY.md  # 编辑器输入干扰问题修复总结
+    ├── EDITOR_INPUT_INTERFERENCE_FIX_SUMMARY.md  # 编辑器输入干扰问题修复总结
+    ├── NESTED_LINK_IMAGE_DIAGNOSIS_SUMMARY.md  # 嵌套链接+图片解析问题诊断总结
+    └── NESTED_LINK_IMAGE_FIX_SUMMARY.md  # 嵌套链接+图片解析问题修复总结
 ```
 
 ---
@@ -663,6 +665,9 @@ Docs/
 | v1.0.0 | 2025-11-16 | 初始版本，建立文档分类体系 |
 | v1.1.0 | 2025-11-17 | 添加 Features/ 目录，重新组织功能文档 |
 | v1.2.0 | 2025-11-19 | 文档归类优化，将根目录文档移动到对应子目录，新增 Export/ 和 Tags/ 子目录 |
+| v1.2.1 | 2025-11-20 | 首选项面板菜单重命名（"外观" → "预览模式"，"编辑器" → "编辑模式"） |
+| v1.2.2 | 2025-11-20 | 编辑器输入干扰问题修复（isEditorUpdating 标志时序优化） |
+| v1.2.3 | 2025-11-21 | 嵌套链接+图片解析问题修复（Ink 解析器 href 属性错误修复） |
 | v1.3.0 | 2025-11-19 | 更新 PRD 至 v1.1.1，创建系统架构设计 Spec 和 API 文档 |
 | v1.4.0 | 2025-11-19 | 新增 Design/ 目录，添加有序列表层级缩进功能设计文档 |
 | v1.5.0 | 2025-11-20 | 更新 Process/ 文档，添加首选项重构、字体字号对齐修复等文档 |
