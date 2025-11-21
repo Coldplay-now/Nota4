@@ -29,13 +29,7 @@ extension Bundle {
         subdirectory: String? = nil
     ) -> URL? {
         guard let resourcePath = Bundle.main.resourcePath else {
-            print("⚠️ [BUNDLE] Bundle.main.resourcePath is nil")
             return nil
-        }
-        
-        // 诊断：输出 resourcePath 用于调试
-        if subdirectory?.contains("Vendor") == true {
-            print("🔍 [BUNDLE] resourcePath: \(resourcePath)")
         }
         
         // 处理 subdirectory：如果包含 "Resources/"，需要去掉这个前缀
@@ -65,10 +59,6 @@ extension Bundle {
                     // 添加 Resources/Vendor/（因为 .copy("Resources") 导致双重路径）
                     let path = bundlePath.appendingPathComponent(originalSubdirectory)
                     paths.append(path)
-                    // 诊断：输出构建的路径
-                    if subdirectory?.contains("Vendor") == true {
-                        print("🔍 [BUNDLE] 路径1构建: \(path.path)")
-                    }
                 } else if bundlePath.path.contains(".bundle") {
                     // 如果已经在 bundle 内，检查是否在 Contents/Resources 下
                     if bundlePath.path.contains("/Contents/Resources") || bundlePath.path.hasSuffix("/Contents/Resources") {
@@ -127,8 +117,8 @@ extension Bundle {
             return paths
         }()
         
-        // 尝试每个路径
-        for (index, basePath) in searchPaths.enumerated() {
+            // 尝试每个路径
+        for basePath in searchPaths {
             var path = basePath
             if let ext = ext {
                 path = path.appendingPathComponent("\(name).\(ext)")
@@ -136,15 +126,7 @@ extension Bundle {
                 path = path.appendingPathComponent(name)
             }
             
-            // 诊断：输出尝试的完整路径
-            if subdirectory?.contains("Vendor") == true {
-                print("🔍 [BUNDLE] 路径\(index + 1)尝试: \(path.path) - \(FileManager.default.fileExists(atPath: path.path) ? "✅ 存在" : "❌ 不存在")")
-            }
-            
             if FileManager.default.fileExists(atPath: path.path) {
-                if subdirectory?.contains("Vendor") == true {
-                    print("✅ [BUNDLE] 找到资源文件: \(path.path)")
-                }
                 return path
             }
         }
