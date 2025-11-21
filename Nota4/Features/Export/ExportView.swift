@@ -158,15 +158,15 @@ struct ExportView: View {
                                         )
                                         
                                         Picker("页面大小", selection: Binding(
-                                            get: { store.pdfOptions.paperSize },
+                                            get: { store.pdfOptions.paperSizeEnum },
                                             set: { newValue in
                                                 var options = store.pdfOptions
-                                                options.paperSize = newValue
+                                                options.setPaperSize(newValue)
                                                 store.send(.updatePDFOptions(options))
                                             }
                                         )) {
-                                            Text("A4").tag(PDFExportOptions.a4Size)
-                                            Text("Letter").tag(PDFExportOptions.letterSize)
+                                            Text("A4").tag(PaperSize.a4)
+                                            Text("Letter").tag(PaperSize.letter)
                                         }
                                         .pickerStyle(.menu)
                                         

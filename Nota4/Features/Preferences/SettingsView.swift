@@ -430,7 +430,7 @@ private struct ConfigManagementView: View {
                 
                 Task {
                     do {
-                        try PreferencesStorage.shared.importFromFile(at: url)
+                        try await PreferencesStorage.shared.importFromFile(at: url)
                         let newPrefs = await PreferencesStorage.shared.load()
                         
                         await MainActor.run {

@@ -108,7 +108,8 @@ extension EditorPreferences {
         fonts.append(contentsOf: commonSystemFonts)
         
         // 获取系统所有字体
-        if let fontFamilies = NSFontManager.shared.availableFontFamilies as? [String] {
+        let fontFamilies = NSFontManager.shared.availableFontFamilies
+        if !fontFamilies.isEmpty {
             let allFonts = fontFamilies.sorted()
             
             // 过滤掉等宽字体和已添加的字体
@@ -143,7 +144,8 @@ extension EditorPreferences {
         fonts.append(contentsOf: monospacedFonts)
         
         // 获取系统所有字体
-        if let fontFamilies = NSFontManager.shared.availableFontFamilies as? [String] {
+        let fontFamilies = NSFontManager.shared.availableFontFamilies
+        if !fontFamilies.isEmpty {
             let allFonts = fontFamilies.sorted()
             
             // 过滤出等宽字体

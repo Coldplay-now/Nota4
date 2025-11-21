@@ -9,8 +9,7 @@ struct MarkdownPreview: View {
     @Bindable var store: StoreOf<EditorFeature>
     
     var body: some View {
-        WithPerceptionTracking {
-            ZStack {
+        ZStack {
                 if store.preview.isRendering {
                     VStack {
                         ProgressView()
@@ -33,8 +32,7 @@ struct MarkdownPreview: View {
                     )
                 } else {
                     WebViewWrapper(
-                        html: store.preview.renderedHTML,
-                        baseURL: store.noteDirectory
+                        html: store.preview.renderedHTML
                     )
                 }
             }
@@ -46,7 +44,6 @@ struct MarkdownPreview: View {
                     store.send(.preview(.themeChanged(theme.id)))
                 }
             }
-        }
     }
 }
 

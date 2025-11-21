@@ -22,8 +22,7 @@ struct NoteListView: View {
     }
     
     var body: some View {
-        WithPerceptionTracking {
-            VStack(spacing: 0) {
+        VStack(spacing: 0) {
                 // 工具栏
                 NoteListToolbar(store: store)
                 
@@ -37,7 +36,7 @@ struct NoteListView: View {
                 // 笔记列表
                 List(selection: $selectedNotes) {
                     ForEach(store.filteredNotes, id: \.noteId) { note in
-                        noteRow(note: note, store: store, isSelected: selectedNotes.contains(note.noteId))
+                        noteRow(note: note, store: store, selectedNotes: selectedNotes, isSelected: selectedNotes.contains(note.noteId))
                             .id(note.noteId)
                             .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
                             // 使用系统颜色覆盖系统默认的选中背景，根据主题自动调整
@@ -123,11 +122,10 @@ struct NoteListView: View {
             } message: {
                 Text(permanentDeleteMessage)
             }
-        }
     }
     
     @ViewBuilder
-    private func noteRow(note: Note, store: StoreOf<NoteListFeature>, isSelected: Bool) -> some View {
+    private func noteRow(note: Note, store: StoreOf<NoteListFeature>, selectedNotes: Set<String>, isSelected: Bool) -> some View {
         let isTrash: Bool = {
             if case .category(let category) = store.filter {
                 return category == .trash

@@ -13,8 +13,7 @@ struct SearchPanel: View {
     @State private var isReplaceAllButtonHovered = false
     
     var body: some View {
-        WithPerceptionTracking {
-            HStack(alignment: .center, spacing: 8) {
+        HStack(alignment: .center, spacing: 8) {
                 // 搜索框
                 HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")
@@ -178,7 +177,6 @@ struct SearchPanel: View {
                 // 面板显示时自动聚焦搜索框
                 isSearchFieldFocused = true
             }
-        }
     }
 }
 

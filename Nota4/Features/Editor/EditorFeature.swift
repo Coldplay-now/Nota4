@@ -443,7 +443,7 @@ struct EditorFeature {
                     }
                 }
                 
-            case .noteLoaded(.failure(let error)):
+            case .noteLoaded(.failure(_)):
                 return .none
                 
             case .viewModeChanged(let mode):
@@ -519,7 +519,7 @@ struct EditorFeature {
                 
                 return .none
                 
-            case .saveFailed(let error):
+            case .saveFailed(_):
                 state.isSaving = false
                 return .none
                 
@@ -796,7 +796,7 @@ struct EditorFeature {
                     await send(.unusedImagesCleaned(0))
                 }
                 
-            case .unusedImagesCleaned(let count):
+            case .unusedImagesCleaned(_):
                 return .none
                 
             case .cancelDeleteNote:
@@ -832,18 +832,18 @@ struct EditorFeature {
                 state.lastSavedTitle = note.title
                 return .none
                 
-            case .noteCreated(.failure(let error)):
+            case .noteCreated(.failure(_)):
                 return .none
                 
             case .applyPreferences(let prefs):
                 state.editorStyle = EditorStyle(from: prefs)
                 // 更新预览渲染选项，应用所有布局设置
-                state.preview.renderOptions.horizontalPadding = prefs.horizontalPadding
-                state.preview.renderOptions.verticalPadding = prefs.verticalPadding
-                state.preview.renderOptions.alignment = prefs.alignment == .center ? "center" : "left"
-                state.preview.renderOptions.maxWidth = prefs.maxWidth
-                state.preview.renderOptions.lineSpacing = prefs.lineSpacing
-                state.preview.renderOptions.paragraphSpacing = prefs.paragraphSpacing
+                state.preview.renderOptions.horizontalPadding = prefs.previewLayout.horizontalPadding
+                state.preview.renderOptions.verticalPadding = prefs.previewLayout.verticalPadding
+                state.preview.renderOptions.alignment = prefs.previewLayout.alignment == .center ? "center" : "left"
+                state.preview.renderOptions.maxWidth = prefs.previewLayout.maxWidth
+                state.preview.renderOptions.lineSpacing = prefs.previewLayout.lineSpacing
+                state.preview.renderOptions.paragraphSpacing = prefs.previewLayout.paragraphSpacing
                 // 如果当前在预览模式，重新渲染以应用新设置
                 if state.viewMode != .editOnly {
                     return .send(.preview(.render))
@@ -1083,7 +1083,7 @@ struct EditorFeature {
                 state.selectionRange = result.newSelection
                 return .send(.manualSave)
                 
-            case .insertFootnote(let footnoteNumber):
+            case .insertFootnote(_):
                 guard state.note != nil else { return .none }
                 let result = MarkdownFormatter.insertFootnote(
                     text: state.content,
@@ -1166,7 +1166,7 @@ struct EditorFeature {
                     await send(.imageInsertFailed(error))
                 }
                 
-            case .imageInserted(let imageId, let relativePath):
+            case .imageInserted(_, let relativePath):
                 state.isInsertingImage = false
                 guard state.note != nil else { return .none }
                 let result = MarkdownFormatter.insertImage(
@@ -1275,7 +1275,7 @@ struct EditorFeature {
                 }
                 return .none
             
-            case .preview(.contentChanged(let content)):
+            case .preview(.contentChanged(_)):
                 // 防抖 300ms 后再渲染
                 return .send(.preview(.renderDebounced))
                     .debounce(id: CancelID.previewRender, for: .milliseconds(300), scheduler: mainQueue)
@@ -1314,11 +1314,12 @@ struct EditorFeature {
                 // noteDirectory 已就绪或不可用，执行渲染
                 var options = state.preview.renderOptions
                 options.noteDirectory = state.noteDirectory
+                let renderOptions = options
                 
                 return .run { send in
                     let html = try await markdownRenderer.renderToHTML(
                         markdown: content,
-                        options: options
+                        options: renderOptions
                     )
                     await send(.preview(.renderCompleted(.success(html))))
                 } catch: { error, send in
@@ -1476,7 +1477,6 @@ struct EditorFeature {
                     // 如果有匹配项但未选中，选中第一个
                     state.search.currentMatchIndex = 0
                 }
-                let currentIndex = state.search.currentMatchIndex
                 // 状态更新会自动触发 MarkdownTextEditor 的 updateNSView
                 // 通过 searchMatches 和 currentSearchIndex 参数传递
                 return .none
@@ -1571,7 +1571,7 @@ struct EditorFeature {
                     await send(.clearSearchHighlights)
                 }
                 
-            case .search(.selectMatch(let index)):
+            case .search(.selectMatch(_)):
                 // 内部使用，由高亮逻辑处理
                 return .none
             
@@ -1807,9 +1807,7 @@ struct EditorFeature {
             contentText = contentText.lowercased()
         }
         
-        var matches: [NSRange] = []
         let nsContent = content as NSString
-        let nsContentLower = contentText as NSString
         
         // 使用正则表达式匹配单词边界
         let pattern = "\\b\(NSRegularExpression.escapedPattern(for: searchText))\\b"

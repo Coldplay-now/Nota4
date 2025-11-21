@@ -27,7 +27,7 @@ actor ThemeManager {
             if let themesDir = themesDirectory {
                 let exists = FileManager.default.fileExists(atPath: themesDir.path)
                 if exists {
-                    let files = (try? FileManager.default.contentsOfDirectory(atPath: themesDir.path)) ?? []
+                    _ = (try? FileManager.default.contentsOfDirectory(atPath: themesDir.path)) ?? []
                 }
             }
         } else {

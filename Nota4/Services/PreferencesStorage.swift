@@ -72,7 +72,7 @@ actor PreferencesStorage {
     }
     
     /// 从文件导入配置
-    func importFromFile(at url: URL) throws {
+    func importFromFile(at url: URL) async throws {
         let data = try Data(contentsOf: url)
         try importFromJSON(data)
     }

@@ -16,8 +16,7 @@ struct ViewModeControl: View {
     }
     
     var body: some View {
-        WithPerceptionTracking {
-            Button {
+        Button {
                 // 如果正在渲染，不处理点击（防止重复点击）
                 guard !store.preview.isRendering else { return }
                 
@@ -47,7 +46,6 @@ struct ViewModeControl: View {
                 isHovered = hovering
             }
             .animation(.easeInOut(duration: 0.15), value: isHovered)
-        }
     }
 }
 

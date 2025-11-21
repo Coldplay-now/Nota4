@@ -10,9 +10,8 @@ struct AppearanceSettingsPanel: View {
     @Bindable var store: StoreOf<SettingsFeature>
     
     var body: some View {
-        WithPerceptionTracking {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
                     // 标题
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
@@ -74,7 +73,6 @@ struct AppearanceSettingsPanel: View {
                     
                     Spacer(minLength: 24)
                 }
-            }
             .background(Color(nsColor: .controlBackgroundColor))
             .onAppear {
                 store.send(.theme(.onAppear))
@@ -371,70 +369,93 @@ private struct ThemeSelectionView: View {
 private struct CodeHighlightSettingsView: View {
     @Bindable var store: StoreOf<SettingsFeature>
     
+    private var codeHighlightModeBinding: Binding<EditorPreferences.CodeHighlightMode> {
+        Binding(
+            get: { store.editorPreferences.codeHighlightMode },
+            set: { newValue in
+                store.send(.codeHighlightModeChanged(newValue))
+            }
+        )
+    }
+    
+    private var currentTheme: ThemeConfig? {
+        store.theme.currentTheme
+    }
+    
+    private var codeHighlightThemeName: String {
+        currentTheme?.codeHighlightTheme.displayName ?? "未知"
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // 设置模式选择
-            Picker("代码高亮模式", selection: Binding(
-                get: { store.editorPreferences.codeHighlightMode },
-                set: { store.send(.codeHighlightModeChanged($0)) }
-            )) {
+            Picker("代码高亮模式", selection: codeHighlightModeBinding) {
                 Text("跟随主题").tag(EditorPreferences.CodeHighlightMode.followTheme)
                 Text("自定义").tag(EditorPreferences.CodeHighlightMode.custom)
             }
             .pickerStyle(.segmented)
             .frame(width: 300)
             
-            // 如果选择"跟随主题"，显示当前主题的代码高亮主题
-            if store.editorPreferences.codeHighlightMode == .followTheme {
-                HStack {
-                    Text("当前主题代码高亮：")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    Text(store.theme.currentTheme?.codeHighlightTheme.displayName ?? "未知")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+            // 详细设置视图
+            detailSettingsView
+        }
+    }
+    
+    @ViewBuilder
+    private var detailSettingsView: some View {
+        if store.editorPreferences.codeHighlightMode == .followTheme {
+            HStack {
+                Text("当前主题代码高亮：")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                Text(codeHighlightThemeName)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+            }
+            .padding(.top, 4)
+        } else {
+            customThemeSelector
+        }
+    }
+    
+    private var customThemeSelector: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("选择代码高亮主题")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            
+            LazyVGrid(columns: [
+                GridItem(.flexible(minimum: 80), spacing: 8),
+                GridItem(.flexible(minimum: 80), spacing: 8),
+                GridItem(.flexible(minimum: 80), spacing: 8)
+            ], spacing: 8) {
+                ForEach(CodeTheme.allCases, id: \.self) { theme in
+                    themeButton(for: theme)
                 }
-                .padding(.top, 4)
-            } else {
-                // 如果选择"自定义"，显示代码高亮主题选择器
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("选择代码高亮主题")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    
-                    LazyVGrid(columns: [
-                        GridItem(.flexible(minimum: 80), spacing: 8),
-                        GridItem(.flexible(minimum: 80), spacing: 8),
-                        GridItem(.flexible(minimum: 80), spacing: 8)
-                    ], spacing: 8) {
-                        ForEach(CodeTheme.allCases, id: \.self) { theme in
-                            Button {
-                                store.send(.codeHighlightThemeChanged(theme))
-                            } label: {
-                                Text(theme.displayName)
-                                    .font(.caption)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .frame(maxWidth: .infinity)
-                                    .background(
-                                        store.editorPreferences.codeHighlightTheme == theme
-                                            ? Color.accentColor
-                                            : Color.secondary.opacity(0.1)
-                                    )
-                                    .foregroundColor(
-                                        store.editorPreferences.codeHighlightTheme == theme
-                                            ? .white
-                                            : .primary
-                                    )
-                                    .cornerRadius(6)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-                .padding(.top, 8)
             }
         }
+        .padding(.top, 8)
+    }
+    
+    private func themeButton(for theme: CodeTheme) -> some View {
+        let isSelected = store.editorPreferences.codeHighlightTheme == theme
+        return Button {
+            store.send(.codeHighlightThemeChanged(theme))
+        } label: {
+            Text(theme.displayName)
+                .font(.caption)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .frame(maxWidth: .infinity)
+                .background(
+                    isSelected ? Color.accentColor : Color.secondary.opacity(0.1)
+                )
+                .foregroundColor(
+                    isSelected ? .white : .primary
+                )
+                .cornerRadius(6)
+        }
+        .buttonStyle(.plain)
     }
 }
 

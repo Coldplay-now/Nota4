@@ -10,8 +10,7 @@ struct StatusBarView: View {
     let store: StoreOf<AppFeature>
     
     var body: some View {
-        WithPerceptionTracking {
-            HStack(spacing: 12) {
+        HStack(spacing: 12) {
                 // 左侧：全局统计
                 HStack(spacing: 4) {
                     Image(systemName: "folder")
@@ -72,20 +71,15 @@ struct StatusBarView: View {
                 .buttonStyle(.plain)
                 .help("切换布局模式（⌘⌥1/2/3）")
                 
-                // 对齐方式指示器和切换控制
-                Button {
-                    store.send(.alignmentToggled)
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: store.preferences.editorLayout.alignment == .center ? "text.aligncenter" : "text.alignleft")
-                            .font(.system(size: 10))
-                        Text(store.preferences.editorLayout.alignment.rawValue)
-                            .font(.system(size: 11))
-                    }
-                    .foregroundColor(.secondary)
+                // 对齐方式指示器（只显示，不切换）
+                HStack(spacing: 4) {
+                    Image(systemName: store.preferences.editorLayout.alignment == .center ? "text.aligncenter" : "text.alignleft")
+                        .font(.system(size: 10))
+                    Text(store.preferences.editorLayout.alignment.rawValue)
+                        .font(.system(size: 11))
                 }
-                .buttonStyle(.plain)
-                .help("切换对齐方式（点击切换）")
+                .foregroundColor(.secondary)
+                .help("当前对齐方式（在设置中修改）")
                 
                 Spacer()
                 
@@ -197,7 +191,6 @@ struct StatusBarView: View {
                     .foregroundColor(Color(nsColor: .separatorColor)),
                 alignment: .top
             )
-        }
     }
 }
 

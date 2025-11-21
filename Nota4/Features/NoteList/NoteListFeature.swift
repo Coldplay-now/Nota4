@@ -180,8 +180,9 @@ struct NoteListFeature {
                 
             case .loadNotes:
                 state.isLoading = true
-                return .run { [filter = state.filter] send in
-                    let notes = try await noteRepository.fetchNotes(filter: filter)
+                let currentFilter = state.filter
+                return .run { send in
+                    let notes = try await noteRepository.fetchNotes(filter: currentFilter)
                     await send(.notesLoaded(.success(notes)))
                 } catch: { error, send in
                     await send(.notesLoaded(.failure(error)))
@@ -214,7 +215,7 @@ struct NoteListFeature {
                 }
                 state.selectedNoteIds = state.selectedNoteIds.subtracting(ids)
                 
-                return .run { [filter = state.filter] send in
+                return .run { send in
                     // 先移动所有文件到回收站
                     var fileMoveErrors: [String: Error] = [:]
                     for id in ids {
@@ -238,7 +239,7 @@ struct NoteListFeature {
                 return .none
                 
             case .restoreNotes(let ids):
-                return .run { [filter = state.filter] send in
+                return .run { send in
                     // 先移动文件从回收站回到笔记目录
                     var fileMoveErrors: [String: Error] = [:]
                     for id in ids {
@@ -277,7 +278,7 @@ struct NoteListFeature {
                 state.selectedNoteIds = state.selectedNoteIds.subtracting(ids)
                 state.showPermanentDeleteConfirmation = false
                 state.pendingPermanentDeleteIds = []
-                return .run { [filter = state.filter] send in
+                return .run { send in
                     try await noteRepository.permanentlyDeleteNotes(ids)
                     // 永久删除文件
                     var fileDeleteErrors: [String: Error] = [:]
@@ -308,7 +309,7 @@ struct NoteListFeature {
                     state.selectedNoteId = nil
                 }
                 state.selectedNoteIds = state.selectedNoteIds.subtracting(ids)
-                return .run { [filter = state.filter] send in
+                return .run { send in
                     try await noteRepository.permanentlyDeleteNotes(ids)
                     // 永久删除文件
                     var fileDeleteErrors: [String: Error] = [:]
@@ -344,8 +345,9 @@ struct NoteListFeature {
                     state.notes[index] = updatedNote
                 }
                 
+                let noteToUpdate = updatedNote
                 return .run { send in
-                    try await noteRepository.updateNote(updatedNote)
+                    try await noteRepository.updateNote(noteToUpdate)
                 }
                 
             case .togglePin(let id):
@@ -362,8 +364,9 @@ struct NoteListFeature {
                     state.notes[index] = updatedNote
                 }
                 
+                let noteToUpdate = updatedNote
                 return .run { send in
-                    try await noteRepository.updateNote(updatedNote)
+                    try await noteRepository.updateNote(noteToUpdate)
                     await send(.loadNotes) // 重新排序
                 }
                 

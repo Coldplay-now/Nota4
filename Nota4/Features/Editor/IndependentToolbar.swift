@@ -10,8 +10,7 @@ struct IndependentToolbar: View {
     @State private var availableWidth: CGFloat = 0
     
     var body: some View {
-        WithPerceptionTracking {
-            HStack(spacing: 12) {
+        HStack(spacing: 12) {
                 // 预览模式下隐藏所有编辑按钮，只显示视图模式切换
                 if store.viewMode != .previewOnly {
                     // 搜索按钮
@@ -96,7 +95,6 @@ struct IndependentToolbar: View {
                         }
                 }
             )
-        }
     }
 }
 
@@ -108,8 +106,7 @@ struct MoreMenu: View {
     @State private var isHovered = false
     
     var body: some View {
-        WithPerceptionTracking {
-            Menu {
+        Menu {
                 if hiddenTools {
                     Section("列表") {
                         Button("无序列表", systemImage: "list.bullet") {
@@ -238,7 +235,6 @@ struct MoreMenu: View {
                 isHovered = hovering
             }
             .animation(.easeInOut(duration: 0.15), value: isHovered)
-        }
     }
 }
 

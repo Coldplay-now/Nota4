@@ -9,8 +9,7 @@ struct SidebarView: View {
     @State private var hoveredNoTags: Bool = false
     
     var body: some View {
-        WithPerceptionTracking {
-            VStack(spacing: 0) {
+        VStack(spacing: 0) {
                 // 分类部分：固定位置，不滚动
                 VStack(spacing: 0) {
                     // 分类标题
@@ -217,7 +216,6 @@ struct SidebarView: View {
                 store.send(.loadTags)
                 store.send(.loadCounts)
             }
-        }
     }
 }
 

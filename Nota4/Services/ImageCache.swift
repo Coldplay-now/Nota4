@@ -96,7 +96,9 @@ actor ImageCache {
         }
         
         var totalSize: Int64 = 0
-        for case let fileURL as URL in enumerator {
+        // 将 enumerator 转换为数组以避免 Swift 6 并发问题
+        let urls = enumerator.allObjects.compactMap { $0 as? URL }
+        for fileURL in urls {
             if let fileSize = try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize {
                 totalSize += Int64(fileSize)
             }

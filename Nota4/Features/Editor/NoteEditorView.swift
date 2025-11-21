@@ -24,7 +24,6 @@ struct NoteEditorView: View {
             onReturnKey: {
                 // 标题编辑时按回车，将焦点移到正文文首
                 isTitleFocused = false
-                store.send(.moveFocusToContentStart)
                 
                 // 通过 NotificationCenter 通知 MarkdownTextEditor 设置焦点
                 // 这样可以直接访问 textView，不需要递归查找
@@ -37,11 +36,10 @@ struct NoteEditorView: View {
     }
     
     var body: some View {
-        WithPerceptionTracking {
-            Group {
-                if let note = store.note {
-                    VStack(spacing: 0) {
-                        // 标题栏
+        Group {
+            if let note = store.note {
+                VStack(spacing: 0) {
+                    // 标题栏
                         HStack {
                             titleField
                             
@@ -124,19 +122,11 @@ struct NoteEditorView: View {
                                     paragraphSpacing: store.editorStyle.paragraphSpacing,
                                     horizontalPadding: store.editorStyle.horizontalPadding,
                                     verticalPadding: store.editorStyle.verticalPadding,
-                                    alignment: store.editorStyle.alignment,
                                     onSelectionChange: { range in
                                         store.send(.selectionChanged(range))
                                     },
                                     onFocusChange: { isFocused in
                                         store.send(.focusChanged(isFocused))
-                                    },
-                                    isEditorUpdating: store.isEditorUpdating,
-                                    onUpdateStarted: {
-                                        store.send(.editorUpdateStarted)
-                                    },
-                                    onUpdateCompleted: {
-                                        store.send(.editorUpdateCompleted)
                                     },
                                     searchMatches: store.search.matches,
                                     currentSearchIndex: store.search.currentMatchIndex
@@ -153,15 +143,15 @@ struct NoteEditorView: View {
                             }
                         }
                     }
-                } else {
-                    ContentUnavailableView(
-                        "选择一篇笔记开始编辑",
-                        systemImage: "arrow.left",
-                        description: Text("从左侧列表选择或创建新笔记")
-                    )
-                }
+            } else {
+                ContentUnavailableView(
+                    "选择一篇笔记开始编辑",
+                    systemImage: "arrow.left",
+                    description: Text("从左侧列表选择或创建新笔记")
+                )
             }
-            .confirmationDialog(
+        }
+        .confirmationDialog(
                 "确认删除",
                 isPresented: $store.showDeleteConfirmation,
                 titleVisibility: .visible
@@ -183,12 +173,12 @@ struct NoteEditorView: View {
             }
             .onChange(of: store.showImagePicker) { oldValue, newValue in
                 if newValue {
-                    showImagePicker()
+                    showImagePicker(store: store)
                 }
             }
             .onChange(of: store.showAttachmentPicker) { oldValue, newValue in
                 if newValue {
-                    showAttachmentPicker()
+                    showAttachmentPicker(store: store)
                 }
             }
         }
@@ -230,7 +220,7 @@ struct NoteEditorView: View {
     
     // MARK: - File Picker Helpers
     
-    private func showImagePicker() {
+    private func showImagePicker(store: StoreOf<EditorFeature>) {
         let panel = NSOpenPanel()
         panel.title = "选择图片"
         panel.message = "请选择要插入的图片文件"
@@ -248,7 +238,7 @@ struct NoteEditorView: View {
         }
     }
     
-    private func showAttachmentPicker() {
+    private func showAttachmentPicker(store: StoreOf<EditorFeature>) {
         let panel = NSOpenPanel()
         panel.title = "选择附件"
         panel.message = "请选择要插入的附件文件"
@@ -264,7 +254,6 @@ struct NoteEditorView: View {
             }
         }
     }
-}
 
 #Preview {
     NavigationStack {

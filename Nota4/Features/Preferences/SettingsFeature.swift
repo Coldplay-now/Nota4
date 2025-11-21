@@ -58,8 +58,32 @@ struct SettingsFeature {
         case cancel
         case dismiss
         
+        // MARK: - Editor Font Actions
+        case editorFontChanged(FontType, String)
+        case editorFontSizeChanged(FontType, CGFloat)
+        
+        // MARK: - Editor Layout Actions
+        case editorLayoutChanged(EditorPreferences.LayoutSettings)
+        
+        // MARK: - Preview Font Actions
+        case previewFontChanged(FontType, String)
+        case previewFontSizeChanged(FontType, CGFloat)
+        
+        // MARK: - Preview Layout Actions
+        case previewLayoutChanged(EditorPreferences.LayoutSettings)
+        
+        // MARK: - Code Highlight Actions
+        case codeHighlightModeChanged(EditorPreferences.CodeHighlightMode)
+        case codeHighlightThemeChanged(CodeTheme)
+        
         // Theme actions
         case theme(ThemeAction)
+    }
+    
+    enum FontType {
+        case body
+        case title
+        case code
     }
     
     enum ThemeAction {
@@ -133,6 +157,76 @@ struct SettingsFeature {
                 return .send(.dismiss)
                 
             case .dismiss:
+                return .none
+            
+            // MARK: - Editor Font Actions
+            
+            case .editorFontChanged(let type, let fontName):
+                switch type {
+                case .body:
+                    state.editorPreferences.editorFonts.bodyFontName = fontName
+                case .title:
+                    state.editorPreferences.editorFonts.titleFontName = fontName
+                case .code:
+                    state.editorPreferences.editorFonts.codeFontName = fontName
+                }
+                return .none
+                
+            case .editorFontSizeChanged(let type, let size):
+                switch type {
+                case .body:
+                    state.editorPreferences.editorFonts.bodyFontSize = size
+                case .title:
+                    state.editorPreferences.editorFonts.titleFontSize = size
+                case .code:
+                    state.editorPreferences.editorFonts.codeFontSize = size
+                }
+                return .none
+            
+            // MARK: - Editor Layout Actions
+            
+            case .editorLayoutChanged(let layout):
+                state.editorPreferences.editorLayout = layout
+                return .none
+            
+            // MARK: - Preview Font Actions
+            
+            case .previewFontChanged(let type, let fontName):
+                switch type {
+                case .body:
+                    state.editorPreferences.previewFonts.bodyFontName = fontName
+                case .title:
+                    state.editorPreferences.previewFonts.titleFontName = fontName
+                case .code:
+                    state.editorPreferences.previewFonts.codeFontName = fontName
+                }
+                return .none
+                
+            case .previewFontSizeChanged(let type, let size):
+                switch type {
+                case .body:
+                    state.editorPreferences.previewFonts.bodyFontSize = size
+                case .title:
+                    state.editorPreferences.previewFonts.titleFontSize = size
+                case .code:
+                    state.editorPreferences.previewFonts.codeFontSize = size
+                }
+                return .none
+            
+            // MARK: - Preview Layout Actions
+            
+            case .previewLayoutChanged(let layout):
+                state.editorPreferences.previewLayout = layout
+                return .none
+            
+            // MARK: - Code Highlight Actions
+            
+            case .codeHighlightModeChanged(let mode):
+                state.editorPreferences.codeHighlightMode = mode
+                return .none
+                
+            case .codeHighlightThemeChanged(let theme):
+                state.editorPreferences.codeHighlightTheme = theme
                 return .none
             
             // MARK: - Theme Actions

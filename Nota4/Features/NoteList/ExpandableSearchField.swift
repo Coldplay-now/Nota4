@@ -9,8 +9,7 @@ struct ExpandableSearchField: View {
     @State private var isClearButtonHovered = false
     
     var body: some View {
-        WithPerceptionTracking {
-            HStack(spacing: 8) {
+        HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.secondary)
                     .font(.system(size: 14))
@@ -59,7 +58,6 @@ struct ExpandableSearchField: View {
                     isFocused = true
                 }
             }
-        }
     }
 }
 

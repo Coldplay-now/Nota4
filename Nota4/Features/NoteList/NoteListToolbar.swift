@@ -10,8 +10,7 @@ struct NoteListToolbar: View {
     @State private var availableWidth: CGFloat = 0
     
     var body: some View {
-        WithPerceptionTracking {
-            HStack(spacing: 8) {
+        HStack(spacing: 8) {
                 // 搜索按钮
                 NoteListToolbarButton(
                     title: store.isSearchPanelVisible ? "关闭搜索" : "搜索",
@@ -99,7 +98,6 @@ struct NoteListToolbar: View {
                         }
                 }
             )
-        }
     }
 }
 

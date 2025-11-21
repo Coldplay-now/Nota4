@@ -6,8 +6,7 @@ struct ImportView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        WithPerceptionTracking {
-            VStack(spacing: 20) {
+        VStack(spacing: 20) {
                 if store.isImporting {
                     VStack(spacing: 12) {
                         ProgressView(value: store.importProgress) {
@@ -97,7 +96,6 @@ struct ImportView: View {
                 }
             }
             .frame(width: 400, height: 300)
-        }
     }
     
     private func selectFilesToImport() {

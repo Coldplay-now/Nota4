@@ -29,6 +29,25 @@ struct HTMLExportOptions: Equatable, Codable {
     static let `default` = HTMLExportOptions()
 }
 
+/// 纸张大小枚举（用于 Picker，避免 CGSize Hashable 问题）
+enum PaperSize: String, CaseIterable, Hashable {
+    case a4 = "A4"
+    case letter = "Letter"
+    
+    var cgSize: CGSize {
+        switch self {
+        case .a4:
+            return CGSize(width: 595, height: 842)
+        case .letter:
+            return CGSize(width: 612, height: 792)
+        }
+    }
+    
+    var displayName: String {
+        rawValue
+    }
+}
+
 /// PDF 导出选项
 struct PDFExportOptions: Equatable, Codable {
     /// 主题 ID（nil 表示使用当前预览主题）
@@ -38,7 +57,7 @@ struct PDFExportOptions: Equatable, Codable {
     var includeTOC: Bool = false
     
     /// 页面大小
-    var paperSize: NSSize
+    var paperSize: CGSize
     
     /// 页边距（点）
     var margin: CGFloat = 72.0 // 默认 1 英寸
@@ -46,7 +65,7 @@ struct PDFExportOptions: Equatable, Codable {
     init(
         themeId: String? = nil,
         includeTOC: Bool = false,
-        paperSize: NSSize = NSSize(width: 595, height: 842), // A4 尺寸（点）
+        paperSize: CGSize = CGSize(width: 595, height: 842), // A4 尺寸（点）
         margin: CGFloat = 72.0
     ) {
         self.themeId = themeId
@@ -58,10 +77,26 @@ struct PDFExportOptions: Equatable, Codable {
     static let `default` = PDFExportOptions()
     
     /// A4 页面大小（点）
-    static let a4Size = NSSize(width: 595, height: 842)
+    static let a4Size = CGSize(width: 595, height: 842)
     
     /// Letter 页面大小（点）
-    static let letterSize = NSSize(width: 612, height: 792)
+    static let letterSize = CGSize(width: 612, height: 792)
+    
+    /// 从 PaperSize 枚举获取 CGSize
+    var paperSizeEnum: PaperSize {
+        if paperSize == PDFExportOptions.a4Size {
+            return .a4
+        } else if paperSize == PDFExportOptions.letterSize {
+            return .letter
+        } else {
+            return .a4 // 默认
+        }
+    }
+    
+    /// 设置纸张大小（从枚举）
+    mutating func setPaperSize(_ size: PaperSize) {
+        paperSize = size.cgSize
+    }
 }
 
 /// PNG 导出选项
@@ -93,25 +128,6 @@ struct PNGExportOptions: Equatable, Codable {
     static let `default` = PNGExportOptions()
 }
 
-// MARK: - NSSize Codable Extension
-
-extension NSSize: Codable {
-    enum CodingKeys: String, CodingKey {
-        case width
-        case height
-    }
-    
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let width = try container.decode(CGFloat.self, forKey: .width)
-        let height = try container.decode(CGFloat.self, forKey: .height)
-        self.init(width: width, height: height)
-    }
-    
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(width, forKey: .width)
-        try container.encode(height, forKey: .height)
-    }
-}
+// MARK: - Note
+// CGSize already conforms to Codable in CoreGraphics, so no extension needed
 

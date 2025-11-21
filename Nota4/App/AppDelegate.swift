@@ -24,11 +24,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         // 等待保存完成（最多 1 秒）
         let deadline = Date().addingTimeInterval(1.0)
-        let startTime = Date()
         while !task.isCancelled && Date() < deadline {
             RunLoop.current.run(until: Date().addingTimeInterval(0.01))
         }
-        let elapsed = Date().timeIntervalSince(startTime)
         
         // Debug: App terminating
         // Debug: App terminating

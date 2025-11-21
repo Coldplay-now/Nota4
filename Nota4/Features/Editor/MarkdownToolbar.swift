@@ -124,8 +124,7 @@ struct FormatButtonGroup: View {
     let store: StoreOf<EditorFeature>
     
     var body: some View {
-        WithPerceptionTracking {
-            HStack(spacing: 4) {
+        HStack(spacing: 4) {
                 // 第一组：文本格式
                 ControlGroup {
                     ToolbarButton(
@@ -192,7 +191,6 @@ struct FormatButtonGroup: View {
                     }
                 }
             }
-        }
     }
 }
 
@@ -202,10 +200,9 @@ struct BlockButtonGroup: View {
     let store: StoreOf<EditorFeature>
     
     var body: some View {
-        WithPerceptionTracking {
-            ControlGroup {
-                ToolbarButton(
-                    title: "区块引用",
+        ControlGroup {
+            ToolbarButton(
+                title: "区块引用",
                     icon: "quote.opening",
                     shortcut: "⌘⇧Q",
                     isActive: false,
@@ -224,7 +221,6 @@ struct BlockButtonGroup: View {
                     store.send(.insertHorizontalRule)
                 }
             }
-        }
     }
 }
 
@@ -235,7 +231,6 @@ struct HeadingMenu: View {
     @State private var isHovered = false
     
     var body: some View {
-        WithPerceptionTracking {
         Menu {
             Button("标题 1", systemImage: "h1.square") {
                 store.send(.insertHeading1)
@@ -282,7 +277,6 @@ struct HeadingMenu: View {
                 isHovered = hovering
             }
             .animation(.easeInOut(duration: 0.15), value: isHovered)
-        }
     }
 }
 
@@ -292,7 +286,6 @@ struct ListButtonGroup: View {
     let store: StoreOf<EditorFeature>
     
     var body: some View {
-        WithPerceptionTracking {
         ControlGroup {
             ToolbarButton(
                 title: "无序列表",
@@ -324,7 +317,6 @@ struct ListButtonGroup: View {
                 store.send(.insertTaskList)
                 }
             }
-        }
     }
 }
 
@@ -334,11 +326,9 @@ struct InsertButtonGroup: View {
     let store: StoreOf<EditorFeature>
     
     var body: some View {
-        WithPerceptionTracking {
-            ControlGroup {
-                linkButton
-                imageButton
-            }
+        ControlGroup {
+            linkButton
+            imageButton
         }
     }
     
@@ -374,8 +364,7 @@ struct TableMenu: View {
     @State private var isHovered = false
     
     var body: some View {
-        WithPerceptionTracking {
-            Menu {
+        Menu {
                 Section("常用尺寸") {
                     Button("2x3 表格", systemImage: "tablecells") {
                         store.send(.insertTable(columns: 2, rows: 3))
@@ -405,7 +394,6 @@ struct TableMenu: View {
                 isHovered = hovering
             }
             .animation(.easeInOut(duration: 0.15), value: isHovered)
-        }
     }
 }
 
@@ -415,7 +403,6 @@ struct StarButton: View {
     let store: StoreOf<EditorFeature>
     
     var body: some View {
-        WithPerceptionTracking {
         ToolbarButton(
             title: "切换星标",
             icon: store.note?.isStarred ?? false ? "star.fill" : "star",
@@ -424,7 +411,6 @@ struct StarButton: View {
                 isEnabled: store.isToolbarEnabled
         ) {
             store.send(.toggleStar)
-            }
         }
     }
 }

@@ -408,8 +408,22 @@ struct Nota4App: App {
             
             CommandGroup(replacing: .help) {
                 Button("Nota4 帮助") {
-                    if let url = URL(string: "https://github.com/Coldplay-now/Nota4") {
-                        NSWorkspace.shared.open(url)
+                    Task {
+                        print("🔄 [HELP] 用户点击帮助菜单")
+                        // 获取帮助文档 HTML URL
+                        let helpURL = await HelpDocumentService.shared.getHelpHTMLURL()
+                        
+                        if let url = helpURL {
+                            print("✅ [HELP] 打开帮助文档: \(url.path)")
+                            // 打开 HTML 文件
+                            NSWorkspace.shared.open(url)
+                        } else {
+                            print("⚠️ [HELP] 无法获取帮助文档 URL，回退到 GitHub")
+                            // 回退：打开 GitHub 仓库
+                            if let githubURL = URL(string: "https://github.com/Coldplay-now/Nota4") {
+                                NSWorkspace.shared.open(githubURL)
+                            }
+                        }
                     }
                 }
                 .keyboardShortcut("?", modifiers: .command)
@@ -423,8 +437,7 @@ struct AppView: View {
     let appDelegate: AppDelegate
     
     var body: some View {
-        WithPerceptionTracking {
-            VStack(spacing: 0) {
+        VStack(spacing: 0) {
                 // 根据布局模式选择不同的布局结构
                 Group {
                     if store.layoutMode == .oneColumn {
@@ -480,7 +493,6 @@ struct AppView: View {
                     SettingsView(store: settingsStore)
                 }
             }
-        }
     }
     
     // MARK: - Layout Views
