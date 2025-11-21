@@ -94,6 +94,12 @@ actor InitialDocumentsService {
                 // 保存到文件系统
                 try await notaFileManager.createNoteFile(note)
                 
+                // 复制文档中引用的图片文件到笔记目录
+                try await copyReferencedImages(
+                    from: body,
+                    to: noteId,
+                    notaFileManager: notaFileManager
+                )
                 
             } catch {
                 print("❌ [INITIAL] 导入 \(documentName) 失败: \(error)")
@@ -128,6 +134,107 @@ actor InitialDocumentsService {
         let metadata = (try? Yams.load(yaml: yamlString) as? [String: Any]) ?? [:]
         
         return (metadata: metadata, body: body)
+    }
+    
+    /// 从文档内容中提取图片引用
+    /// - Parameter content: Markdown 文档内容
+    /// - Returns: 图片文件名数组（去重）
+    private func extractImageReferences(from content: String) -> [String] {
+        var imageFiles: Set<String> = []
+        
+        // 匹配图片语法：![alt](path) 或 [![alt](image)](link)
+        // 匹配模式：![...](图片路径) 或 [![...](图片路径)](链接)
+        let patterns = [
+            #"!\[[^\]]*\]\(([^)]+)\)"#,  // ![alt](path)
+            #"\[!\[[^\]]*\]\(([^)]+)\)\]"#  // [![alt](image)](link) - 只提取内层图片路径
+        ]
+        
+        for pattern in patterns {
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+                continue
+            }
+            
+            let matches = regex.matches(
+                in: content,
+                range: NSRange(content.startIndex..., in: content)
+            )
+            
+            for match in matches {
+                guard match.numberOfRanges >= 2,
+                      let pathRange = Range(match.range(at: 1), in: content) else {
+                    continue
+                }
+                
+                let imagePath = String(content[pathRange])
+                
+                // 只处理相对路径（不是 http/https/data URL）
+                if !imagePath.hasPrefix("http://") &&
+                   !imagePath.hasPrefix("https://") &&
+                   !imagePath.hasPrefix("data:") &&
+                   !imagePath.hasPrefix("/") &&
+                   !imagePath.hasPrefix("file://") {
+                    // 提取文件名（处理可能的路径）
+                    let fileName = (imagePath as NSString).lastPathComponent
+                    if !fileName.isEmpty {
+                        imageFiles.insert(fileName)
+                    }
+                }
+            }
+        }
+        
+        return Array(imageFiles)
+    }
+    
+    /// 复制文档中引用的图片文件到笔记目录
+    /// - Parameters:
+    ///   - content: Markdown 文档内容
+    ///   - noteId: 笔记 ID
+    ///   - notaFileManager: 文件管理器
+    private func copyReferencedImages(
+        from content: String,
+        to noteId: String,
+        notaFileManager: NotaFileManagerProtocol
+    ) async throws {
+        // 提取图片引用
+        let imageFiles = extractImageReferences(from: content)
+        
+        guard !imageFiles.isEmpty else {
+            return
+        }
+        
+        // 获取笔记目录
+        let noteDirectory = try await notaFileManager.getNoteDirectory(for: noteId)
+        
+        // 从 bundle 复制每个图片文件
+        for imageFile in imageFiles {
+            do {
+                // 从 bundle 读取图片文件
+                guard let sourceURL = Bundle.safeResourceURL(
+                    name: imageFile,
+                    withExtension: nil,
+                    subdirectory: "Resources/InitialDocuments"
+                ) else {
+                    print("⚠️ [INITIAL] 找不到图片资源: \(imageFile)")
+                    continue
+                }
+                
+                // 目标路径：笔记目录/图片文件名
+                let destinationURL = noteDirectory.appendingPathComponent(imageFile)
+                
+                // 如果目标文件已存在，跳过（避免覆盖用户可能修改的图片）
+                if FileManager.default.fileExists(atPath: destinationURL.path) {
+                    continue
+                }
+                
+                // 复制文件
+                try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
+                print("✅ [INITIAL] 已复制图片: \(imageFile) → \(destinationURL.path)")
+                
+            } catch {
+                // 图片复制失败不影响文档导入，只记录警告
+                print("⚠️ [INITIAL] 复制图片失败 \(imageFile): \(error.localizedDescription)")
+            }
+        }
     }
 }
 

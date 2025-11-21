@@ -252,9 +252,10 @@ struct AppFeature {
                                     notaFileManager: notaFileManager
                                 )
                                 
-                                // 导入完成后刷新笔记列表和侧边栏计数
+                                // 导入完成后刷新笔记列表、侧边栏计数和标签列表
                                 await send(.noteList(.loadNotes))
                                 await send(.sidebar(.loadCounts))
+                                await send(.sidebar(.loadTags))
                                 
                                 if !missingResources.isEmpty {
                                     print("✅ [APP] 初始文档导入完成（部分资源缺失，已跳过）")
