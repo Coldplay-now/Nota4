@@ -176,6 +176,9 @@ struct EditorFeature {
             case themeChanged(String)
             case renderOptionsChanged(RenderOptions)
             
+            // 滚动控制
+            case scrollToTop
+            
             // 错误处理
             case dismissError
         }
@@ -1377,6 +1380,11 @@ struct EditorFeature {
             
             case .preview(.cancelRender):
                 return .cancel(id: CancelID.previewRender)
+            
+            case .preview(.scrollToTop):
+                // 发送通知，触发 WebView 滚动到顶部
+                NotificationCenter.default.post(name: .scrollPreviewToTop, object: nil)
+                return .none
             
             case .preview(.dismissError):
                 state.preview.renderError = nil

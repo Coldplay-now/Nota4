@@ -1,6 +1,13 @@
 import SwiftUI
 import WebKit
 
+// MARK: - Notification Names
+
+extension Notification.Name {
+    /// 滚动预览到顶部通知
+    static let scrollPreviewToTop = Notification.Name("scrollPreviewToTop")
+}
+
 // MARK: - WebView Wrapper
 
 /// WKWebView 的 SwiftUI 包装器
@@ -19,6 +26,7 @@ struct WebViewWrapper: NSViewRepresentable {
         
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
+        context.coordinator.webView = webView  // 保存 WebView 引用以便执行 JavaScript
         return webView
     }
     
@@ -69,12 +77,37 @@ struct WebViewWrapper: NSViewRepresentable {
         var lastHTML: String = ""
         var lastBaseURL: URL? = nil
         var lastTempFile: URL? = nil
+        weak var webView: WKWebView?  // 保存 WebView 引用以便执行 JavaScript
+        private var scrollToTopObserver: NSObjectProtocol?
+        
+        override init() {
+            super.init()
+            // 监听滚动到顶部通知
+            scrollToTopObserver = NotificationCenter.default.addObserver(
+                forName: .scrollPreviewToTop,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.scrollToTop()
+            }
+        }
         
         deinit {
+            // 移除通知观察者
+            if let observer = scrollToTopObserver {
+                NotificationCenter.default.removeObserver(observer)
+            }
             // 清理临时文件
             if let tempFile = lastTempFile {
                 try? FileManager.default.removeItem(at: tempFile)
             }
+        }
+        
+        /// 滚动到页面顶部
+        private func scrollToTop() {
+            guard let webView = webView else { return }
+            let js = "window.scrollTo({ top: 0, behavior: 'smooth' });"
+            webView.evaluateJavaScript(js, completionHandler: nil)
         }
         
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {

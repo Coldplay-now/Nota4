@@ -12,7 +12,20 @@ struct IndependentToolbar: View {
     var body: some View {
         WithPerceptionTracking {
             HStack(spacing: 12) {
-                // 预览模式下隐藏所有编辑按钮，只显示视图模式切换
+                // 预览模式下显示"回到页顶"按钮
+                if store.viewMode == .previewOnly {
+                    // 回到页顶按钮
+                    NoteListToolbarButton(
+                        title: "回到页顶",
+                        icon: "arrow.up.to.line",
+                        shortcut: "⌘↑",
+                        isEnabled: store.note != nil && !store.preview.renderedHTML.isEmpty
+                    ) {
+                        store.send(.preview(.scrollToTop))
+                    }
+                }
+                
+                // 编辑模式下显示编辑工具
                 if store.viewMode != .previewOnly {
                     // 搜索按钮
                     NoteListToolbarButton(

@@ -1,8 +1,8 @@
 # Nota4 文档中心
 
-> 📚 **最后更新**: 2025-11-20 17:05:00  
+> 📚 **最后更新**: 2025-11-21 10:10:34  
 > 🏗️ **项目**: Nota4 - 基于 SwiftUI 4.0 + TCA 1.11 的现代化 macOS Markdown 笔记应用
-> 📦 **当前版本**: v1.1.8
+> 📦 **当前版本**: v1.1.19
 
 ---
 
@@ -97,7 +97,8 @@ Docs/
     ├── INITIAL_DOCUMENTS_PACKAGING_CHECK.md  # 初始文档资源打包检查报告
     ├── ICON_PACKAGING_AND_VERSIONED_IMPORT_FIX.md  # Icon 打包修复和版本化导入标记实施总结
     ├── GATEKEEPER_INSUFFICIENT_CONTEXT_ANALYSIS.md  # Gatekeeper "Insufficient Context" 问题分析
-    └── LOGO_UPDATE_TO_INITIAL_DOCUMENTS.md  # 初始文档 Logo 图片更新记录
+    ├── LOGO_UPDATE_TO_INITIAL_DOCUMENTS.md  # 初始文档 Logo 图片更新记录
+    └── MARKDOWN_INTERNAL_LINKS_FIX.md  # Markdown 内部链接跳转修复总结
 ```
 
 ---
@@ -657,10 +658,11 @@ Docs/
 | v1.4.0 | 2025-11-19 | 新增 Design/ 目录，添加有序列表层级缩进功能设计文档 |
 | v1.5.0 | 2025-11-20 | 更新 Process/ 文档，添加首选项重构、字体字号对齐修复等文档 |
 | v1.6.0 | 2025-11-20 | 添加快捷键与菜单优化方案文档 |
+| v1.7.0 | 2025-11-21 | 添加 Markdown 内部链接跳转修复文档 |
 
 ---
 
 **维护者**: Nota4 开发团队  
-**最后审查**: 2025-11-20 15:51:00  
+**最后审查**: 2025-11-21 10:10:34  
 **状态**: ✅ 活跃维护中
 
