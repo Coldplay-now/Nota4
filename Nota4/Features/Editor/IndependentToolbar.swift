@@ -12,20 +12,7 @@ struct IndependentToolbar: View {
     var body: some View {
         WithPerceptionTracking {
             HStack(spacing: 12) {
-                // 预览模式下显示"回到页顶"按钮
-                if store.viewMode == .previewOnly {
-                    // 回到页顶按钮
-                    NoteListToolbarButton(
-                        title: "回到页顶",
-                        icon: "arrow.up.to.line",
-                        shortcut: "⌘↑",
-                        isEnabled: store.note != nil && !store.preview.renderedHTML.isEmpty
-                    ) {
-                        store.send(.preview(.scrollToTop))
-                    }
-                }
-                
-                // 编辑模式下显示编辑工具
+                // 预览模式下隐藏所有编辑按钮，只显示视图模式切换
                 if store.viewMode != .previewOnly {
                     // 搜索按钮
                     NoteListToolbarButton(
@@ -90,7 +77,7 @@ struct IndependentToolbar: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .frame(height: 44)
+            .frame(height: 48)
             .background(Color(nsColor: .controlBackgroundColor))
             .overlay(
                 Rectangle()
@@ -133,12 +120,12 @@ struct MoreMenu: View {
                         Button("有序列表", systemImage: "list.number") {
                             store.send(.insertOrderedList)
                         }
-                        .keyboardShortcut("l", modifiers: [.command, .option])
+                        .keyboardShortcut("l", modifiers: [.command, .shift])
                         
                         Button("任务列表", systemImage: "checklist") {
                             store.send(.insertTaskList)
                         }
-                        .keyboardShortcut("l", modifiers: [.command, .option, .shift])
+                        .keyboardShortcut("l", modifiers: [.command, .option])
                     }
                     
                     Divider()

@@ -29,6 +29,7 @@ extension Bundle {
         subdirectory: String? = nil
     ) -> URL? {
         guard let resourcePath = Bundle.main.resourcePath else {
+            print("⚠️ [BUNDLE] Bundle.main.resourcePath is nil")
             return nil
         }
         
@@ -44,46 +45,7 @@ extension Bundle {
             var paths: [URL] = []
             let basePath = URL(fileURLWithPath: resourcePath)
             
-            // 路径 1: Nota4_Nota4.bundle/Contents/Resources/Resources/Vendor/（Xcode 构建）
-            // 注意：在 Xcode 构建时，Bundle.main.resourcePath 指向 Build/Products/Debug/
-            // 实际资源在 Nota4_Nota4.bundle/Contents/Resources/Resources/Vendor/
-            if let originalSubdirectory = subdirectory, originalSubdirectory.hasPrefix("Resources/") {
-                // 尝试在 bundle 内查找
-                var bundlePath = basePath
-                // 如果 basePath 不包含 .bundle，尝试添加（Xcode 构建场景）
-                if !bundlePath.path.contains(".bundle") {
-                    // 从 Build/Products/Debug/ 构建到 Nota4_Nota4.bundle/Contents/Resources/Resources/Vendor/
-                    bundlePath = bundlePath.appendingPathComponent("Nota4_Nota4.bundle")
-                    bundlePath = bundlePath.appendingPathComponent("Contents")
-                    bundlePath = bundlePath.appendingPathComponent("Resources")
-                    // 添加 Resources/Vendor/（因为 .copy("Resources") 导致双重路径）
-                    let path = bundlePath.appendingPathComponent(originalSubdirectory)
-                    paths.append(path)
-                } else if bundlePath.path.contains(".bundle") {
-                    // 如果已经在 bundle 内，检查是否在 Contents/Resources 下
-                    if bundlePath.path.contains("/Contents/Resources") || bundlePath.path.hasSuffix("/Contents/Resources") {
-                        // 已经在 Contents/Resources 下，直接添加 Resources/Vendor/
-                        let path = bundlePath.appendingPathComponent(originalSubdirectory)
-                        paths.append(path)
-                    } else {
-                        // 在 bundle 根目录，添加 Contents/Resources/Resources/Vendor/
-                        bundlePath = bundlePath.appendingPathComponent("Contents")
-                        bundlePath = bundlePath.appendingPathComponent("Resources")
-                        let path = bundlePath.appendingPathComponent(originalSubdirectory)
-                        paths.append(path)
-                    }
-                }
-            }
-            
-            // 路径 2: Nota4_Nota4.bundle/Contents/Resources/Resources/Vendor/（如果已经在 Contents/Resources 下）
-            if basePath.path.contains(".bundle/Contents/Resources") || basePath.path.hasSuffix("/Contents/Resources") {
-                if let originalSubdirectory = subdirectory, originalSubdirectory.hasPrefix("Resources/") {
-                    let path = basePath.appendingPathComponent(originalSubdirectory)
-                    paths.append(path)
-                }
-            }
-            
-            // 路径 3: Nota4_Nota4.bundle/Vendor/（打包后的应用）
+            // 路径 1: Nota4_Nota4.bundle/InitialDocuments/（打包后的应用）
             if isPackagedApp {
                 var path = basePath.appendingPathComponent("Nota4_Nota4.bundle")
                 if let actualSubdirectory = actualSubdirectory {
@@ -92,24 +54,15 @@ extension Bundle {
                 paths.append(path)
             }
             
-            // 路径 4: Resources/Vendor/（开发环境，SPM 构建产物 - 保留 Resources/ 前缀）
-            // 注意：Package.swift 使用 .copy("Resources")，所以资源在 Resources/ 目录下
-            if let originalSubdirectory = subdirectory, originalSubdirectory.hasPrefix("Resources/") {
-                let path = basePath.appendingPathComponent(originalSubdirectory)
-                paths.append(path)
-            }
-            
-            // 路径 5: Vendor/（去掉 Resources/ 前缀后的路径）
+            // 路径 2: Resources/InitialDocuments/（开发环境，SPM 构建产物）
             var path = basePath
             if let actualSubdirectory = actualSubdirectory {
                 path = path.appendingPathComponent(actualSubdirectory)
             }
             paths.append(path)
             
-            // 路径 6: 保留原始 subdirectory（如果与处理后的不同且不包含 Resources/）
-            if let originalSubdirectory = subdirectory, 
-               originalSubdirectory != actualSubdirectory,
-               !originalSubdirectory.hasPrefix("Resources/") {
+            // 路径 3: 保留原始 subdirectory（如果与处理后的不同）
+            if let originalSubdirectory = subdirectory, originalSubdirectory != actualSubdirectory {
                 path = basePath.appendingPathComponent(originalSubdirectory)
                 paths.append(path)
             }
@@ -117,7 +70,7 @@ extension Bundle {
             return paths
         }()
         
-            // 尝试每个路径
+        // 尝试每个路径
         for basePath in searchPaths {
             var path = basePath
             if let ext = ext {
@@ -127,6 +80,7 @@ extension Bundle {
             }
             
             if FileManager.default.fileExists(atPath: path.path) {
+                print("✅ [BUNDLE] 找到资源: \(path.path)")
                 return path
             }
         }

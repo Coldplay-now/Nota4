@@ -29,22 +29,15 @@ actor MarkdownRenderer {
         // 3. Markdown → HTML（使用 Ink）
         var html = parser.html(from: preprocessed.markdown)
         
-        // 3.5. 修复嵌套链接+图片的 HTML 结构（修复 Ink 解析器的 href 属性错误）
-        html = fixNestedLinkImage(in: html)
-        
-        // 3.5. 修复嵌套链接+图片的 HTML 结构（修复 Ink 解析器的 href 属性错误）
-        html = fixNestedLinkImage(in: html)
-        
-        // 3.6. 处理图片路径（验证和转换）
+        // 3.5. 处理图片路径（验证和转换）
         html = processImagePaths(in: html, noteDirectory: options.noteDirectory)
         
-        // 4. 生成 TOC 和标题映射（从预处理后的 Markdown，确保与 HTML 生成使用相同的源）
+        // 4. 生成 TOC 和标题映射（从原始 Markdown，在添加 ID 之前）
         //    这样可以使用映射来确保 ID 一致性
         let shouldGenerateTOC = hasTOCMarker || options.includeTOC
         let tocResult: (toc: String?, headingMap: [String: String])
         if shouldGenerateTOC {
-            // 关键修复：使用预处理后的 markdown，与 parser.html() 使用相同的源
-            let result = generateTOC(from: preprocessed.markdown)
+            let result = generateTOC(from: markdown)
             tocResult = (result.toc, result.headingMap)
         } else {
             tocResult = (nil, [:])
@@ -454,22 +447,11 @@ actor MarkdownRenderer {
                         continue
                     }
                     
-                    // 清理 Markdown 格式，使其与 HTML 提取的纯文本一致
-                    // 这是最小侵入性的修复：只移除常见的 Markdown 格式标记
-                    let cleanTitle = title
-                        .replacingOccurrences(of: "**", with: "")  // 移除加粗
-                        .replacingOccurrences(of: "*", with: "")   // 移除斜体
-                        .replacingOccurrences(of: "`", with: "")   // 移除代码
-                        .replacingOccurrences(of: "~~", with: "")  // 移除删除线
-                        .replacingOccurrences(of: "\\[([^\\]]+)\\]\\([^)]+\\)", with: "$1", options: .regularExpression)  // [text](url) -> text
-                        .replacingOccurrences(of: "!\\[([^\\]]*)\\]\\([^)]+\\)", with: "", options: .regularExpression)  // 移除图片
-                        .trimmingCharacters(in: .whitespacesAndNewlines)
-                    
                     // 使用统一的 ID 生成函数
-                    let id = generateHeadingID(from: cleanTitle)
+                    let id = generateHeadingID(from: title)
                     
-                    // 记录映射关系（键为清理后的标题文本，值为生成的 ID）
-                    headingMap[cleanTitle] = id
+                    // 记录映射关系（键为原始标题文本，值为生成的 ID）
+                    headingMap[title] = id
                 
                 // 处理层级变化
                 if level > currentLevel {
@@ -482,7 +464,7 @@ actor MarkdownRenderer {
                     }
                 }
                 
-                toc += "<li><a href=\"#\(id)\">\(escapeHTML(cleanTitle))</a></li>\n"
+                toc += "<li><a href=\"#\(id)\">\(escapeHTML(title))</a></li>\n"
                 currentLevel = level
             }
             }
@@ -599,43 +581,6 @@ actor MarkdownRenderer {
         // 使用主题的 Mermaid 主题配置
         let mermaidTheme = theme.mermaidTheme
         
-        // 应用所有布局设置
-        let horizontalPadding = options.horizontalPadding ?? 24.0
-        let verticalPadding = options.verticalPadding ?? 20.0
-        let alignment = options.alignment ?? "center"
-        let textAlign = alignment == "center" ? "center" : "left"
-        let maxWidth = options.maxWidth ?? 800.0  // 默认 800pt
-        let lineSpacing = options.lineSpacing ?? 6.0
-        let paragraphSpacing = options.paragraphSpacing ?? 0.8
-        
-        // 计算行高（line-height）：行间距是绝对值（pt），需要转换为相对值
-        // 使用用户实际设置的正文字号，如果没有则使用默认值
-        let baseFontSize = options.bodyFontSize ?? 17.0
-        let lineHeight = 1.0 + (lineSpacing / baseFontSize)
-        
-        let containerStyle = """
-            max-width: \(maxWidth)pt;
-            margin: 0 auto;
-            padding: \(verticalPadding)pt \(horizontalPadding)pt;
-        """
-        let contentStyle = """
-            text-align: \(textAlign);
-            line-height: \(lineHeight);
-        """
-        
-        // 段落间距样式（通过内联样式或添加到 CSS）
-        let paragraphSpacingStyle = """
-            p {
-                margin-bottom: \(paragraphSpacing)em;
-            }
-            p:last-child {
-                margin-bottom: 0;
-            }
-        """
-        
-        // 生成字体 CSS（用户设置优先级高于主题字体）
-        let fontCSS = generateFontCSS(from: options)
-        
         return """
         <!DOCTYPE html>
         <html lang="zh-CN">
@@ -646,17 +591,13 @@ actor MarkdownRenderer {
             \(css)
             \(codeHighlightCSS)
             \(imageErrorCSS)
-            <style>
-                \(paragraphSpacingStyle)
-                \(fontCSS)
-            </style>
             \(getMermaidScript())
             \(getKaTeXScript())
         </head>
         <body>
-            <div class="container" style="\(containerStyle)">
+            <div class="container">
                 \(toc ?? "")
-                <article class="content" style="\(contentStyle)">
+                <article class="content">
                 \(content)
                 </article>
             </div>
@@ -822,12 +763,9 @@ actor MarkdownRenderer {
     }
     
     /// 从文本生成标题 ID
-    /// 规则：小写、移除点号、空格转连字符、移除特殊字符（保留中文字符、数字、连字符）
+    /// 规则：小写、空格转连字符、移除特殊字符（保留中文字符、数字、连字符）
     private func generateHeadingID(from text: String) -> String {
         var id = text.lowercased()
-        
-        // 0. 显式移除点号（确保 1.1. -> 11，与手动链接保持一致）
-        id = id.replacingOccurrences(of: ".", with: "")
         
         // 1. 空格转连字符
         id = id.replacingOccurrences(of: " ", with: "-")
@@ -880,90 +818,6 @@ actor MarkdownRenderer {
         } catch {
             return "<style>\(CSSStyles.fallback)</style>"
         }
-    }
-    
-    /// 生成字体 CSS（用户设置优先级高于主题字体）
-    private func generateFontCSS(from options: RenderOptions) -> String {
-        var cssRules: [String] = []
-        
-        // 正文字体设置
-        if let bodyFontName = options.bodyFontName {
-            // 构建字体栈，包含回退字体
-            let fontStack = buildFontStack(fontName: bodyFontName)
-            cssRules.append("""
-            body, .content {
-                font-family: \(fontStack) !important;
-            }
-            """)
-        }
-        
-        if let bodyFontSize = options.bodyFontSize {
-            cssRules.append("""
-            body, .content {
-                font-size: \(bodyFontSize)pt !important;
-            }
-            """)
-        }
-        
-        // 标题字体设置
-        if let titleFontName = options.titleFontName {
-            let fontStack = buildFontStack(fontName: titleFontName)
-            cssRules.append("""
-            h1, h2, h3, h4, h5, h6 {
-                font-family: \(fontStack) !important;
-            }
-            """)
-        }
-        
-        if let titleFontSize = options.titleFontSize {
-            // 根据标题级别计算字体大小
-            // 比例设计：titleFontSize 作为 h1 的基础大小，其他级别按比例缩小
-            // h1 = 1.0x, h2 = 0.75x, h3 = 0.625x, h4 = 0.55x, h5 = 0.5x, h6 = 0.45x
-            // 例如：titleFontSize = 24pt 时，h1 = 24pt, h2 = 18pt, h3 = 15pt, h4 = 13.2pt, h5 = 12pt, h6 = 10.8pt
-            // 这样用户设置的"标题字体 24pt"直接对应 h1 的大小，更符合用户直觉
-            cssRules.append("""
-            h1 { font-size: \(titleFontSize)pt !important; }
-            h2 { font-size: \(titleFontSize * 0.75)pt !important; }
-            h3 { font-size: \(titleFontSize * 0.625)pt !important; }
-            h4 { font-size: \(titleFontSize * 0.55)pt !important; }
-            h5 { font-size: \(titleFontSize * 0.5)pt !important; }
-            h6 { font-size: \(titleFontSize * 0.45)pt !important; }
-            """)
-        }
-        
-        // 代码字体设置
-        if let codeFontName = options.codeFontName {
-            let fontStack = buildFontStack(fontName: codeFontName)
-            cssRules.append("""
-            code, pre, .code-block {
-                font-family: \(fontStack) !important;
-            }
-            """)
-        }
-        
-        if let codeFontSize = options.codeFontSize {
-            cssRules.append("""
-            code, pre, .code-block {
-                font-size: \(codeFontSize)pt !important;
-            }
-            """)
-        }
-        
-        return cssRules.joined(separator: "\n")
-    }
-    
-    /// 构建字体栈（包含回退字体）
-    private func buildFontStack(fontName: String) -> String {
-        // 为字体名称添加引号（如果包含空格或特殊字符）
-        let quotedFontName: String
-        if fontName.contains(" ") || fontName.contains("-") {
-            quotedFontName = "\"\(fontName)\""
-        } else {
-            quotedFontName = fontName
-        }
-        
-        // 构建字体栈：用户字体 -> 系统字体回退
-        return "\(quotedFontName), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif"
     }
     
     private func getMermaidScript() -> String {
@@ -1030,17 +884,17 @@ actor MarkdownRenderer {
     /// - Parameter themeId: 主题 ID（nil 表示使用当前主题）
     /// - Returns: 代码高亮 CSS 样式字符串
     private func getCodeHighlightCSS(for themeId: String?) async -> String {
-        // 1. 从 PreferencesStorage 加载偏好设置
-        let prefs = await PreferencesStorage.shared.load()
+        // 1. 检查是否使用自定义代码高亮主题
+        let useCustom = UserDefaults.standard.bool(forKey: "useCustomCodeHighlightTheme")
+        let customThemeRaw = UserDefaults.standard.string(forKey: "customCodeHighlightTheme")
         
         let codeTheme: CodeTheme
-        
-        // 2. 检查代码高亮模式
-        if prefs.codeHighlightMode == .custom {
-            // 使用自定义代码高亮主题
-            codeTheme = prefs.codeHighlightTheme
+        if useCustom, let customThemeRaw = customThemeRaw,
+           let customTheme = CodeTheme(rawValue: customThemeRaw) {
+            // 使用用户自定义的代码高亮主题
+            codeTheme = customTheme
         } else {
-            // 跟随主题：使用主题的代码高亮主题
+            // 使用预览主题的代码高亮主题
             let theme: ThemeConfig
             if let themeId = themeId {
                 let availableThemes = await themeManager.availableThemes
@@ -1386,71 +1240,6 @@ actor MarkdownRenderer {
         }
         </style>
         """
-    }
-    
-    /// 修复嵌套链接+图片的 HTML 结构
-    /// 修复 Ink 解析器在处理 [![描述](图片)](链接 "标题") 时产生的 href 属性错误
-    /// 错误格式：<a href="url "title"">
-    /// 正确格式：<a href="url" title="title">
-    private func fixNestedLinkImage(in html: String) -> String {
-        var result = html
-        
-        // 模式1：修复 href 属性值中包含引号和标题的情况
-        // 匹配：<a href="url "title"">（URL 后跟空格、引号、标题、引号）
-        // 修复为：<a href="url" title="title">
-        // 注意：使用更精确的模式，匹配 href="... "..." 格式
-        // 原始格式：href="url "title""，需要提取 url 和 title，并移除多余的引号
-        let pattern1 = #"<a(\s+[^>]*?)href="([^"]*?)\s+"([^"]+)"([^>]*?)>"#
-        
-        guard let regex1 = try? NSRegularExpression(pattern: pattern1, options: []) else {
-            return result
-        }
-        
-        let matches1 = regex1.matches(
-            in: result,
-            range: NSRange(result.startIndex..., in: result)
-        )
-        
-        // 从后往前处理，避免索引偏移
-        for match in matches1.reversed() {
-            guard match.numberOfRanges >= 5,
-                  let tagStartRange = Range(match.range(at: 1), in: result),
-                  let urlRange = Range(match.range(at: 2), in: result),
-                  let titleRange = Range(match.range(at: 3), in: result),
-                  let tagEndRange = Range(match.range(at: 4), in: result) else {
-                continue
-            }
-            
-            let tagStart = String(result[tagStartRange])
-            let url = String(result[urlRange]).trimmingCharacters(in: .whitespaces)
-            let title = String(result[titleRange])
-            let tagEnd = String(result[tagEndRange])
-            
-            // 只有 URL 不为空且标题不为空时才修复（避免误匹配）
-            guard !url.isEmpty && !title.isEmpty else {
-                continue
-            }
-            
-            // 构建修复后的链接标签
-            // 注意：tagEnd 可能包含原始错误格式的残留引号，需要清理
-            // 移除 tagEnd 中可能存在的多余引号（如果 tagEnd 以 " 开头，说明是原始错误格式的残留）
-            var cleanTagEnd = tagEnd
-            if cleanTagEnd.hasPrefix("\"") {
-                cleanTagEnd = String(cleanTagEnd.dropFirst())
-            }
-            
-            let fixedTag: String
-            if cleanTagEnd.isEmpty {
-                fixedTag = "<a\(tagStart)href=\"\(escapeHTML(url))\" title=\"\(escapeHTML(title))\">"
-            } else {
-                fixedTag = "<a\(tagStart)href=\"\(escapeHTML(url))\" title=\"\(escapeHTML(title))\"\(cleanTagEnd)>"
-            }
-            
-            let fullRange = Range(match.range, in: result)!
-            result.replaceSubrange(fullRange, with: fixedTag)
-        }
-        
-        return result
     }
     
     /// 处理图片路径：验证相对路径文件是否存在，为无效图片添加标记

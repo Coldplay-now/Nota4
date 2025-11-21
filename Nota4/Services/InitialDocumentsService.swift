@@ -9,47 +9,12 @@ actor InitialDocumentsService {
     
     private let userDefaults = UserDefaults.standard
     private let hasImportedKey = "HasImportedInitialDocuments"
-    private let importedVersionKey = "ImportedInitialDocumentsVersion"
-    
-    /// 获取当前应用版本号
-    private var currentVersion: String {
-        // 从 Bundle 中读取版本号
-        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
-            return version
-        }
-        // 如果无法读取，使用默认值（应该不会发生，但提供回退）
-        return "1.1.9"
-    }
     
     private init() {}
     
     /// 检查是否需要导入初始文档
-    /// 如果数据库中没有任何笔记，即使之前导入过，也应该重新导入
-    /// 如果版本号不匹配，也需要重新导入（确保用户升级后能看到新文档）
-    func shouldImportInitialDocuments(noteRepository: NoteRepositoryProtocol) async -> Bool {
-        let importedVersion = userDefaults.string(forKey: importedVersionKey)
-        let currentVersion = self.currentVersion
-        
-        // 检查是否已导入当前版本的初始文档
-        if importedVersion == currentVersion {
-            // 已导入当前版本，检查是否需要重新导入（数据库为空）
-            do {
-                let count = try await noteRepository.getTotalCount()
-                return count == 0
-            } catch {
-                // 如果检查失败，默认不导入（避免重复导入）
-                print("⚠️ [INITIAL] 检查笔记数量失败: \(error)")
-                return false
-            }
-        }
-        
-        // 未导入当前版本（首次安装或版本升级），需要导入
-        if importedVersion == nil {
-            print("ℹ️ [INITIAL] 首次导入初始文档（版本: \(currentVersion)）")
-        } else {
-            print("ℹ️ [INITIAL] 版本升级检测：从 \(importedVersion ?? "未知") 升级到 \(currentVersion)，需要重新导入初始文档")
-        }
-        return true
+    func shouldImportInitialDocuments() -> Bool {
+        return !userDefaults.bool(forKey: hasImportedKey)
     }
     
     /// 导入初始文档
@@ -57,17 +22,14 @@ actor InitialDocumentsService {
         noteRepository: NoteRepositoryProtocol,
         notaFileManager: NotaFileManagerProtocol
     ) async throws {
-        guard await shouldImportInitialDocuments(noteRepository: noteRepository) else {
+        guard shouldImportInitialDocuments() else {
             return
         }
         
         
         let documentNames = [
             "使用说明",
-            "Markdown示例",
-            "Markdown完整示例",
-            "运动",
-            "技术"
+            "Markdown示例"
         ]
         
         for documentName in documentNames {
@@ -138,12 +100,10 @@ actor InitialDocumentsService {
             }
         }
         
-        // 标记为已导入当前版本
+        // 标记为已导入
         userDefaults.set(true, forKey: hasImportedKey)
-        userDefaults.set(currentVersion, forKey: importedVersionKey)
         userDefaults.synchronize()
         
-        print("✅ [INITIAL] 初始文档导入完成（版本: \(currentVersion)）")
     }
     
     /// 解析 .nota 文件内容

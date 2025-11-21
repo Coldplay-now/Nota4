@@ -1,71 +1,24 @@
 import SwiftUI
 import WebKit
 
-// MARK: - Notification Names
-
-extension Notification.Name {
-    /// 滚动预览到顶部通知
-    static let scrollPreviewToTop = Notification.Name("scrollPreviewToTop")
-}
-
 // MARK: - WebView Wrapper
 
 /// WKWebView 的 SwiftUI 包装器
 /// 用于在 SwiftUI 中显示 HTML 内容
 struct WebViewWrapper: NSViewRepresentable {
     let html: String
-    let baseURL: URL?  // 新增参数，用于解析相对路径
     
     func makeNSView(context: Context) -> WKWebView {
-        // 配置 WKWebView 允许本地文件访问
-        let configuration = WKWebViewConfiguration()
-        
-        // 允许从文件 URL 访问本地文件
-        // 这对于加载本地图片资源是必需的
-        configuration.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
-        
-        let webView = WKWebView(frame: .zero, configuration: configuration)
+        let webView = WKWebView()
         webView.navigationDelegate = context.coordinator
-        context.coordinator.webView = webView  // 保存 WebView 引用以便执行 JavaScript
         return webView
     }
     
     func updateNSView(_ webView: WKWebView, context: Context) {
-        // 只在内容或 baseURL 变化时才更新
-        if context.coordinator.lastHTML != html || 
-           context.coordinator.lastBaseURL != baseURL {
+        // 只在内容变化时才更新
+        if context.coordinator.lastHTML != html {
             context.coordinator.lastHTML = html
-            context.coordinator.lastBaseURL = baseURL
-            
-            // 关键修复：使用 loadFileURL 而不是 loadHTMLString
-            // 这样可以正确授予 WebView 访问本地文件的 Sandbox 权限
-            if let baseURL = baseURL {
-                // 将临时 HTML 文件放在 noteDirectory 中
-                // 这样 HTML 和图片在同一个目录结构下，避免跨目录访问问题
-                let htmlFile = baseURL.appendingPathComponent(".preview_\(UUID().uuidString).html")
-                
-                do {
-                    // 写入 HTML 到临时文件
-                    try html.write(to: htmlFile, atomically: true, encoding: .utf8)
-                    
-                    // 使用 loadFileURL 加载，并授予访问整个 noteDirectory 的权限
-                    // allowingReadAccessTo 必须是目录，不能是文件
-                    webView.loadFileURL(htmlFile, allowingReadAccessTo: baseURL)
-                    
-                    // 清理之前的临时文件
-                    if let oldFile = context.coordinator.lastTempFile {
-                        try? FileManager.default.removeItem(at: oldFile)
-                    }
-                    context.coordinator.lastTempFile = htmlFile
-                } catch {
-                    print("❌ [WebView] 创建临时文件失败: \(error.localizedDescription)")
-                    // 降级到 loadHTMLString
-                    webView.loadHTMLString(html, baseURL: baseURL)
-                }
-            } else {
-                // 无 baseURL，使用标准 loadHTMLString
-                webView.loadHTMLString(html, baseURL: nil)
-            }
+            webView.loadHTMLString(html, baseURL: nil)
         }
     }
     
@@ -75,40 +28,6 @@ struct WebViewWrapper: NSViewRepresentable {
     
     class Coordinator: NSObject, WKNavigationDelegate {
         var lastHTML: String = ""
-        var lastBaseURL: URL? = nil
-        var lastTempFile: URL? = nil
-        weak var webView: WKWebView?  // 保存 WebView 引用以便执行 JavaScript
-        private var scrollToTopObserver: NSObjectProtocol?
-        
-        override init() {
-            super.init()
-            // 监听滚动到顶部通知
-            scrollToTopObserver = NotificationCenter.default.addObserver(
-                forName: .scrollPreviewToTop,
-                object: nil,
-                queue: .main
-            ) { [weak self] _ in
-                self?.scrollToTop()
-            }
-        }
-        
-        deinit {
-            // 移除通知观察者
-            if let observer = scrollToTopObserver {
-                NotificationCenter.default.removeObserver(observer)
-            }
-            // 清理临时文件
-            if let tempFile = lastTempFile {
-                try? FileManager.default.removeItem(at: tempFile)
-            }
-        }
-        
-        /// 滚动到页面顶部
-        private func scrollToTop() {
-            guard let webView = webView else { return }
-            let js = "window.scrollTo({ top: 0, behavior: 'smooth' });"
-            webView.evaluateJavaScript(js, completionHandler: nil)
-        }
         
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             // 允许初始加载
@@ -129,49 +48,59 @@ struct WebViewWrapper: NSViewRepresentable {
                                       urlString.hasPrefix("about:blank#") ||
                                       (url.fragment != nil && (url.scheme == nil || url.scheme == "about" || url.scheme == "file"))
                 
-                // 如果是内部锚点链接，使用 JavaScript 滚动
-                // 修复：file:// 协议下 WKWebView 的原生锚点跳转有时会失效或导致刷新
-                // 使用 scrollIntoView 提供更可靠的平滑滚动体验
-                if isInternalAnchor, let fragment = url.fragment {
-                    // 解码 fragment（处理中文锚点）
-                    let decodedFragment = fragment.removingPercentEncoding ?? fragment
-                    // 转义单引号，防止 JS 注入或错误
-                    let safeFragment = decodedFragment.replacingOccurrences(of: "'", with: "\\'")
-                    
-                    let js = """
-                    function findTarget(id) {
-                        // 1. 尝试精确匹配
-                        var element = document.getElementById(id);
-                        if (element) return element;
+                // 如果是内部锚点链接，允许在 WebView 内导航
+                if isInternalAnchor {
+                    // 使用 JavaScript 处理锚点跳转，确保平滑滚动
+                    if let fragment = url.fragment {
+                        // 转义 fragment 中的特殊字符，防止 JavaScript 注入
+                        let escapedFragment = fragment
+                            .replacingOccurrences(of: "\\", with: "\\\\")
+                            .replacingOccurrences(of: "'", with: "\\'")
+                            .replacingOccurrences(of: "\"", with: "\\\"")
                         
-                        // 2. 尝试解码后的 ID
-                        try {
-                            var decoded = decodeURIComponent(id);
-                            element = document.getElementById(decoded);
-                            if (element) return element;
-                        } catch(e) {}
-                        
-                        // 3. Fallback: 模糊匹配 (忽略连字符)
-                        var cleanId = id.replace(/-/g, '').toLowerCase();
-                        var headers = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
-                        for (var i = 0; i < headers.length; i++) {
-                            var h = headers[i];
-                            if (h.id) {
-                                var cleanHId = h.id.replace(/-/g, '').toLowerCase();
-                                if (cleanHId === cleanId) {
-                                    return h;
+                        let script = """
+                        (function() {
+                            const fragment = '\(escapedFragment)';
+                            const element = document.getElementById(fragment);
+                            
+                            if (element) {
+                                // 计算偏移量，确保标题不被工具栏遮挡
+                                const offset = 20;
+                                const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+                                const offsetPosition = elementPosition - offset;
+                                
+                                // 平滑滚动到目标位置
+                                window.scrollTo({
+                                    top: offsetPosition,
+                                    behavior: 'smooth'
+                                });
+                                
+                                // 更新 URL hash，但不触发导航
+                                if (window.history && window.history.replaceState) {
+                                    window.history.replaceState(null, null, '#' + fragment);
                                 }
+                                
+                                // 高亮目标元素（可选，提供视觉反馈）
+                                const originalBg = element.style.backgroundColor;
+                                element.style.backgroundColor = 'rgba(0, 122, 255, 0.1)';
+                                element.style.transition = 'background-color 0.3s';
+                                
+                                setTimeout(() => {
+                                    element.style.backgroundColor = originalBg || '';
+                                }, 2000);
+                            } else {
+                                // 元素不存在，记录警告（开发时有用）
+                                console.warn('Anchor link target not found: #' + fragment);
                             }
-                        }
-                        return null;
+                        })();
+                        """
+                        webView.evaluateJavaScript(script, completionHandler: { result, error in
+                            if let error = error {
+                                print("⚠️ [WebView] Failed to scroll to anchor: \(error.localizedDescription)")
+                            }
+                        })
                     }
-
-                    var target = findTarget('\(safeFragment)');
-                    if (target) {
-                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                    """
-                    webView.evaluateJavaScript(js, completionHandler: nil)
+                    // 取消导航，因为我们用 JavaScript 处理了
                     decisionHandler(.cancel)
                     return
                 }
@@ -193,30 +122,27 @@ struct WebViewWrapper: NSViewRepresentable {
 // MARK: - Preview
 
 #Preview {
-    WebViewWrapper(
-        html: """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <style>
-                body {
-                    font-family: -apple-system;
-                    padding: 2rem;
-                }
-                h1 {
-                    color: #333;
-                }
-            </style>
-        </head>
-        <body>
-            <h1>预览测试</h1>
-            <p>这是一个简单的 HTML 预览。</p>
-        </body>
-        </html>
-        """,
-        baseURL: nil
-    )
+    WebViewWrapper(html: """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            body {
+                font-family: -apple-system;
+                padding: 2rem;
+            }
+            h1 {
+                color: #333;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>预览测试</h1>
+        <p>这是一个简单的 HTML 预览。</p>
+    </body>
+    </html>
+    """)
     .frame(width: 600, height: 400)
 }
 

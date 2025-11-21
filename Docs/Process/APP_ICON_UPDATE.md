@@ -246,3 +246,4 @@ qlmanage -p Build/Nota4.app/Contents/Resources/AppIcon.icns
 **图标状态**: ✅ 已生成并部署到所有位置
 
 
+

@@ -20,7 +20,6 @@ struct EditorFeature {
         var editorStyle: EditorStyle = .comfortable
         var preview: PreviewState = PreviewState()
         var showDeleteConfirmation: Bool = false
-        var isEditorUpdating: Bool = false  // 标记编辑器是否正在更新，用于协调视图更新避免竞态条件
         
         // MARK: - Insert Dialog States
         
@@ -153,9 +152,6 @@ struct EditorFeature {
         case noteCreated(Result<Note, Error>)
         case selectionChanged(NSRange)
         case focusChanged(Bool)
-        case moveFocusToContentStart  // 将焦点移到正文文首（标题编辑时按回车）
-        case editorUpdateStarted  // 编辑器更新开始
-        case editorUpdateCompleted  // 编辑器更新完成
         
         // 新增：导出 Actions（转发到 AppFeature）
         case exportCurrentNote(ExportFeature.ExportFormat)
@@ -178,9 +174,6 @@ struct EditorFeature {
             // 主题响应
             case themeChanged(String)
             case renderOptionsChanged(RenderOptions)
-            
-            // 滚动控制
-            case scrollToTop
             
             // 错误处理
             case dismissError
@@ -402,10 +395,9 @@ struct EditorFeature {
             case .noteLoaded(.success(let note)):
                 state.note = note
                 state.content = note.content
-                // 确保 title 不为空，如果为空则使用默认值
-                state.title = note.title.isEmpty ? "无标题" : note.title
+                state.title = note.title
                 state.lastSavedContent = note.content
-                state.lastSavedTitle = state.title  // 使用处理后的 title
+                state.lastSavedTitle = note.title
                 
                 // 切换笔记时关闭搜索面板并清除搜索状态
                 if state.search.isSearchPanelVisible {
@@ -844,29 +836,14 @@ struct EditorFeature {
                 return .none
                 
             case .applyPreferences(let prefs):
-                // 应用编辑器样式（使用编辑模式设置）
                 state.editorStyle = EditorStyle(from: prefs)
-                
-                // 更新预览渲染选项（使用预览模式设置）
-                state.preview.renderOptions.horizontalPadding = prefs.previewLayout.horizontalPadding
-                state.preview.renderOptions.verticalPadding = prefs.previewLayout.verticalPadding
-                state.preview.renderOptions.alignment = prefs.previewLayout.alignment == .center ? "center" : "left"
-                state.preview.renderOptions.maxWidth = prefs.previewLayout.maxWidth ?? 800
-                state.preview.renderOptions.lineSpacing = prefs.previewLayout.lineSpacing
-                state.preview.renderOptions.paragraphSpacing = prefs.previewLayout.paragraphSpacing
-                
-                // 应用预览主题
-                state.preview.renderOptions.themeId = prefs.previewThemeId
-                
-                // 应用预览字体设置
-                // 处理 "System" 字体：System → nil（表示使用主题字体或系统默认）
-                state.preview.renderOptions.bodyFontName = prefs.previewFonts.bodyFontName != "System" ? prefs.previewFonts.bodyFontName : nil
-                state.preview.renderOptions.bodyFontSize = prefs.previewFonts.bodyFontSize
-                state.preview.renderOptions.titleFontName = prefs.previewFonts.titleFontName != "System" ? prefs.previewFonts.titleFontName : nil
-                state.preview.renderOptions.titleFontSize = prefs.previewFonts.titleFontSize
-                state.preview.renderOptions.codeFontName = prefs.previewFonts.codeFontName != "System" ? prefs.previewFonts.codeFontName : nil
-                state.preview.renderOptions.codeFontSize = prefs.previewFonts.codeFontSize
-                
+                // 更新预览渲染选项，应用所有布局设置
+                state.preview.renderOptions.horizontalPadding = prefs.horizontalPadding
+                state.preview.renderOptions.verticalPadding = prefs.verticalPadding
+                state.preview.renderOptions.alignment = prefs.alignment == .center ? "center" : "left"
+                state.preview.renderOptions.maxWidth = prefs.maxWidth
+                state.preview.renderOptions.lineSpacing = prefs.lineSpacing
+                state.preview.renderOptions.paragraphSpacing = prefs.paragraphSpacing
                 // 如果当前在预览模式，重新渲染以应用新设置
                 if state.viewMode != .editOnly {
                     return .send(.preview(.render))
@@ -1285,21 +1262,6 @@ struct EditorFeature {
                 }
                 return .none
                 
-            case .moveFocusToContentStart:
-                // 将光标移到正文文首
-                state.selectionRange = NSRange(location: 0, length: 0)
-                return .none
-                
-            case .editorUpdateStarted:
-                // 标记编辑器更新开始，避免并发更新导致竞态条件
-                state.isEditorUpdating = true
-                return .none
-                
-            case .editorUpdateCompleted:
-                // 标记编辑器更新完成
-                state.isEditorUpdating = false
-                return .none
-                
             case .exportCurrentNote:
                 // 导出 action 由 AppFeature 处理，这里不做任何操作
                 return .none
@@ -1393,11 +1355,6 @@ struct EditorFeature {
             
             case .preview(.cancelRender):
                 return .cancel(id: CancelID.previewRender)
-            
-            case .preview(.scrollToTop):
-                // 发送通知，触发 WebView 滚动到顶部
-                NotificationCenter.default.post(name: .scrollPreviewToTop, object: nil)
-                return .none
             
             case .preview(.dismissError):
                 state.preview.renderError = nil

@@ -12,38 +12,16 @@ struct MarkdownTextEditor: NSViewRepresentable {
     let paragraphSpacing: CGFloat
     let horizontalPadding: CGFloat
     let verticalPadding: CGFloat
-    let alignment: Alignment
     let onSelectionChange: (NSRange) -> Void
     let onFocusChange: (Bool) -> Void
-    
-    // TCA 状态协调
-    var isEditorUpdating: Bool = false
-    var onUpdateStarted: (() -> Void)? = nil
-    var onUpdateCompleted: (() -> Void)? = nil
     
     // 搜索高亮相关
     var searchMatches: [NSRange] = []
     var currentSearchIndex: Int = -1
     
-    // 将 SwiftUI.Alignment 转换为 NSTextAlignment
-    private var nsTextAlignment: NSTextAlignment {
-        switch alignment {
-        case .leading: return .left
-        case .center: return .center
-        case .trailing: return .right
-        default: return .left
-        }
-    }
-    
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSTextView.scrollableTextView()
-        
-        // 安全获取 textView，避免强制解包崩溃
-        guard let textView = scrollView.documentView as? NSTextView else {
-            print("⚠️ [MARKDOWN_EDITOR] 无法获取 NSTextView，重新创建")
-            // 如果无法获取，返回新创建的 scrollView
-            return NSTextView.scrollableTextView()
-        }
+        let textView = scrollView.documentView as! NSTextView
         
         // 配置 TextView
         textView.isEditable = true
@@ -63,30 +41,18 @@ struct MarkdownTextEditor: NSViewRepresentable {
         textView.isContinuousSpellCheckingEnabled = false
         
         // 设置文本容器（使用传入的 padding 值）
-        // textContainerInset 控制整个文本容器的边距（更明显）
-        textView.textContainerInset = NSSize(width: horizontalPadding, height: verticalPadding)
-        // lineFragmentPadding 控制文本行的左右边距（设置为较小值，避免双重边距）
-        textView.textContainer?.lineFragmentPadding = 0
+        textView.textContainer?.lineFragmentPadding = horizontalPadding
+        textView.textContainerInset = NSSize(width: 0, height: verticalPadding)
         
         // 设置段落样式
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineSpacing = lineSpacing
         paragraphStyle.paragraphSpacing = paragraphSpacing
-        paragraphStyle.alignment = nsTextAlignment
         textView.defaultParagraphStyle = paragraphStyle
         
         // 将段落样式应用到初始文本
-        // 添加文本存储访问保护，避免访问已释放的对象
         if let textStorage = textView.textStorage, textStorage.length > 0 {
-            let safeLength = textStorage.length
-            guard safeLength > 0 else { return scrollView }
-            
-            let fullRange = NSRange(location: 0, length: safeLength)
-            
-            // 使用 beginEditing/endEditing 保护批量操作
-            textStorage.beginEditing()
-            defer { textStorage.endEditing() }
-            
+            let fullRange = NSRange(location: 0, length: textStorage.length)
             textStorage.addAttribute(.paragraphStyle, value: paragraphStyle, range: fullRange)
             textStorage.addAttribute(.font, value: font, range: fullRange)
         }
@@ -103,26 +69,12 @@ struct MarkdownTextEditor: NSViewRepresentable {
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let textView = scrollView.documentView as? NSTextView else { return }
         
-        // TCA 状态协调：如果编辑器正在更新，跳过本次更新以避免竞态条件
-        if isEditorUpdating {
-            return
-        }
-        
-        // 注意：onUpdateStarted 和 onUpdateCompleted 已在 textDidChange 中处理
-        // 这里不再需要异步调用，避免时序问题
-        
         // 检查样式是否改变
         let stylesChanged = textView.font != font ||
                            textView.textColor != textColor ||
                            textView.backgroundColor != backgroundColor ||
                            textView.defaultParagraphStyle?.lineSpacing != lineSpacing ||
-                           textView.defaultParagraphStyle?.paragraphSpacing != paragraphSpacing ||
-                           textView.defaultParagraphStyle?.alignment != nsTextAlignment
-        
-        // 检查边距是否改变
-        let paddingChanged = textView.textContainerInset.width != horizontalPadding ||
-                            textView.textContainerInset.height != verticalPadding ||
-                            textView.textContainer?.lineFragmentPadding != 0
+                           textView.defaultParagraphStyle?.paragraphSpacing != paragraphSpacing
         
         // 更新文本（只在从外部改变时，不在用户输入时）
         // 注意：如果正在执行替换操作，不要更新 textView.string，否则会清除 undo stack
@@ -137,22 +89,12 @@ struct MarkdownTextEditor: NSViewRepresentable {
             textView.string = text
             
             // 如果正在编辑，应用样式
-            // 添加文本存储访问保护，避免访问已释放的对象
             if wasEditing, let textStorage = textView.textStorage, textStorage.length > 0 {
-                let safeLength = textStorage.length
-                guard safeLength > 0 else { return }
-                
                 let paragraphStyle = NSMutableParagraphStyle()
                 paragraphStyle.lineSpacing = lineSpacing
                 paragraphStyle.paragraphSpacing = paragraphSpacing
-                paragraphStyle.alignment = nsTextAlignment
                 
-                let fullRange = NSRange(location: 0, length: safeLength)
-                
-                // 使用 beginEditing/endEditing 保护批量操作
-                textStorage.beginEditing()
-                defer { textStorage.endEditing() }
-                
+                let fullRange = NSRange(location: 0, length: textStorage.length)
                 textStorage.addAttribute(.paragraphStyle, value: paragraphStyle, range: fullRange)
                 textStorage.addAttribute(.font, value: font, range: fullRange)
             }
@@ -173,12 +115,6 @@ struct MarkdownTextEditor: NSViewRepresentable {
             }
         }
         
-        // 更新边距（如果改变）
-        if paddingChanged {
-            textView.textContainerInset = NSSize(width: horizontalPadding, height: verticalPadding)
-            textView.textContainer?.lineFragmentPadding = 0
-        }
-        
         // 只在样式改变时更新样式和应用到全文
         if stylesChanged {
             textView.font = font
@@ -188,21 +124,11 @@ struct MarkdownTextEditor: NSViewRepresentable {
             let paragraphStyle = NSMutableParagraphStyle()
             paragraphStyle.lineSpacing = lineSpacing
             paragraphStyle.paragraphSpacing = paragraphSpacing
-            paragraphStyle.alignment = nsTextAlignment
             textView.defaultParagraphStyle = paragraphStyle
             
             // 将新样式应用到已有文本
-            // 添加文本存储访问保护，避免访问已释放的对象
             if let textStorage = textView.textStorage, textStorage.length > 0 {
-                let safeLength = textStorage.length
-                guard safeLength > 0 else { return }
-                
-                let fullRange = NSRange(location: 0, length: safeLength)
-                
-                // 使用 beginEditing/endEditing 保护批量操作
-                textStorage.beginEditing()
-                defer { textStorage.endEditing() }
-                
+                let fullRange = NSRange(location: 0, length: textStorage.length)
                 textStorage.addAttribute(.paragraphStyle, value: paragraphStyle, range: fullRange)
                 textStorage.addAttribute(.font, value: font, range: fullRange)
             }
@@ -249,13 +175,6 @@ struct MarkdownTextEditor: NSViewRepresentable {
                 name: NSNotification.Name("PerformReplaceInTextView"),
                 object: nil
             )
-            // 监听焦点跳转通知（从标题框按回车时）
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(handleFocusToContentStart(_:)),
-                name: NSNotification.Name("MoveFocusToContentStart"),
-                object: nil
-            )
         }
         
         deinit {
@@ -266,44 +185,6 @@ struct MarkdownTextEditor: NSViewRepresentable {
                 // 检查是否有未结束的 undo group
                 while undoManager.groupingLevel > 0 {
                     undoManager.endUndoGrouping()
-                }
-            }
-        }
-        
-        @objc func handleFocusToContentStart(_ notification: Notification) {
-            guard let textView = textView else {
-                print("⚠️ [MARKDOWN_EDITOR] textView 已被释放，无法设置焦点")
-                return
-            }
-            
-            // 延迟执行，确保标题框完全失去焦点
-            // 使用 weak self 和 weak textView 避免悬空引用
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-                guard let self = self,
-                      let textView = self.textView else {
-                    print("⚠️ [MARKDOWN_EDITOR] textView 已被释放，无法设置焦点")
-                    return
-                }
-                
-                // 设置光标到文首
-                textView.setSelectedRange(NSRange(location: 0, length: 0))
-                textView.scrollRangeToVisible(NSRange(location: 0, length: 0))
-                
-                // 设置焦点
-                if let window = textView.window {
-                    window.makeFirstResponder(textView)
-                    
-                    // 再次确保光标在文首
-                    // 使用 weak self 和 weak textView 避免悬空引用
-                    DispatchQueue.main.async { [weak self] in
-                        guard let self = self,
-                              let textView = self.textView else {
-                            print("⚠️ [MARKDOWN_EDITOR] textView 已被释放，无法设置光标")
-                            return
-                        }
-                        textView.setSelectedRange(NSRange(location: 0, length: 0))
-                        textView.scrollRangeToVisible(NSRange(location: 0, length: 0))
-                    }
                 }
             }
         }
@@ -542,22 +423,12 @@ struct MarkdownTextEditor: NSViewRepresentable {
             searchHighlights = matches
             currentHighlightIndex = currentIndex
             
-            // 添加文本存储访问保护，使用 beginEditing/endEditing 包装批量操作
-            let safeLength = textStorage.length
-            guard safeLength > 0 else {
-                print("⚠️ [SEARCH] textStorage 长度为 0，无法应用高亮")
-                return
-            }
-            
-            textStorage.beginEditing()
-            defer { textStorage.endEditing() }
-            
             // 应用高亮
             for (index, range) in matches.enumerated() {
                 guard range.location != NSNotFound,
                       range.location >= 0,
-                      range.location + range.length <= safeLength else {
-                    print("⚠️ [SEARCH] 无效的范围: \(range), textStorage.length: \(safeLength)")
+                      range.location + range.length <= textStorage.length else {
+                    print("⚠️ [SEARCH] 无效的范围: \(range), textStorage.length: \(textStorage.length)")
                     continue
                 }
                 
@@ -588,30 +459,11 @@ struct MarkdownTextEditor: NSViewRepresentable {
         }
         
         func clearSearchHighlights() {
-            guard let textView = textView else {
-                print("⚠️ [MARKDOWN_EDITOR] textView 已被释放，无法清除搜索高亮")
-                return
-            }
-            guard let textStorage = textView.textStorage else {
-                print("⚠️ [MARKDOWN_EDITOR] textStorage 未设置，无法清除搜索高亮")
-                return
-            }
+            guard let textView = textView else { return }
+            guard let textStorage = textView.textStorage else { return }
             
             // 移除所有高亮属性（但保留字体和段落样式）
-            // 添加文本存储访问保护
-            let safeLength = textStorage.length
-            guard safeLength > 0 else {
-                searchHighlights = []
-                currentHighlightIndex = -1
-                return
-            }
-            
-            let fullRange = NSRange(location: 0, length: safeLength)
-            
-            // 使用 beginEditing/endEditing 保护批量操作
-            textStorage.beginEditing()
-            defer { textStorage.endEditing() }
-            
+            let fullRange = NSRange(location: 0, length: textStorage.length)
             textStorage.removeAttribute(.backgroundColor, range: fullRange)
             textStorage.removeAttribute(.foregroundColor, range: fullRange)
             
@@ -628,17 +480,8 @@ struct MarkdownTextEditor: NSViewRepresentable {
                 return
             }
             
-            // 立即通知 TCA 开始更新（同步调用，确保标志及时设置）
-            parent.onUpdateStarted?()
-            
-            // 更新内容
             parent.text = textView.string
             parent.onSelectionChange(textView.selectedRange())
-            
-            // 延迟通知更新完成（确保所有状态更新都完成）
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                self?.parent.onUpdateCompleted?()
-            }
         }
         
         func textViewDidChangeSelection(_ notification: Notification) {
@@ -658,464 +501,6 @@ struct MarkdownTextEditor: NSViewRepresentable {
         
         func textDidEndEditing(_ notification: Notification) {
             parent.onFocusChange(false)
-        }
-        
-        // MARK: - List Continuation Support
-        
-        /// 拦截命令（用于实现列表自动续行和缩进）
-        func textView(_ textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
-            // 拦截 Tab 键
-            if commandSelector == #selector(NSTextView.insertTab(_:)) {
-                return handleTabKey(textView: textView, isShiftPressed: false)
-            }
-            // 拦截 Shift+Tab 键
-            if commandSelector == #selector(NSTextView.insertBacktab(_:)) {
-                return handleTabKey(textView: textView, isShiftPressed: true)
-            }
-            // 拦截回车键
-            if commandSelector == #selector(NSTextView.insertNewline(_:)) {
-                return handleEnterKey(textView: textView)
-            }
-            return false
-        }
-        
-        /// 处理回车键，实现列表自动续行
-        private func handleEnterKey(textView: NSTextView) -> Bool {
-            let text = textView.string
-            let selection = textView.selectedRange()
-            
-            // 获取当前行
-            let nsText = text as NSString
-            let lineRange = nsText.lineRange(for: selection)
-            let fullLineText = nsText.substring(with: lineRange)  // 包含缩进的完整行
-            let trimmedLineText = fullLineText.trimmingCharacters(in: .whitespacesAndNewlines)  // 去除缩进用于检测
-            
-            // 检测列表类型
-            guard let listInfo = detectListType(line: trimmedLineText) else {
-                // 不是列表项，执行默认行为
-                return false
-            }
-            
-            // 计算新行的列表标记
-            let newListMarker: String
-            switch listInfo {
-            case .ordered(let number):
-                // 检测当前行的缩进层级
-                let indentLevel = detectIndentLevel(line: fullLineText)
-                
-                // 提取列表内容
-                let content = extractListContent(from: trimmedLineText)
-                
-                // 计算新行的序号
-                let newNumber: Int
-                if content.isEmpty {
-                    // 空列表项，保持相同序号
-                    newNumber = number
-                } else {
-                    // 有内容，直接递增序号
-                    // 因为当前行本身就是同级列表项的一部分，下一个序号应该是当前序号 + 1
-                    newNumber = number + 1
-                }
-                
-                // 根据层级生成对应格式的标记
-                let newMarker = generateListMarker(level: indentLevel, number: newNumber)
-                
-                // 保持相同的缩进
-                let indent = String(repeating: " ", count: indentLevel * 2)
-                
-                // 生成新行的列表标记（包含缩进）
-                newListMarker = "\(indent)\(newMarker) "
-            case .unordered:
-                // 提取当前行的标记（- 或 * 或 +）
-                if trimmedLineText.hasPrefix("- ") {
-                    newListMarker = "- "
-                } else if trimmedLineText.hasPrefix("* ") {
-                    newListMarker = "* "
-                } else if trimmedLineText.hasPrefix("+ ") {
-                    newListMarker = "+ "
-                } else {
-                    // 默认使用 "- "
-                    newListMarker = "- "
-                }
-            case .task:
-                // 提取当前行的标记
-                if trimmedLineText.hasPrefix("- [") {
-                    newListMarker = "- [ ] "
-                } else if trimmedLineText.hasPrefix("* [") {
-                    newListMarker = "* [ ] "
-                } else if trimmedLineText.hasPrefix("+ [") {
-                    newListMarker = "+ [ ] "
-                } else {
-                    // 默认使用 "- [ ] "
-                    newListMarker = "- [ ] "
-                }
-            }
-            
-            // 插入新行和列表标记
-            let insertion = "\n\(newListMarker)"
-            let insertionRange = NSRange(location: selection.location, length: 0)
-            
-            // 使用 shouldChangeText 准备 undo
-            guard textView.shouldChangeText(in: insertionRange, replacementString: insertion) else {
-                return false
-            }
-            
-            // 执行插入
-            if let textStorage = textView.textStorage {
-                textStorage.replaceCharacters(in: insertionRange, with: insertion)
-                textView.didChangeText()
-                
-                // 更新选中范围到新行的列表标记后面
-                let newSelection = NSRange(location: selection.location + insertion.count, length: 0)
-                textView.setSelectedRange(newSelection)
-                textView.scrollRangeToVisible(newSelection)
-                
-                // 通知父组件内容已改变
-                // 使用 weak self 和 weak textView 避免悬空引用
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self,
-                          let textView = self.textView else {
-                        print("⚠️ [MARKDOWN_EDITOR] textView 已被释放，无法更新内容")
-                        return
-                    }
-                    self.parent.text = textView.string
-                    self.parent.onSelectionChange(newSelection)
-                }
-            }
-            
-            return true
-        }
-        
-        /// 检测列表类型
-        private func detectListType(line: String) -> ListType? {
-            // 先检测任务列表（因为任务列表也以 "- " 开头，需要优先匹配）
-            // 匹配 "- [ ] " 或 "- [x] " 或 "* [ ] " 等
-            if line.hasPrefix("- [ ] ") || line.hasPrefix("- [x] ") ||
-               line.hasPrefix("* [ ] ") || line.hasPrefix("* [x] ") ||
-               line.hasPrefix("+ [ ] ") || line.hasPrefix("+ [x] ") {
-                return .task
-            }
-            
-            // 移除前导空格以检测列表标记
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            
-            // 检测有序列表：匹配 "数字. "、"字母. " 或 "罗马数字. " 模式
-            if let match = trimmed.range(of: #"^(\d+|[a-z]|[A-Z]|[ivxlcdmIVXLCDM]+)\.\s"#, options: .regularExpression) {
-                let markerStr = String(trimmed[..<match.upperBound].dropLast(2))
-                
-                // 尝试解析为数字
-                if let number = Int(markerStr) {
-                    return .ordered(number: number)
-                }
-                
-                // 尝试解析为小写字母
-                if markerStr.count == 1, let char = markerStr.first, char.isLowercase {
-                    let number = Int(char.asciiValue! - 96)  // a=1, b=2, ...
-                    return .ordered(number: number)
-                }
-                
-                // 尝试解析为大写字母
-                if markerStr.count == 1, let char = markerStr.first, char.isUppercase {
-                    let number = Int(char.asciiValue! - 64)  // A=1, B=2, ...
-                    return .ordered(number: number)
-                }
-                
-                // 尝试解析为罗马数字
-                if let romanNumber = parseRomanNumeral(markerStr) {
-                    return .ordered(number: romanNumber)
-                }
-            }
-            
-            // 检测无序列表：匹配 "- " 或 "* " 或 "+ "（但不能是任务列表）
-            if trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") || trimmed.hasPrefix("+ ") {
-                return .unordered
-            }
-            
-            return nil
-        }
-        
-        // MARK: - List Indent Support
-        
-        /// 检测行的缩进层级
-        private func detectIndentLevel(line: String) -> Int {
-            var indentCount = 0
-            var index = line.startIndex
-            
-            while index < line.endIndex {
-                if line[index] == " " {
-                    indentCount += 1
-                    index = line.index(after: index)
-                } else if line[index] == "\t" {
-                    // Tab 键通常等于 4 个空格
-                    indentCount += 4
-                    index = line.index(after: index)
-                } else {
-                    break
-                }
-            }
-            
-            // 每 2 个空格为一个层级（Markdown 标准）
-            return indentCount / 2
-        }
-        
-        /// 计算 Tab/Shift+Tab 后的目标层级
-        private func calculateTargetLevel(currentLevel: Int, isShiftPressed: Bool) -> Int {
-            if isShiftPressed {
-                // Shift+Tab: 减少缩进
-                return max(0, currentLevel - 1)
-            } else {
-                // Tab: 增加缩进
-                return min(5, currentLevel + 1)  // 最多5层
-            }
-        }
-        
-        /// 将数字转换为罗马数字
-        private func romanNumeral(_ number: Int, uppercase: Bool) -> String {
-            guard number > 0 && number < 4000 else {
-                return "\(number)"  // 超出范围，返回原数字
-            }
-            
-            let values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1]
-            let symbols = uppercase
-                ? ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"]
-                : ["m", "cm", "d", "cd", "c", "xc", "l", "xl", "x", "ix", "v", "iv", "i"]
-            
-            var result = ""
-            var remaining = number
-            
-            for (index, value) in values.enumerated() {
-                let count = remaining / value
-                if count > 0 {
-                    result += String(repeating: symbols[index], count: count)
-                    remaining -= value * count
-                }
-            }
-            
-            return result
-        }
-        
-        /// 解析罗马数字为整数
-        private func parseRomanNumeral(_ roman: String) -> Int? {
-            let romanUpper = roman.uppercased()
-            let romanMap: [Character: Int] = [
-                "I": 1, "V": 5, "X": 10, "L": 50,
-                "C": 100, "D": 500, "M": 1000
-            ]
-            
-            var result = 0
-            var previous = 0
-            
-            for char in romanUpper.reversed() {
-                guard let value = romanMap[char] else {
-                    return nil
-                }
-                
-                if value < previous {
-                    result -= value
-                } else {
-                    result += value
-                }
-                
-                previous = value
-            }
-            
-            return result > 0 ? result : nil
-        }
-        
-        /// 根据层级和序号生成列表标记
-        private func generateListMarker(level: Int, number: Int) -> String {
-            switch level {
-            case 0:
-                return "\(number)."
-            case 1:
-                // a, b, c, ...
-                let char = Character(UnicodeScalar(96 + number)!)
-                return "\(char)."
-            case 2:
-                // i, ii, iii, ...
-                return "\(romanNumeral(number, uppercase: false))."
-            case 3:
-                // A, B, C, ...
-                let char = Character(UnicodeScalar(64 + number)!)
-                return "\(char)."
-            case 4:
-                // I, II, III, ...
-                return "\(romanNumeral(number, uppercase: true))."
-            default:
-                // 超过5层，循环使用小写字母
-                let char = Character(UnicodeScalar(96 + number)!)
-                return "\(char)."
-            }
-        }
-        
-        /// 从列表行中提取序号
-        private func extractListNumber(from line: String) -> Int? {
-            // 移除前导空格
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            
-            // 匹配有序列表：数字. 或 字母. 或 罗马数字.
-            if let match = trimmed.range(of: #"^(\d+|[a-z]|[A-Z]|[ivxlcdmIVXLCDM]+)\.\s"#, options: .regularExpression) {
-                let numberStr = String(trimmed[..<match.upperBound].dropLast(2))
-                
-                // 尝试解析为数字
-                if let number = Int(numberStr) {
-                    return number
-                }
-                
-                // 尝试解析为字母
-                if numberStr.count == 1, let char = numberStr.first {
-                    if char.isLowercase {
-                        return Int(char.asciiValue! - 96)  // a=1, b=2, ...
-                    } else if char.isUppercase {
-                        return Int(char.asciiValue! - 64)  // A=1, B=2, ...
-                    }
-                }
-                
-                // 尝试解析为罗马数字
-                if let roman = parseRomanNumeral(numberStr) {
-                    return roman
-                }
-            }
-            
-            return nil
-        }
-        
-        /// 从列表行中提取内容（去除缩进和标记）
-        private func extractListContent(from line: String) -> String {
-            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            
-            // 匹配并移除列表标记
-            if let match = trimmed.range(of: #"^(\d+|[a-z]|[A-Z]|[ivxlcdmIVXLCDM]+)\.\s*"#, options: .regularExpression) {
-                return String(trimmed[match.upperBound...])
-            }
-            
-            return trimmed
-        }
-        
-        /// 检测当前列表项在同级中的序号
-        private func detectListNumber(
-            text: String,
-            currentLineIndex: Int,
-            indentLevel: Int
-        ) -> Int {
-            let lines = text.components(separatedBy: .newlines)
-            var number = 1
-            
-            // 向前查找，找到第一个同级或更高级的列表项
-            for i in stride(from: currentLineIndex - 1, through: 0, by: -1) {
-                guard i < lines.count else { break }
-                let line = lines[i]
-                let lineIndent = detectIndentLevel(line: line)
-                
-                if lineIndent < indentLevel {
-                    // 找到了更高级的列表项，停止查找
-                    break
-                } else if lineIndent == indentLevel {
-                    // 找到了同级列表项，提取序号并递增
-                    if let listNumber = extractListNumber(from: line) {
-                        number = listNumber + 1
-                        break
-                    }
-                } else if lineIndent > indentLevel {
-                    // 子级列表项，继续查找
-                    continue
-                }
-            }
-            
-            return number
-        }
-        
-        /// 处理 Tab 键，实现列表缩进
-        private func handleTabKey(textView: NSTextView, isShiftPressed: Bool) -> Bool {
-            let text = textView.string
-            let selection = textView.selectedRange()
-            
-            // 获取当前行
-            let nsText = text as NSString
-            let lineRange = nsText.lineRange(for: selection)
-            let lineText = nsText.substring(with: lineRange)
-            
-            // 检测是否是列表项（需要保留前导空格）
-            let trimmedLineText = lineText.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard let listInfo = detectListType(line: trimmedLineText) else {
-                // 不是列表项，执行默认 Tab 行为（插入制表符或空格）
-                return false
-            }
-            
-            // 只处理有序列表
-            guard case .ordered = listInfo else {
-                // 无序列表或任务列表，执行默认 Tab 行为
-                return false
-            }
-            
-            // 检测当前缩进层级
-            let currentIndentLevel = detectIndentLevel(line: lineText)
-            let targetIndentLevel = calculateTargetLevel(
-                currentLevel: currentIndentLevel,
-                isShiftPressed: isShiftPressed
-            )
-            
-            // 如果层级没有变化，不处理
-            if currentIndentLevel == targetIndentLevel {
-                return false
-            }
-            
-            // 计算新的缩进和序号
-            let newIndent = String(repeating: " ", count: targetIndentLevel * 2)
-            
-            // 计算当前行在文本中的行号（通过计算换行符数量）
-            let currentLineIndex = nsText.substring(to: selection.location).components(separatedBy: .newlines).count - 1
-            let listNumber = detectListNumber(
-                text: text,
-                currentLineIndex: currentLineIndex,
-                indentLevel: targetIndentLevel
-            )
-            let newMarker = generateListMarker(level: targetIndentLevel, number: listNumber)
-            
-            // 移除旧的列表标记和缩进，添加新的
-            let content = extractListContent(from: trimmedLineText)
-            // 如果内容为空，只保留标记后的空格
-            let newLine = content.isEmpty ? "\(newIndent)\(newMarker) " : "\(newIndent)\(newMarker) \(content)"
-            
-            // 替换当前行
-            let replacementRange = lineRange
-            guard textView.shouldChangeText(in: replacementRange, replacementString: newLine) else {
-                return false
-            }
-            
-            if let textStorage = textView.textStorage {
-                textStorage.replaceCharacters(in: replacementRange, with: newLine)
-                textView.didChangeText()
-                
-                // 更新选中范围到新行的列表标记后面
-                let newSelection = NSRange(
-                    location: replacementRange.location + newIndent.count + newMarker.count + 1,
-                    length: 0
-                )
-                textView.setSelectedRange(newSelection)
-                textView.scrollRangeToVisible(newSelection)
-                
-                // 通知父组件内容已改变
-                // 使用 weak self 和 weak textView 避免悬空引用
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self,
-                          let textView = self.textView else {
-                        print("⚠️ [MARKDOWN_EDITOR] textView 已被释放，无法更新内容")
-                        return
-                    }
-                    self.parent.text = textView.string
-                    self.parent.onSelectionChange(newSelection)
-                }
-            }
-            
-            return true
-        }
-        
-        /// 列表类型枚举
-        private enum ListType {
-            case ordered(number: Int)
-            case unordered
-            case task
         }
     }
 }

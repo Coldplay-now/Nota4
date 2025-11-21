@@ -181,7 +181,6 @@ struct AppFeature {
         case dismissSettings
         case preferencesLoaded(EditorPreferences)
         case preferencesUpdated(EditorPreferences)
-        case alignmentToggled  // 切换对齐方式（左对齐 ↔ 居中）
         
         // 新增：导出 Actions
         case exportCurrentNote(ExportFeature.ExportFormat)
@@ -217,8 +216,7 @@ struct AppFeature {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                // 应用启动时同步 filter 和侧边栏，然后加载笔记、侧边栏计数、状态栏统计和偏好设置
-                state.noteList.filter = .category(state.sidebar.selectedCategory)
+                // 应用启动时加载笔记、侧边栏计数、状态栏统计和偏好设置
                 return .merge(
                     .send(.noteList(.loadNotes)),
                     .send(.sidebar(.loadCounts)),  // 加载侧边栏计数
@@ -226,13 +224,13 @@ struct AppFeature {
                         let prefs = await PreferencesStorage.shared.load()
                         await send(.preferencesLoaded(prefs))
                     },
-                    // 导入初始文档（首次启动或数据库为空时）
+                    // 导入初始文档（首次启动）
                     .run { send in
                         let service = InitialDocumentsService.shared
-                        if await service.shouldImportInitialDocuments(noteRepository: noteRepository) {
+                        if await service.shouldImportInitialDocuments() {
                             do {
                                 // 在导入前验证资源是否存在（可选，但有助于诊断问题）
-                                let documentNames = ["使用说明", "Markdown示例", "Markdown完整示例", "运动", "技术"]
+                                let documentNames = ["使用说明", "Markdown示例"]
                                 var missingResources: [String] = []
                                 for documentName in documentNames {
                                     if Bundle.safeResourceURL(
@@ -287,12 +285,6 @@ struct AppFeature {
                     },
                     .send(.editor(.applyPreferences(prefs)))
                 )
-                
-            case .alignmentToggled:
-                // 切换对齐方式：左对齐 ↔ 居中
-                var updatedPrefs = state.preferences
-                updatedPrefs.editorLayout.alignment = updatedPrefs.editorLayout.alignment == .center ? .leading : .center
-                return .send(.preferencesUpdated(updatedPrefs))
                 
             case .layoutModeChanged(let mode):
                 // 如果已经是目标模式，直接返回
@@ -638,14 +630,6 @@ struct AppFeature {
             // 笔记列表加载完成 → 不再更新侧边栏统计
             // （因为 notes 是过滤后的，不能用来计算全局计数）
             case .noteList(.notesLoaded(.success(let notes))):
-                // 只在启动时（editor.note == nil）且没有选中笔记时自动选择
-                // 避免在删除后重新加载时触发自动选择
-                if state.noteList.selectedNoteId == nil,
-                   state.editor.note == nil,
-                   !notes.isEmpty,
-                   let firstNote = notes.first {
-                    return .send(.noteList(.noteSelected(firstNote.noteId)))
-                }
                 return .none
                 
             // 编辑器创建笔记完成 → 刷新笔记列表和侧边栏计数，并选中新创建的笔记
@@ -749,12 +733,9 @@ struct AppFeature {
             case .noteList(.permanentlyDeleteNotes):
                 return .none  // 不立即更新计数，等待永久删除完成通知
                 
-            // 永久删除完成 → 更新侧边栏计数和标签列表
+            // 永久删除完成 → 更新侧边栏计数
             case .noteList(.permanentlyDeleteNotesCompleted):
-                return .concatenate(
-                    .send(.sidebar(.loadCounts)),
-                    .send(.sidebar(.loadTags))  // 刷新标签列表和计数
-                )
+                return .send(.sidebar(.loadCounts))
                 
             // 笔记列表请求创建 → 转发给编辑器
             case .noteList(.createNote):

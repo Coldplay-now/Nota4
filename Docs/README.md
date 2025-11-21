@@ -1,8 +1,8 @@
 # Nota4 文档中心
 
-> 📚 **最后更新**: 2025-11-21 14:10:00
+> 📚 **最后更新**: 2025-11-21 14:39:45  
 > 🏗️ **项目**: Nota4 - 基于 SwiftUI 4.0 + TCA 1.11 的现代化 macOS Markdown 笔记应用
-> 📦 **当前版本**: v1.2.4
+> 📦 **当前版本**: v1.2.5
 
 ---
 
@@ -33,9 +33,7 @@ Docs/
 │   ├── CODE_BLOCK_ENHANCEMENT.md
 │   ├── WINDOW_NOT_SHOWING_FIX.md
 │   ├── FINAL_IMPLEMENTATION_REPORT.md
-│   ├── DOCUMENTATION_ORGANIZATION_SUMMARY.md
-│   ├── CRASH_ANALYSIS_EXC_BAD_ACCESS_20251120.md  # EXC_BAD_ACCESS 崩溃分析
-│   └── HANG_ANALYSIS_20251120.md  # 应用挂起（Hang）问题分析
+│   └── DOCUMENTATION_ORGANIZATION_SUMMARY.md
 │
 ├── Guides/                      # 📖 开发指南
 │   ├── TEST_DRIVEN_OPTIMIZATION_GUIDE.md
@@ -57,12 +55,6 @@ Docs/
 │   ├── SIDEBAR_COUNT_TCA_FIX.md
 │   └── SIDEBAR_COUNT_FIX.md
 │
-├── Design/                      # 🎨 功能设计
-│   ├── ORDERED_LIST_INDENT_DESIGN.md
-│   ├── PREFERENCES_REDESIGN_COMPLETE.md  # 首选项配置完整重新设计方案
-│   ├── KEYBOARD_SHORTCUTS_AND_MENU_OPTIMIZATION_PLAN.md  # 快捷键与菜单优化方案
-│   └── TASK_LIST_INTERACTIVE_CHECKBOX_REQUIREMENTS.md  # 任务列表交互式复选框需求分析
-│
 ├── API/                         # 🔌 API 文档
 │   ├── API_REFERENCE.md
 │   └── FILE_FORMAT_SPEC.md
@@ -82,33 +74,7 @@ Docs/
 └── Process/                     # 🔄 开发过程
     ├── DECISIONS/               # 决策记录
     ├── ITERATIONS/              # 迭代记录
-    ├── MEETING_NOTES/           # 会议纪要
-    ├── UI_IMPROVEMENTS_20251120.md  # UI 改进记录
-    ├── SETTINGS_ALIGNMENT_AUDIT_REPORT.md  # 设置对齐检查报告
-    ├── EDITOR_PADDING_AND_PREVIEW_FONTS_FIX_SUMMARY.md  # 编辑器边距和预览字体修复
-    ├── PREVIEW_FONT_SIZE_ALIGNMENT_CHECK.md  # 预览字体字号对齐检查
-    ├── PREVIEW_FONT_SIZE_FIX_SUMMARY.md  # 预览字体字号修复总结
-    ├── TITLE_FONT_SIZE_ALIGNMENT_FIX.md  # 标题字号对齐修复
-    ├── ALIGNMENT_SETTINGS_ALIGNMENT_CHECK.md  # 对齐设置与实际应用对齐检查
-    ├── BUTTON_CLICK_AREA_ANALYSIS.md  # 按钮点击区域问题分析
-    ├── BUTTON_CLICK_AREA_FIX_SUMMARY.md  # 按钮点击区域修复总结
-    ├── BUTTON_CLICK_AREA_OPTIMIZATION.md  # 按钮点击区域优化方案
-    ├── BUTTON_CLICK_AREA_SYSTEMATIC_ANALYSIS.md  # 按钮点击区域问题系统性分析
-    ├── BUTTON_CLICK_AREA_FIX_FINAL.md  # 按钮点击区域问题最终修复总结
-    ├── APP_ICON_UPDATE.md  # 应用图标更新记录
-    ├── PREFERENCES_REDESIGN_IMPLEMENTATION_SUMMARY.md  # 首选项重构实施总结
-    ├── KEYBOARD_SHORTCUTS_AND_MENU_OPTIMIZATION_IMPLEMENTATION.md  # 快捷键与菜单优化实施总结
-    ├── NOTE_MENU_DYNAMIC_STATE_OPTIMIZATION.md  # 笔记菜单动态状态优化实施总结
-    ├── INITIAL_DOCUMENTS_PACKAGING_CHECK.md  # 初始文档资源打包检查报告
-    ├── ICON_PACKAGING_AND_VERSIONED_IMPORT_FIX.md  # Icon 打包修复和版本化导入标记实施总结
-    ├── GATEKEEPER_INSUFFICIENT_CONTEXT_ANALYSIS.md  # Gatekeeper "Insufficient Context" 问题分析
-    ├── LOGO_UPDATE_TO_INITIAL_DOCUMENTS.md  # 初始文档 Logo 图片更新记录
-    ├── MARKDOWN_INTERNAL_LINKS_FIX.md  # Markdown 内部链接跳转修复总结
-    ├── EXC_BAD_ACCESS_CRASH_FIX_SUMMARY.md  # EXC_BAD_ACCESS 崩溃修复总结
-    ├── EDITOR_INPUT_INTERFERENCE_ANALYSIS.md  # 编辑器输入干扰问题分析
-    ├── EDITOR_INPUT_INTERFERENCE_FIX_SUMMARY.md  # 编辑器输入干扰问题修复总结
-    ├── NESTED_LINK_IMAGE_DIAGNOSIS_SUMMARY.md  # 嵌套链接+图片解析问题诊断总结
-    └── NESTED_LINK_IMAGE_FIX_SUMMARY.md  # 嵌套链接+图片解析问题修复总结
+    └── MEETING_NOTES/           # 会议纪要
 ```
 
 ---
@@ -350,60 +316,7 @@ Docs/
 
 ---
 
-### 7. 🎨 Design/ - 功能设计
-
-**用途**: 存放功能设计文档、交互设计、UI/UX 设计等
-
-**命名规范**:
-- `{FEATURE}_DESIGN.md` - 功能设计文档
-- `{FEATURE}_INTERACTION_DESIGN.md` - 交互设计
-- `{FEATURE}_UI_DESIGN.md` - UI 设计
-
-**文档模板**:
-```markdown
-# {功能}设计
-
-> **设计日期**: YYYY-MM-DD HH:MM:SS  
-> **功能**: {功能描述}  
-> **状态**: 设计阶段/实现中/已完成
-
----
-
-## 📋 需求概述
-...
-
-## 🎯 设计目标
-...
-
-## 🔍 设计思路分析
-...
-
-## ✅ 推荐方案
-...
-
-## 🏗️ 技术实现设计
-...
-
-## 🧪 测试用例
-...
-
-## 🚀 实现优先级
-...
-```
-
-**当前文档**:
-- `ORDERED_LIST_INDENT_DESIGN.md` - 有序列表层级缩进功能设计
-- `EDITOR_PREVIEW_LAYOUT_SEPARATION_DESIGN.md` - 编辑器预览布局分离设计
-- `PREFERENCES_REDESIGN_COMPLETE.md` - 首选项配置完整重新设计方案
-- `KEYBOARD_SHORTCUTS_AND_MENU_OPTIMIZATION_PLAN.md` - 快捷键与菜单优化方案
-- `TASK_LIST_INTERACTIVE_CHECKBOX_REQUIREMENTS.md` - 任务列表交互式复选框需求分析
-- `LINE_SPACING_IN_MULTILEVEL_LISTS_ANALYSIS.md` - 多级列表行间距分析
-- `ORDERED_LIST_INDENT_INTERACTION_ANALYSIS.md` - 有序列表缩进交互分析
-- `PARAGRAPH_SPACING_IN_MULTILEVEL_LISTS_ANALYSIS.md` - 多级列表段落间距分析
-
----
-
-### 8. 🔌 API/ - API 文档
+### 7. 🔌 API/ - API 文档
 
 **用途**: 存放 API 接口文档、服务接口说明、文件格式规范
 
@@ -426,7 +339,7 @@ Docs/
 
 ---
 
-### 9. 💻 Development/ - 开发文档
+### 8. 💻 Development/ - 开发文档
 
 **用途**: 存放开发流程、编码规范、工作流程等
 
@@ -447,7 +360,7 @@ Docs/
 
 ---
 
-### 10. 📋 PRD/ - 产品需求
+### 9. 📋 PRD/ - 产品需求
 
 **用途**: 存放产品需求文档、功能规格说明
 
@@ -475,7 +388,7 @@ Docs/
 
 ---
 
-### 11. 🔄 Process/ - 开发过程
+### 10. 🔄 Process/ - 开发过程
 
 **用途**: 存放开发过程中的决策、迭代记录、会议纪要
 
@@ -630,8 +543,7 @@ Docs/
 ### 新手入门
 1. 📋 [产品需求文档](./PRD/) - 了解 Nota4 是什么
 2. 🏛️ [系统架构](./Architecture/) - 理解技术架构
-3. 🎨 [功能设计](./Design/) - 查看功能设计文档
-4. 💻 [开发指南](./Development/) - 开始开发
+3. 💻 [开发指南](./Development/) - 开始开发
 
 ### 日常开发
 - 🎯 [功能文档](./Features/) - 功能模块文档
@@ -665,24 +577,12 @@ Docs/
 | v1.0.0 | 2025-11-16 | 初始版本，建立文档分类体系 |
 | v1.1.0 | 2025-11-17 | 添加 Features/ 目录，重新组织功能文档 |
 | v1.2.0 | 2025-11-19 | 文档归类优化，将根目录文档移动到对应子目录，新增 Export/ 和 Tags/ 子目录 |
-| v1.2.1 | 2025-11-20 | 首选项面板菜单重命名（"外观" → "预览模式"，"编辑器" → "编辑模式"） |
-| v1.2.2 | 2025-11-20 | 编辑器输入干扰问题修复（isEditorUpdating 标志时序优化） |
-| v1.2.3 | 2025-11-21 | 嵌套链接+图片解析问题修复（Ink 解析器 href 属性错误修复） |
-| v1.2.4 | 2025-11-21 | 修复 Markdown示例文档中的自动链接格式问题（<URL> 格式导致后续内容渲染失效） |
 | v1.3.0 | 2025-11-19 | 更新 PRD 至 v1.1.1，创建系统架构设计 Spec 和 API 文档 |
-| v1.4.0 | 2025-11-19 | 新增 Design/ 目录，添加有序列表层级缩进功能设计文档 |
-| v1.5.0 | 2025-11-20 | 更新 Process/ 文档，添加首选项重构、字体字号对齐修复等文档 |
-| v1.6.0 | 2025-11-20 | 添加快捷键与菜单优化方案文档 |
-| v1.7.0 | 2025-11-20 | 添加任务列表交互式复选框需求分析文档 |
-| v1.8.0 | 2025-11-20 | 添加 EXC_BAD_ACCESS 崩溃分析报告 |
-| v1.9.0 | 2025-11-20 | 实施 EXC_BAD_ACCESS 崩溃修复并集成 TCA 状态协调 |
-| v1.10.0 | 2025-11-21 | 添加 Markdown 内部链接跳转修复文档 |
-| v1.11.0 | 2025-11-21 | 添加预览模式"回到页顶"功能 PRD 文档 |
-| v1.12.0 | 2025-11-21 | 添加嵌套链接+图片解析问题修复文档 |
+| v1.2.5 | 2025-11-21 | 修复初始文档导入时图片文件未复制的问题 |
 
 ---
 
 **维护者**: Nota4 开发团队  
-**最后审查**: 2025-11-21 10:52:18  
+**最后审查**: 2025-11-21 14:39:45  
 **状态**: ✅ 活跃维护中
 

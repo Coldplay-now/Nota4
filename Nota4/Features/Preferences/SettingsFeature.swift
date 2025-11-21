@@ -51,35 +51,15 @@ struct SettingsFeature {
     enum Action: BindableAction {
         case binding(BindingAction<State>)
         case categorySelected(SettingsCategory)
-        
-        // Editor Preferences Actions
-        case editorFontChanged(FontType, String)
-        case editorFontSizeChanged(FontType, CGFloat)
-        case editorLayoutChanged(EditorPreferences.LayoutSettings)
-        
-        // Preview Preferences Actions
-        case previewFontChanged(FontType, String)
-        case previewFontSizeChanged(FontType, CGFloat)
-        case previewLayoutChanged(EditorPreferences.LayoutSettings)
-        
-        // Theme actions
-        case theme(ThemeAction)
-        
-        // Code highlight actions
-        case codeHighlightModeChanged(EditorPreferences.CodeHighlightMode)
-        case codeHighlightThemeChanged(CodeTheme)
-        
-        // Config Management
         case resetToDefaults
         case exportConfig
         case importConfig
         case apply
         case cancel
         case dismiss
-    }
-    
-    enum FontType {
-        case body, title, code
+        
+        // Theme actions
+        case theme(ThemeAction)
     }
     
     enum ThemeAction {
@@ -129,82 +109,9 @@ struct SettingsFeature {
                     return .send(.theme(.loadThemes))
                 }
                 return .none
-            
-            // MARK: - Editor Font Actions
-            
-            case .editorFontChanged(let type, let fontName):
-                switch type {
-                case .body:
-                    state.editorPreferences.editorFonts.bodyFontName = fontName
-                case .title:
-                    state.editorPreferences.editorFonts.titleFontName = fontName
-                case .code:
-                    state.editorPreferences.editorFonts.codeFontName = fontName
-                }
-                return .none
-                
-            case .editorFontSizeChanged(let type, let size):
-                switch type {
-                case .body:
-                    state.editorPreferences.editorFonts.bodyFontSize = size
-                case .title:
-                    state.editorPreferences.editorFonts.titleFontSize = size
-                case .code:
-                    state.editorPreferences.editorFonts.codeFontSize = size
-                }
-                return .none
-            
-            case .editorLayoutChanged(let layout):
-                state.editorPreferences.editorLayout = layout
-                return .none
-            
-            // MARK: - Preview Font Actions
-            
-            case .previewFontChanged(let type, let fontName):
-                switch type {
-                case .body:
-                    state.editorPreferences.previewFonts.bodyFontName = fontName
-                case .title:
-                    state.editorPreferences.previewFonts.titleFontName = fontName
-                case .code:
-                    state.editorPreferences.previewFonts.codeFontName = fontName
-                }
-                return .none
-                
-            case .previewFontSizeChanged(let type, let size):
-                switch type {
-                case .body:
-                    state.editorPreferences.previewFonts.bodyFontSize = size
-                case .title:
-                    state.editorPreferences.previewFonts.titleFontSize = size
-                case .code:
-                    state.editorPreferences.previewFonts.codeFontSize = size
-                }
-                return .none
-            
-            case .previewLayoutChanged(let layout):
-                state.editorPreferences.previewLayout = layout
-                return .none
-            
-            // MARK: - Code Highlight Actions
-            
-            case .codeHighlightModeChanged(let mode):
-                state.editorPreferences.codeHighlightMode = mode
-                
-                // 如果切换到"跟随主题"，更新代码高亮主题为当前主题的默认值
-                if mode == .followTheme,
-                   let currentTheme = state.theme.currentTheme {
-                    state.editorPreferences.codeHighlightTheme = currentTheme.codeHighlightTheme
-                }
-                return .none
-                
-            case .codeHighlightThemeChanged(let theme):
-                state.editorPreferences.codeHighlightTheme = theme
-                // 切换到自定义模式
-                state.editorPreferences.codeHighlightMode = .custom
-                return .none
                 
             case .resetToDefaults:
+                print("⚙️ [SETTINGS] Reset to defaults")
                 state.editorPreferences = EditorPreferences()
                 return .none
                 
@@ -217,9 +124,11 @@ struct SettingsFeature {
                 return .none
                 
             case .apply:
+                print("⚙️ [SETTINGS] Applying settings")
                 return .none
                 
             case .cancel:
+                print("⚙️ [SETTINGS] Canceling, restoring original settings")
                 state.editorPreferences = state.originalEditorPreferences
                 return .send(.dismiss)
                 
@@ -256,20 +165,11 @@ struct SettingsFeature {
             
             case .theme(.syncCurrentTheme(let themeId)):
                 state.theme.currentThemeId = themeId
-                state.editorPreferences.previewThemeId = themeId
+                print("🔄 [THEME] Synced current theme: \(themeId)")
                 return .none
             
             case .theme(.selectTheme(let themeId)):
                 guard state.theme.currentThemeId != themeId else { return .none }
-                
-                state.editorPreferences.previewThemeId = themeId
-                state.theme.currentThemeId = themeId
-                
-                // 如果代码高亮模式是"跟随主题"，更新代码高亮主题
-                if state.editorPreferences.codeHighlightMode == .followTheme,
-                   let theme = state.theme.currentTheme {
-                    state.editorPreferences.codeHighlightTheme = theme.codeHighlightTheme
-                }
                 
                 return .run { send in
                     await send(.theme(.themeSelected(
@@ -363,8 +263,8 @@ struct SettingsFeature {
 // MARK: - Settings Category
 
 enum SettingsCategory: String, CaseIterable, Identifiable {
-    case editor = "编辑模式"
-    case appearance = "预览模式"
+    case editor = "编辑器"
+    case appearance = "外观"
     // 未来可扩展：
     // case general = "通用"
     // case shortcuts = "快捷键"
@@ -373,8 +273,8 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
     
     var icon: String {
         switch self {
-        case .editor: return "doc.text"
-        case .appearance: return "paintpalette"
+        case .editor: return "textformat"
+        case .appearance: return "paintbrush"
         }
     }
     
