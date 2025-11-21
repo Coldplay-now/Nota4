@@ -108,18 +108,8 @@ struct MarkdownTextEditor: NSViewRepresentable {
             return
         }
         
-        // 通知 TCA 更新开始（异步调用，避免循环依赖）
-        Task { @MainActor in
-            onUpdateStarted?()
-        }
-        
-        // 使用 defer 确保更新完成后通知 TCA（异步调用，避免循环依赖）
-        // 注意：即使提前 return，defer 也会执行，确保状态一致性
-        defer {
-            Task { @MainActor in
-                onUpdateCompleted?()
-            }
-        }
+        // 注意：onUpdateStarted 和 onUpdateCompleted 已在 textDidChange 中处理
+        // 这里不再需要异步调用，避免时序问题
         
         // 检查样式是否改变
         let stylesChanged = textView.font != font ||
@@ -638,8 +628,17 @@ struct MarkdownTextEditor: NSViewRepresentable {
                 return
             }
             
+            // 立即通知 TCA 开始更新（同步调用，确保标志及时设置）
+            parent.onUpdateStarted?()
+            
+            // 更新内容
             parent.text = textView.string
             parent.onSelectionChange(textView.selectedRange())
+            
+            // 延迟通知更新完成（确保所有状态更新都完成）
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self?.parent.onUpdateCompleted?()
+            }
         }
         
         func textViewDidChangeSelection(_ notification: Notification) {

@@ -1,8 +1,8 @@
 # Nota4 文档中心
 
-> 📚 **最后更新**: 2025-11-21 10:52:18
+> 📚 **最后更新**: 2025-11-21 11:19:34
 > 🏗️ **项目**: Nota4 - 基于 SwiftUI 4.0 + TCA 1.11 的现代化 macOS Markdown 笔记应用
-> 📦 **当前版本**: v1.2
+> 📦 **当前版本**: v1.2.2
 
 ---
 
@@ -101,11 +101,10 @@ Docs/
     ├── ICON_PACKAGING_AND_VERSIONED_IMPORT_FIX.md  # Icon 打包修复和版本化导入标记实施总结
     ├── GATEKEEPER_INSUFFICIENT_CONTEXT_ANALYSIS.md  # Gatekeeper "Insufficient Context" 问题分析
     ├── LOGO_UPDATE_TO_INITIAL_DOCUMENTS.md  # 初始文档 Logo 图片更新记录
-<<<<<<< HEAD
-    └── MARKDOWN_INTERNAL_LINKS_FIX.md  # Markdown 内部链接跳转修复总结
-=======
-    └── EXC_BAD_ACCESS_CRASH_FIX_SUMMARY.md  # EXC_BAD_ACCESS 崩溃修复总结
->>>>>>> 08205b0c67f6ab65d48b96419b72ab5eb9a940d7
+    ├── MARKDOWN_INTERNAL_LINKS_FIX.md  # Markdown 内部链接跳转修复总结
+    ├── EXC_BAD_ACCESS_CRASH_FIX_SUMMARY.md  # EXC_BAD_ACCESS 崩溃修复总结
+    ├── EDITOR_INPUT_INTERFERENCE_ANALYSIS.md  # 编辑器输入干扰问题分析
+    └── EDITOR_INPUT_INTERFERENCE_FIX_SUMMARY.md  # 编辑器输入干扰问题修复总结
 ```
 
 ---

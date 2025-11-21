@@ -486,6 +486,134 @@ Reducer 处理 .saveCompleted
 View 更新（显示保存成功）
 ```
 
+### 5.3 状态更新时序规范
+
+#### 5.3.1 用户输入保护原则
+
+**问题背景**：
+在 SwiftUI + TCA 架构中，用户输入会触发状态更新，状态更新会触发视图重新计算，视图重新计算可能调用 `NSViewRepresentable.updateNSView`。如果 `updateNSView` 在用户输入过程中执行更新操作，会干扰用户输入。
+
+**解决方案**：使用保护标志机制，确保用户输入时视图更新被跳过。
+
+#### 5.3.2 实现模式
+
+**原则 1：用户输入优先**
+
+当用户正在输入时，必须立即设置保护标志，避免视图更新干扰输入。
+
+```swift
+// ✅ 正确实现：在 textDidChange 中立即设置保护标志
+func textDidChange(_ notification: Notification) {
+    guard let textView = notification.object as? NSTextView else { return }
+    
+    // 如果输入法正在输入，不更新状态
+    if textView.hasMarkedText() {
+        return
+    }
+    
+    // ✅ 立即设置保护标志（同步调用）
+    parent.onUpdateStarted?()
+    
+    // 更新状态
+    parent.text = textView.string
+    parent.onSelectionChange(textView.selectedRange())
+    
+    // 延迟清除标志（确保所有状态更新都完成）
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+        self?.parent.onUpdateCompleted?()
+    }
+}
+```
+
+**原则 2：视图更新检查保护标志**
+
+在 `NSViewRepresentable.updateNSView` 中，必须首先检查保护标志。
+
+```swift
+// ✅ 正确实现：在 updateNSView 中首先检查保护标志
+func updateNSView(_ scrollView: NSScrollView, context: Context) {
+    guard let textView = scrollView.documentView as? NSTextView else { return }
+    
+    // ✅ 首先检查保护标志
+    if isEditorUpdating {
+        return  // 立即返回，不执行更新
+    }
+    
+    // 继续更新逻辑（样式检查、边距更新等）...
+}
+```
+
+**原则 3：避免异步设置保护标志**
+
+❌ **错误做法**：
+```swift
+func updateNSView(...) {
+    if isEditorUpdating { return }
+    
+    Task { @MainActor in
+        onUpdateStarted?()  // ⚠️ 异步设置，可能太晚
+    }
+    
+    // 继续执行更新（可能在标志设置之前）
+}
+```
+
+✅ **正确做法**：
+```swift
+func textDidChange(...) {
+    onUpdateStarted?()  // ✅ 同步设置，立即生效
+    // 更新状态...
+}
+```
+
+#### 5.3.3 时序图
+
+**修复后的正确时序**：
+
+```
+t=0ms:  用户输入字符
+t=1ms:  textDidChange() 触发
+t=2ms:  onUpdateStarted?() 同步调用 ✅
+t=3ms:  isEditorUpdating = true ✅ 标志立即设置
+t=4ms:  parent.text = textView.string (更新 @Binding)
+t=5ms:  state.content 更新
+t=6ms:  WithPerceptionTracking 检测到变化
+t=7ms:  updateNSView 被调用
+t=8ms:  检查 isEditorUpdating (true) ✅ 标志已设置
+t=9ms:  立即返回，不执行更新 ✅ 保护生效
+t=110ms: onUpdateCompleted?() 延迟调用，清除标志
+```
+
+#### 5.3.4 输入法兼容性
+
+所有编辑器功能必须检查输入法状态：
+
+```swift
+// ✅ 检查输入法状态
+if textView.hasMarkedText() {
+    return  // 输入法正在输入，不更新状态
+}
+
+// ✅ 输入法输入过程中不改变选中范围
+if !textView.hasMarkedText() {
+    // 更新选中范围...
+}
+```
+
+#### 5.3.5 检查清单
+
+开发编辑器相关功能时，必须检查：
+
+- [ ] 用户输入时是否立即设置保护标志？
+- [ ] 视图更新时是否检查保护标志？
+- [ ] 是否避免异步设置保护标志？
+- [ ] 是否检查输入法状态（`hasMarkedText()`）？
+- [ ] 是否在输入法输入过程中跳过状态更新？
+
+**相关文档**：
+- `Docs/Process/EDITOR_INPUT_INTERFERENCE_FIX_SUMMARY.md` - 详细修复说明
+- `Docs/Process/EDITOR_INPUT_INTERFERENCE_ANALYSIS.md` - 问题分析
+
 ---
 
 ## 6. 数据模型设计
