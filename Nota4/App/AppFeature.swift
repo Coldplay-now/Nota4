@@ -541,8 +541,12 @@ struct AppFeature {
                 return .none
                 
             case .settingsFeature(.presented(.apply)):
-                // 应用设置后更新preferences
-                if let newPrefs = state.settingsFeature?.editorPreferences {
+                // 应用设置后更新preferences（包括 AI 配置）
+                if let settingsState = state.settingsFeature {
+                    var newPrefs = settingsState.editorPreferences
+                    // 确保 AI 配置也被更新
+                    newPrefs.aiConfig = settingsState.aiConfig
+                    print("🔄 [APP] Updating preferences with AI config - apiKey length: \(newPrefs.aiConfig.apiKey.count)")
                     return .send(.preferencesUpdated(newPrefs))
                 }
                 return .none

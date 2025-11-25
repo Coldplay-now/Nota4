@@ -85,6 +85,8 @@ private struct SettingsDetailView: View {
                     EditorSettingsPanel(store: store)
                 case .appearance:
                     AppearanceSettingsPanel(store: store)
+                case .ai:
+                    AISettingsPanel(store: store)
                 }
             }
             .frame(maxWidth: .infinity)

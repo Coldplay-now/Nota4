@@ -89,6 +89,60 @@ struct EditorFeature {
         
         var tagEdit: TagEditState = TagEditState()
         
+        // MARK: - AI Editor State
+        
+        struct AIEditorState: Equatable {
+            var isDialogVisible: Bool = false           // 对话框是否可见
+            var userPrompt: String = ""                 // 用户输入的提示词
+            var isGenerating: Bool = false              // 是否正在生成
+            var generatedContent: String = ""           // 生成的内容（流式追加）
+            var errorMessage: String? = nil             // 错误消息
+            var includeContext: Bool = false            // 是否包含当前笔记内容作为上下文（默认关闭）
+            var showContentPreview: Bool = false        // 是否显示内容预览（开始生成后显示）
+            
+            // MARK: - Computed Properties
+            
+            /// 当前字符数
+            var characterCount: Int {
+                userPrompt.count
+            }
+            
+            /// 最大字符数
+            var maxCharacters: Int {
+                500
+            }
+            
+            /// 是否显示字符计数（≥450时显示）
+            var shouldShowCharacterCount: Bool {
+                characterCount >= 450
+            }
+            
+            /// 字符计数颜色状态
+            enum CharacterCountColorState: Equatable {
+                case normal
+                case warning
+                case danger
+            }
+            
+            /// 字符计数颜色状态
+            var characterCountColorState: CharacterCountColorState {
+                if characterCount >= 496 {
+                    return .danger
+                } else if characterCount >= 481 {
+                    return .warning
+                } else {
+                    return .normal
+                }
+            }
+            
+            /// 提示词是否有效（非空且不超过限制）
+            var isPromptValid: Bool {
+                !userPrompt.isEmpty && characterCount <= maxCharacters
+            }
+        }
+        
+        var aiEditor: AIEditorState = AIEditorState()
+        
         // 从笔记列表搜索传递过来的关键词（用于自动高亮）
         var listSearchKeywords: [String] = []
         
@@ -156,6 +210,19 @@ struct EditorFeature {
         
         // 新增：导出 Actions（转发到 AppFeature）
         case exportCurrentNote(ExportFeature.ExportFormat)
+        
+        // MARK: - AI Editor Actions
+        
+        case showAIEditorDialog                    // 显示对话框
+        case dismissAIEditorDialog                 // 关闭对话框
+        case aiEditorPromptChanged(String)         // 用户输入变化（绑定）
+        case aiEditorIncludeContextChanged(Bool)   // 上下文开关变化（绑定）
+        case generateAIContent                     // 点击生成按钮
+        case aiContentChunkReceived(String)         // 流式输出：接收到内容块
+        case aiContentGenerated(Result<String, Error>)  // AI 内容生成完成（流式结束）
+        case confirmInsertAIContent                // 确认插入内容
+        case cancelInsertAIContent                 // 取消插入（在预览阶段）
+        case retryGenerateContent                  // 重试生成（错误时）
         
         // MARK: - Preview Actions
         
@@ -318,6 +385,7 @@ struct EditorFeature {
     @Dependency(\.date) var date
     @Dependency(\.mainQueue) var mainQueue
     @Dependency(\.markdownRenderer) var markdownRenderer
+    @Dependency(\.llmService) var llmService
     
     // MARK: - Reducer
     
@@ -1627,6 +1695,132 @@ struct EditorFeature {
                 // 设置从笔记列表搜索传递过来的关键词
                 state.listSearchKeywords = keywords
                 return .none
+                
+            // MARK: - AI Editor Actions
+            
+            case .showAIEditorDialog:
+                state.aiEditor.isDialogVisible = true
+                state.aiEditor.userPrompt = ""
+                state.aiEditor.generatedContent = ""
+                state.aiEditor.errorMessage = nil
+                state.aiEditor.showContentPreview = false
+                return .none
+                
+            case .dismissAIEditorDialog:
+                state.aiEditor.isDialogVisible = false
+                // 重置状态
+                state.aiEditor = State.AIEditorState()
+                return .none
+                
+            case .aiEditorPromptChanged(let prompt):
+                // 字符限制：500 字符（在 Reducer 中处理，确保一致性）
+                let trimmedPrompt = prompt.count > state.aiEditor.maxCharacters 
+                    ? String(prompt.prefix(state.aiEditor.maxCharacters)) 
+                    : prompt
+                state.aiEditor.userPrompt = trimmedPrompt
+                return .none
+                
+            case .aiEditorIncludeContextChanged(let include):
+                state.aiEditor.includeContext = include
+                return .none
+                
+            case .generateAIContent:
+                // 验证输入（使用计算属性）
+                guard state.aiEditor.isPromptValid else {
+                    return .none
+                }
+                
+                // 重置状态
+                state.aiEditor.isGenerating = true
+                state.aiEditor.generatedContent = ""
+                state.aiEditor.errorMessage = nil
+                state.aiEditor.showContentPreview = true
+                
+                return .run { [prompt = state.aiEditor.userPrompt, includeContext = state.aiEditor.includeContext, content = state.content] send in
+                    // 加载配置
+                    let prefs = await PreferencesStorage.shared.load()
+                    
+                    // 验证配置
+                    guard !prefs.aiConfig.apiKey.isEmpty else {
+                        await send(.aiContentGenerated(.failure(LLMServiceError.missingApiKey)))
+                        return
+                    }
+                    
+                    // 获取上下文（如果需要）
+                    let context: String? = includeContext ? (content.isEmpty ? nil : String(content.prefix(1000))) : nil
+                    
+                    // 调用 LLM Service
+                    let stream = llmService.generateContentStream(
+                        systemPrompt: prefs.aiConfig.systemPrompt,
+                        userPrompt: prompt,
+                        context: context,
+                        config: prefs.aiConfig
+                    )
+                    
+                    // 处理流式响应
+                    do {
+                        for try await chunk in stream {
+                            await send(.aiContentChunkReceived(chunk))
+                        }
+                        // 流式结束，发送成功结果
+                        // 注意：generatedContent 已经在 aiContentChunkReceived 中累积
+                        await send(.aiContentGenerated(.success(""))) // 空字符串，因为内容已经通过 chunk 累积
+                    } catch {
+                        await send(.aiContentGenerated(.failure(error)))
+                    }
+                }
+                
+            case .aiContentChunkReceived(let chunk):
+                state.aiEditor.generatedContent += chunk
+                return .none
+                
+            case .aiContentGenerated(.success):
+                state.aiEditor.isGenerating = false
+                return .none
+                
+            case .aiContentGenerated(.failure(let error)):
+                state.aiEditor.isGenerating = false
+                state.aiEditor.errorMessage = error.localizedDescription
+                return .none
+                
+            case .confirmInsertAIContent:
+                guard !state.aiEditor.generatedContent.isEmpty else {
+                    return .none
+                }
+                
+                // 构建插入内容（带标记）
+                let contentToInsert = """
+                
+                
+                <!-- AI生成内容开始 -->
+                
+                \(state.aiEditor.generatedContent)
+                
+                <!-- AI生成内容结束 -->
+                
+                
+                """
+                
+                // 追加到编辑器末尾
+                let newContent = state.content + contentToInsert
+                state.content = newContent
+                
+                // 关闭对话框
+                state.aiEditor.isDialogVisible = false
+                state.aiEditor = State.AIEditorState()
+                
+                // 触发自动保存
+                return .send(.autoSave)
+                
+            case .cancelInsertAIContent:
+                state.aiEditor.showContentPreview = false
+                state.aiEditor.generatedContent = ""
+                return .none
+                
+            case .retryGenerateContent:
+                // 清除错误，重新生成
+                state.aiEditor.errorMessage = nil
+                return .send(.generateAIContent)
             }
         }
     }

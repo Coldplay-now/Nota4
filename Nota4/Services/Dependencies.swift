@@ -58,6 +58,20 @@ private enum MarkdownRendererKey: DependencyKey {
     static let testValue: MarkdownRenderer = MarkdownRenderer()
 }
 
+// MARK: - LLMService Dependency
+
+extension DependencyValues {
+    var llmService: LLMServiceProtocol {
+        get { self[LLMServiceKey.self] }
+        set { self[LLMServiceKey.self] = newValue }
+    }
+}
+
+private enum LLMServiceKey: DependencyKey {
+    static let liveValue: LLMServiceProtocol = LLMService.shared
+    static let testValue: LLMServiceProtocol = LLMService.mock
+}
+
 // MARK: - Protocol Definitions
 
 protocol NoteRepositoryProtocol {

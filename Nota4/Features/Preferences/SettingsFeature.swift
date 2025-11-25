@@ -11,9 +11,15 @@ struct SettingsFeature {
         var originalEditorPreferences: EditorPreferences
         var theme: ThemeState = ThemeState()
         
+        // MARK: - AI 配置状态
+        var aiConfig: EditorPreferences.AIConfig
+        var originalAiConfig: EditorPreferences.AIConfig
+        
         init(editorPreferences: EditorPreferences) {
             self.editorPreferences = editorPreferences
             self.originalEditorPreferences = editorPreferences
+            self.aiConfig = editorPreferences.aiConfig
+            self.originalAiConfig = editorPreferences.aiConfig
         }
     }
     
@@ -75,6 +81,12 @@ struct SettingsFeature {
         // MARK: - Code Highlight Actions
         case codeHighlightModeChanged(EditorPreferences.CodeHighlightMode)
         case codeHighlightThemeChanged(CodeTheme)
+        
+        // MARK: - AI Config Actions
+        case aiEndpointChanged(String)
+        case aiApiKeyChanged(String)
+        case aiModelChanged(String)
+        case aiSystemPromptChanged(String)
         
         // Theme actions
         case theme(ThemeAction)
@@ -149,11 +161,25 @@ struct SettingsFeature {
                 
             case .apply:
                 print("⚙️ [SETTINGS] Applying settings")
-                return .none
+                return .run { [state] send in
+                    var prefs = state.editorPreferences
+                    // 保存主题设置
+                    prefs.previewThemeId = state.theme.currentThemeId
+                    // 保存 AI 配置（确保 API Key 也被保存）
+                    prefs.aiConfig = state.aiConfig
+                    print("💾 [SETTINGS] Saving AI config - endpoint: \(prefs.aiConfig.endpoint), model: \(prefs.aiConfig.model), apiKey length: \(prefs.aiConfig.apiKey.count)")
+                    try await PreferencesStorage.shared.save(prefs)
+                    // 验证保存是否成功
+                    let savedPrefs = await PreferencesStorage.shared.load()
+                    print("✅ [SETTINGS] Saved AI config - endpoint: \(savedPrefs.aiConfig.endpoint), model: \(savedPrefs.aiConfig.model), apiKey length: \(savedPrefs.aiConfig.apiKey.count)")
+                    await send(.dismiss)
+                }
                 
             case .cancel:
                 print("⚙️ [SETTINGS] Canceling, restoring original settings")
                 state.editorPreferences = state.originalEditorPreferences
+                state.theme.currentThemeId = state.originalEditorPreferences.previewThemeId
+                state.aiConfig = state.originalAiConfig
                 return .send(.dismiss)
                 
             case .dismiss:
@@ -227,6 +253,24 @@ struct SettingsFeature {
                 
             case .codeHighlightThemeChanged(let theme):
                 state.editorPreferences.codeHighlightTheme = theme
+                return .none
+            
+            // MARK: - AI Config Actions
+            
+            case .aiEndpointChanged(let endpoint):
+                state.aiConfig.endpoint = endpoint
+                return .none
+                
+            case .aiApiKeyChanged(let apiKey):
+                state.aiConfig.apiKey = apiKey
+                return .none
+                
+            case .aiModelChanged(let model):
+                state.aiConfig.model = model
+                return .none
+                
+            case .aiSystemPromptChanged(let prompt):
+                state.aiConfig.systemPrompt = prompt
                 return .none
             
             // MARK: - Theme Actions
@@ -359,6 +403,7 @@ struct SettingsFeature {
 enum SettingsCategory: String, CaseIterable, Identifiable {
     case editor = "编辑器"
     case appearance = "外观"
+    case ai = "AI 助手"
     // 未来可扩展：
     // case general = "通用"
     // case shortcuts = "快捷键"
@@ -369,6 +414,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         switch self {
         case .editor: return "textformat"
         case .appearance: return "paintbrush"
+        case .ai: return "sparkles"
         }
     }
     
@@ -376,6 +422,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
         switch self {
         case .editor: return "字体、排版和布局设置"
         case .appearance: return "主题和预览样式设置"
+        case .ai: return "LLM API 配置和系统提示词设置"
         }
     }
 }

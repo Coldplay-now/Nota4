@@ -44,12 +44,25 @@ struct IndependentToolbar: View {
                     
                     if availableWidth > 550 {
                         Divider()
-                            .frame(height: 20)
+                        .frame(height: 20)
                         
                         InsertButtonGroup(store: store)
                         
                         Divider()
-                            .frame(height: 20)
+                        .frame(height: 20)
+                        
+                        // AI 编辑按钮
+                        NoteListToolbarButton(
+                            title: "AI 编辑",
+                            icon: "sparkles",
+                            shortcut: nil,
+                            isEnabled: store.note != nil
+                        ) {
+                            store.send(.showAIEditorDialog)
+                        }
+                        
+                        Divider()
+                        .frame(height: 20)
                         
                         TableMenu(store: store)
                     }

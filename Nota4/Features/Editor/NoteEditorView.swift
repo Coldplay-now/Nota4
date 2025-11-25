@@ -171,6 +171,12 @@ struct NoteEditorView: View {
             )) {
                 TagEditPanel(store: store)
             }
+            .sheet(isPresented: Binding(
+                get: { store.aiEditor.isDialogVisible },
+                set: { if !$0 { store.send(.dismissAIEditorDialog) } }
+            )) {
+                AIEditorDialog(store: store)
+            }
             .onChange(of: store.showImagePicker) { oldValue, newValue in
                 if newValue {
                     showImagePicker(store: store)

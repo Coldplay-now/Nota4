@@ -610,4 +610,152 @@ final class EditorFeatureTests: XCTestCase {
         let shouldBeDisabled = store.state.note == nil
         XCTAssertTrue(shouldBeDisabled, "Toggle star should be disabled when no note is loaded")
     }
+    
+    // MARK: - AI Editor Tests
+    
+    func testShowAIEditorDialog() async {
+        var initialState = EditorFeature.State()
+        let testNote = Note(noteId: "test", title: "Test", content: "Content")
+        initialState.note = testNote
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        } withDependencies: {
+            $0.llmService = LLMService.mock
+        }
+        
+        await store.send(.showAIEditorDialog) {
+            $0.aiEditor.isDialogVisible = true
+            $0.aiEditor.userPrompt = ""
+            $0.aiEditor.generatedContent = ""
+            $0.aiEditor.errorMessage = nil
+            $0.aiEditor.showContentPreview = false
+        }
+    }
+    
+    func testDismissAIEditorDialog() async {
+        var initialState = EditorFeature.State()
+        let testNote = Note(noteId: "test", title: "Test", content: "Content")
+        initialState.note = testNote
+        initialState.aiEditor.isDialogVisible = true
+        initialState.aiEditor.userPrompt = "Test prompt"
+        initialState.aiEditor.generatedContent = "Generated content"
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        }
+        
+        await store.send(.dismissAIEditorDialog) {
+            $0.aiEditor.isDialogVisible = false
+            $0.aiEditor = EditorFeature.State.AIEditorState()
+        }
+    }
+    
+    func testAIEditorPromptChanged() async {
+        var initialState = EditorFeature.State()
+        let testNote = Note(noteId: "test", title: "Test", content: "Content")
+        initialState.note = testNote
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        }
+        
+        await store.send(.aiEditorPromptChanged("New prompt")) {
+            $0.aiEditor.userPrompt = "New prompt"
+        }
+    }
+    
+    func testAIEditorIncludeContextChanged() async {
+        var initialState = EditorFeature.State()
+        let testNote = Note(noteId: "test", title: "Test", content: "Content")
+        initialState.note = testNote
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        }
+        
+        await store.send(.aiEditorIncludeContextChanged(true)) {
+            $0.aiEditor.includeContext = true
+        }
+    }
+    
+    func testAIContentChunkReceived() async {
+        var initialState = EditorFeature.State()
+        let testNote = Note(noteId: "test", title: "Test", content: "Content")
+        initialState.note = testNote
+        initialState.aiEditor.generatedContent = "Existing"
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        }
+        
+        await store.send(.aiContentChunkReceived(" chunk")) {
+            $0.aiEditor.generatedContent = "Existing chunk"
+        }
+    }
+    
+    func testConfirmInsertAIContent() async {
+        var initialState = EditorFeature.State()
+        let testNote = Note(noteId: "test", title: "Test", content: "Original content")
+        initialState.note = testNote
+        initialState.content = "Original content"
+        initialState.aiEditor.generatedContent = "AI Generated Content"
+        initialState.aiEditor.isDialogVisible = true
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        } withDependencies: {
+            $0.noteRepository = NoteRepository.mock
+            $0.notaFileManager = NotaFileManager.mock
+        }
+        
+        store.exhaustivity = .off
+        
+        await store.send(.confirmInsertAIContent) {
+            $0.content = "Original content\n\n\n<!-- AI生成内容开始 -->\n\nAI Generated Content\n\n<!-- AI生成内容结束 -->\n\n\n"
+            $0.aiEditor.isDialogVisible = false
+            $0.aiEditor = EditorFeature.State.AIEditorState()
+        }
+    }
+    
+    func testCancelInsertAIContent() async {
+        var initialState = EditorFeature.State()
+        let testNote = Note(noteId: "test", title: "Test", content: "Content")
+        initialState.note = testNote
+        initialState.aiEditor.showContentPreview = true
+        initialState.aiEditor.generatedContent = "Generated content"
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        }
+        
+        await store.send(.cancelInsertAIContent) {
+            $0.aiEditor.showContentPreview = false
+            $0.aiEditor.generatedContent = ""
+        }
+    }
+    
+    func testRetryGenerateContent() async {
+        var initialState = EditorFeature.State()
+        let testNote = Note(noteId: "test", title: "Test", content: "Content")
+        initialState.note = testNote
+        initialState.aiEditor.userPrompt = "Test prompt"
+        initialState.aiEditor.errorMessage = "Some error"
+        
+        let store = TestStore(initialState: initialState) {
+            EditorFeature()
+        } withDependencies: {
+            $0.llmService = LLMService.mock
+        }
+        
+        store.exhaustivity = .off
+        
+        // Retry should clear error and trigger generation
+        await store.send(.retryGenerateContent) {
+            $0.aiEditor.errorMessage = nil
+            $0.aiEditor.isGenerating = true
+            $0.aiEditor.generatedContent = ""
+            $0.aiEditor.showContentPreview = true
+        }
+    }
 }

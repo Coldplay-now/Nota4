@@ -44,6 +44,11 @@ struct EditorPreferences: Codable, Equatable {
     /// 代码高亮设置模式
     var codeHighlightMode: CodeHighlightMode = .followTheme
     
+    // MARK: - AI 配置
+    
+    /// AI 配置
+    var aiConfig: AIConfig = AIConfig()
+    
     // MARK: - Nested Types
     
     /// 字体设置
@@ -75,6 +80,25 @@ struct EditorPreferences: Codable, Equatable {
     enum CodeHighlightMode: String, Codable, Equatable {
         case followTheme = "跟随主题"      // 使用主题的代码高亮设置
         case custom = "自定义"            // 使用自定义代码高亮主题
+    }
+    
+    /// AI 配置
+    struct AIConfig: Codable, Equatable {
+        var endpoint: String = "https://api.deepseek.com/v1/chat/completions"
+        var apiKey: String = ""
+        var model: String = "deepseek-chat"
+        var systemPrompt: String = """
+        你是一个专业的 Markdown 笔记助手。你的任务是帮助用户生成、改写和优化 Markdown 格式的笔记内容。
+
+        要求：
+        1. 输出内容必须是有效的 Markdown 格式
+        2. 保持内容简洁、清晰、有条理
+        3. 根据用户需求生成合适的内容结构
+        4. 如果用户要求改写，保持原意但优化表达
+        5. 如果用户要求翻译，保持 Markdown 格式不变
+
+        请直接输出内容，不要添加额外的说明或注释。
+        """
     }
 }
 
