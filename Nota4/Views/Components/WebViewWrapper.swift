@@ -67,60 +67,9 @@ struct WebViewWrapper: NSViewRepresentable {
                                       urlString.hasPrefix("about:blank#") ||
                                       (url.fragment != nil && (url.scheme == nil || url.scheme == "about" || url.scheme == "file"))
                 
-                // 如果是内部锚点链接，允许在 WebView 内导航
+                // 如果是内部锚点链接，让 WebView 使用原生的锚点导航
                 if isInternalAnchor {
-                    // 使用 JavaScript 处理锚点跳转，确保平滑滚动
-                    if let fragment = url.fragment {
-                        // 转义 fragment 中的特殊字符，防止 JavaScript 注入
-                        let escapedFragment = fragment
-                            .replacingOccurrences(of: "\\", with: "\\\\")
-                            .replacingOccurrences(of: "'", with: "\\'")
-                            .replacingOccurrences(of: "\"", with: "\\\"")
-                        
-                        let script = """
-                        (function() {
-                            const fragment = '\(escapedFragment)';
-                            const element = document.getElementById(fragment);
-                            
-                            if (element) {
-                                // 计算偏移量，确保标题不被工具栏遮挡
-                                const offset = 20;
-                                const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
-                                const offsetPosition = elementPosition - offset;
-                                
-                                // 平滑滚动到目标位置
-                                window.scrollTo({
-                                    top: offsetPosition,
-                                    behavior: 'smooth'
-                                });
-                                
-                                // 更新 URL hash，但不触发导航
-                                if (window.history && window.history.replaceState) {
-                                    window.history.replaceState(null, null, '#' + fragment);
-                                }
-                                
-                                // 高亮目标元素（可选，提供视觉反馈）
-                                const originalBg = element.style.backgroundColor;
-                                element.style.backgroundColor = 'rgba(0, 122, 255, 0.1)';
-                                element.style.transition = 'background-color 0.3s';
-                                
-                                setTimeout(() => {
-                                    element.style.backgroundColor = originalBg || '';
-                                }, 2000);
-                            } else {
-                                // 元素不存在，记录警告（开发时有用）
-                                console.warn('Anchor link target not found: #' + fragment);
-                            }
-                        })();
-                        """
-                        webView.evaluateJavaScript(script, completionHandler: { result, error in
-                            if let error = error {
-                                print("⚠️ [WebView] Failed to scroll to anchor: \(error.localizedDescription)")
-                            }
-                        })
-                    }
-                    // 取消导航，因为我们用 JavaScript 处理了
-                    decisionHandler(.cancel)
+                    decisionHandler(.allow)
                     return
                 }
                 

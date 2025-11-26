@@ -800,6 +800,24 @@ struct MarkdownFormatter {
         )
     }
     
+    /// 插入 TOC 目录标记
+    static func insertTOC(
+        text: String,
+        selection: NSRange
+    ) -> (newText: String, newSelection: NSRange) {
+        // 在光标位置插入：换行 + [TOC] + 换行
+        let insertion = "\n[TOC]\n"
+        let mutableText = NSMutableString(string: text)
+        mutableText.insert(insertion, at: selection.location)
+        
+        // 光标定位到 [TOC] 后
+        let newLocation = selection.location + insertion.count
+        return (
+            newText: mutableText as String,
+            newSelection: NSRange(location: newLocation, length: 0)
+        )
+    }
+    
     /// 格式化删除线
     static func formatStrikethrough(
         text: String,

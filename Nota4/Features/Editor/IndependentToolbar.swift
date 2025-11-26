@@ -165,6 +165,10 @@ struct MoreMenu: View {
                         store.send(.showAttachmentPicker)
                     }
                     .keyboardShortcut("a", modifiers: [.command, .shift])
+                    
+                    Button("插入目录", systemImage: "list.bullet.rectangle") {
+                        store.send(.insertTOC)
+                    }
                 }
                 
                 Divider()

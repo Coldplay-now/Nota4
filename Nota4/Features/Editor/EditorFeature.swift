@@ -267,6 +267,7 @@ struct EditorFeature {
         case insertTable(columns: Int, rows: Int)
         case insertBlockquote
         case insertHorizontalRule
+        case insertTOC  // 插入 TOC 目录标记
         case formatStrikethrough
         case formatUnderline
         case insertFootnote(footnoteNumber: Int)
@@ -1131,6 +1132,16 @@ struct EditorFeature {
             case .insertHorizontalRule:
                 guard state.note != nil else { return .none }
                 let result = MarkdownFormatter.insertHorizontalRule(
+                    text: state.content,
+                    selection: state.selectionRange
+                )
+                state.content = result.newText
+                state.selectionRange = result.newSelection
+                return .send(.manualSave)
+                
+            case .insertTOC:
+                guard state.note != nil else { return .none }
+                let result = MarkdownFormatter.insertTOC(
                     text: state.content,
                     selection: state.selectionRange
                 )
